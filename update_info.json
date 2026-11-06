@@ -1,7 +1,7 @@
 {
   "name": "outlookImageHelper",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-  "changelog": "Wersja 1.6.1:\n• Poprawka wywoływania menu czynności dla grafiki (Shift+F10 oraz klawisz Aplikacje) po nawigacji klawiszem G i Shift+G w treści maila.\n• Niezawodne przekazywanie menu kontekstowego do programu Outlook podczas czytania tekstu wiadomości.\n• Dodano opcję 'Podziel się dodatkiem ze znajomymi...' w ustawieniach zaawansowanych.\n• Zaktualizowana instrukcja konfiguracji klucza OpenAI obok Google Gemini.",
+  "changelog": "Wersja 1.6.2:\n• Usunięto problematyczną opcję podmiany grafik w samej treści wiadomości (występującą w chronionych e-mailach WordMail). Bezpieczne oglądanie w negatywie (P / I) oraz podgląd powiększony pozostają w pełni dostępne.\n• Usprawniono wykrywanie zaznaczenia wielu wiadomości w programie Outlook przy skrócie Ctrl+NVDA+A oraz skrótach OCR i AI.",
   "minNVDAVersion": "2024.1.0"
 }

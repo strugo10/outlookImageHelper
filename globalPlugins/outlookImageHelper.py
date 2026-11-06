@@ -77,7 +77,7 @@ ADDON_BUILD_ID = "20261106.1"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.1"
+ADDON_VERSION = "1.6.2"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -3213,41 +3213,78 @@ def getSelectedMessagesInfo() -> tuple[int, object | None, bool]:
 	focus = api.getFocusObject()
 	if not focus:
 		return 0, None, False
+
+	# Jeśli fokus jest w edytorze treści otwartej wiadomości (WordMail), dotyczy pojedynczej wiadomości
+	if isMessageBodyFocused(focus):
+		return 1, None, False
+
 	appMod = getattr(focus, "appModule", None)
 	nativeOm = getattr(appMod, "nativeOm", None) or getOutlookApp()
-	if not nativeOm:
-		return 0, None, False
-	try:
-		activeWin = None
+
+	sel = None
+	cnt = 0
+
+	if nativeOm:
 		try:
-			activeWin = nativeOm.ActiveWindow()
+			exp = None
+			for attr in ("activeExplorer", "ActiveExplorer"):
+				fn = getattr(nativeOm, attr, None)
+				if fn:
+					try:
+						exp = fn() if callable(fn) else fn
+						if exp:
+							break
+					except Exception:
+						pass
+
+			if exp:
+				for attr in ("selection", "Selection"):
+					s = getattr(exp, attr, None)
+					if s is not None:
+						sel = s() if callable(s) else s
+						if sel is not None:
+							break
+
+				if sel is not None:
+					for attr in ("count", "Count"):
+						c = getattr(sel, attr, None)
+						if c is not None:
+							try:
+								cnt = int(c() if callable(c) else c)
+								break
+							except Exception:
+								pass
+					if cnt == 0:
+						try:
+							cnt = len(sel)
+						except Exception:
+							pass
+		except Exception as ex:
+			log.debug(f"outlookImageHelper: getSelectedMessagesInfo explorer selection error: {ex}")
+
+	# Fallback: UIA Selection Pattern na liście / tabeli wiadomości
+	if cnt <= 1 and focus:
+		try:
+			parentList = focus
+			for _ in range(3):
+				if not parentList:
+					break
+				role = getattr(parentList, "role", None)
+				if role in (controlTypes.Role.LIST, controlTypes.Role.TABLE, controlTypes.Role.TREEVIEW):
+					break
+				parentList = getattr(parentList, "parent", None)
+			if parentList and hasattr(parentList, "UIASelectionPattern"):
+				selItems = parentList.UIASelectionPattern.GetSelection()
+				if selItems and len(selItems) > 1:
+					cnt = len(selItems)
 		except Exception:
 			pass
-		if activeWin and hasattr(activeWin, "CurrentItem"):
-			return 1, None, False
-		if not activeWin:
-			try:
-				activeWin = getattr(nativeOm, "ActiveExplorer", lambda: None)()
-			except Exception:
-				pass
-		if activeWin and hasattr(activeWin, "Selection"):
-			sel = activeWin.Selection
-			cnt = int(getattr(sel, "Count", 0)) if sel else 0
-			if cnt > 1:
-				return cnt, sel, True
-			elif cnt == 1:
-				return 1, sel, False
 
-		actExp = getattr(nativeOm, "ActiveExplorer", lambda: None)()
-		if actExp and hasattr(actExp, "Selection"):
-			sel = actExp.Selection
-			cnt = int(getattr(sel, "Count", 0)) if sel else 0
-			if cnt > 1:
-				return cnt, sel, True
-			elif cnt == 1:
-				return 1, sel, False
-	except Exception:
-		pass
+	if cnt > 1:
+		return cnt, sel, True
+	elif cnt == 1:
+		return 1, sel, False
+
 	return 0, None, False
 
 
@@ -3261,11 +3298,37 @@ def handleMultipleMessagesSelected(count: int, sel, action: str = "list") -> boo
 		try:
 			limit = min(count, 50)
 			for i in range(1, limit + 1):
-				it = sel.Item(i)
-				if int(getattr(getattr(it, "Attachments", None), "Count", 0)) > 0:
-					attMsgs += 1
-		except Exception:
-			pass
+				it = None
+				for itName in ("item", "Item"):
+					itFn = getattr(sel, itName, None)
+					if itFn:
+						try:
+							it = itFn(i)
+							break
+						except Exception:
+							pass
+				if not it and sel:
+					try:
+						it = sel[i - 1]
+					except Exception:
+						pass
+
+				if it:
+					atts = getattr(it, "attachments", getattr(it, "Attachments", None))
+					attCount = 0
+					if atts:
+						for cName in ("count", "Count"):
+							cVal = getattr(atts, cName, None)
+							if cVal is not None:
+								try:
+									attCount = int(cVal() if callable(cVal) else cVal)
+									break
+								except Exception:
+									pass
+					if attCount > 0:
+						attMsgs += 1
+		except Exception as ex:
+			log.debug(f"outlookImageHelper: handleMultipleMessagesSelected error: {ex}")
 
 	playAlertSound("image_alert", volume=70, context="Powiadomienie o zaznaczeniu wielu wiadomości")
 	if action == "list":
@@ -9893,7 +9956,6 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 	idOcr = wx.NewIdRef()
 	idPreview = wx.NewIdRef()
 	idInvertToggle = wx.NewIdRef()
-	idInvertEmail = wx.NewIdRef()
 	idAiQuick = wx.NewIdRef()
 	idAiPrompt = wx.NewIdRef()
 	idAiChat = wx.NewIdRef()
@@ -9921,7 +9983,6 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		menu.Append(idPreview, _T("menu_preview"))
 		invLabel = "Wyłącz inwersję kolorów (standardowe barwy)\tI" if getattr(item, "isInverted", False) else _T("menu_invert_toggle")
 		menu.Append(idInvertToggle, invLabel)
-		menu.Append(idInvertEmail, _T("menu_invert_email"))
 		menu.AppendSeparator()
 
 		menu.Append(idRename, _T("menu_rename"))
@@ -10064,14 +10125,6 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		if callbackRefresh:
 			callbackRefresh()
 	parentWin.Bind(wx.EVT_MENU, onInvertToggle, id=idInvertToggle)
-
-	def onInvertEmail(evt):
-		if not ensureGraphicReady(item, parent=parentWin, actionName="inwersji kolorów"):
-			return
-		replaceGraphicInEmailWithInverted(item, parentDialog=parent if isinstance(parent, wx.Dialog) else None)
-		if callbackRefresh:
-			callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, onInvertEmail, id=idInvertEmail)
 
 	def onInstructions(evt):
 		showBlockedImageInstructionsDialog(parentWin, item)
