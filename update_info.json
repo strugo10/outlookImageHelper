@@ -1,7 +1,7 @@
 {
   "name": "outlookImageHelper",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-  "changelog": "Wersja 1.6.2:\n• Usunięto problematyczną opcję podmiany grafik w samej treści wiadomości (występującą w chronionych e-mailach WordMail). Bezpieczne oglądanie w negatywie (P / I) oraz podgląd powiększony pozostają w pełni dostępne.\n• Usprawniono wykrywanie zaznaczenia wielu wiadomości w programie Outlook przy skrócie Ctrl+NVDA+A oraz skrótach OCR i AI.",
+  "changelog": "Wersja 1.6.3:\n• W oknie Narzędzi twórcy zaktualizowano źródło aktualizacji na oficjalne repozytorium GitHub i dodano przycisk przywracania adresu.\n• Przycisk testowania dźwięków odtwarza teraz kolejno wszystkie dźwięki dodatku (obraz, link, separator, ikony społecznościowe, e-mail, telefon).\n• Przycisk 'Raport diagnostyczny' przemianowano na 'Kontakt z twórcą i zgłaszanie uwag (GitHub)...' oraz dodano przycisk bezpośredniego przejścia do zgłoszeń na GitHubie.",
   "minNVDAVersion": "2024.1.0"
 }

@@ -77,7 +77,7 @@ ADDON_BUILD_ID = "20261106.1"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.2"
+ADDON_VERSION = "1.6.3"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -403,7 +403,7 @@ STRINGS = {
 		"set_test_volume": "&Przetestuj dźwięk i głośność",
 		"set_sound_coord_detected": "Koordynacja dźwięków: Wykryto dodatek Outlook Speech Filter — dźwięki obecności grafik na liście są koordynowane, aby zapobiec duplikacji.",
 		"set_sound_coord_standalone": "Koordynacja dźwięków: Outlook Speech Filter nie jest aktywny — dźwięki są w pełni kontrolowane przez Pomocnika obrazów.",
-		"set_btn_diagnostics": "&Raport diagnostyczny i stan dodatku...",
+		"set_btn_diagnostics": "&Kontakt z twórcą i zgłaszanie uwag (GitHub)...",
 		"set_ai_provider": "&Dostawca sztucznej inteligencji (AI):",
 		"ai_prov_gemini": "Google Gemini (zalecany, darmowy)",
 		"ai_prov_openai": "OpenAI / ChatGPT (GPT-4o, GPT-4o-mini)",
@@ -625,7 +625,7 @@ STRINGS = {
 		"set_test_volume": "&Test sound and volume",
 		"set_sound_coord_detected": "Sound coordination: Outlook Speech Filter detected — list image sounds are coordinated to prevent duplicates.",
 		"set_sound_coord_standalone": "Sound coordination: Outlook Speech Filter is not active — sounds are handled independently.",
-		"set_btn_diagnostics": "&Diagnostic report & add-on status...",
+		"set_btn_diagnostics": "&Contact author & feedback (GitHub)...",
 		"set_ai_provider": "&AI Provider:",
 		"ai_prov_gemini": "Google Gemini (recommended, free tier)",
 		"ai_prov_openai": "OpenAI / ChatGPT (GPT-4o, GPT-4o-mini)",
@@ -3516,10 +3516,10 @@ def _get_scaled_sound_path(sound_name_or_path: str, volume: int | None = None) -
 		return orig_path
 
 
-def playAlertSound(soundName: str = "image_alert", volume: int | None = None, context: str = ""):
+def playAlertSound(soundName: str = "image_alert", volume: int | None = None, context: str = "", force: bool = False):
 	"""Odtwarza dźwięk alertu lub nawigacji z uwzględnieniem skalowania głośności oraz bufora zdarzeń."""
 	sec = config.conf.get(CONFIG_SECTION, {})
-	if not _to_bool(sec.get("playSound", True), default=True):
+	if not force and not _to_bool(sec.get("playSound", True), default=True):
 		_log_sound_event(soundName, 0, context, "Zablokowano (opcja odtwarzania dźwięków wyłączona)")
 		return
 
@@ -3883,28 +3883,42 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 
 
 class DiagnosticReportDialog(wx.Dialog):
-	"""Okno dialogowe generowania, podglądu i zapisu raportu diagnostycznego."""
+	"""Okno dialogowe kontaktu z twórcą, zgłaszania problemów (GitHub Issues) oraz raportu diagnostycznego."""
 
 	def __init__(self, parent=None):
 		super().__init__(
 			parent,
-			title="Raport diagnostyczny i stan dodatku - Outlook Image Helper",
+			title="Kontakt z twórcą i zgłaszanie uwag (GitHub) - Outlook Image Helper",
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
-			size=(620, 500)
+			size=(680, 520)
 		)
 		self.reportContent = ""
 		mainSizer = wx.BoxSizer(wx.VERTICAL)
 
 		introLabel = wx.StaticText(
 			self,
-			label="Ten moduł tworzy kompleksowy raport techniczny o stanie systemu, programu Outlook, "
-			      "plików audio, koordynacji dźwięków oraz ustawień dodatku. Raport nie zawiera treści prywatnych maili ani haseł."
+			label="Ten moduł umożliwia bezpośredni kontakt z twórcą dodatku, zgłaszanie problemów technicznych, "
+			      "propozycji nowych funkcji oraz przesyłanie opinii w oficjalnym serwisie GitHub (GitHub Issues).\n\n"
+			      "Możesz otworzyć formularz zgłoszeń w przeglądarce internetowej oraz jednym kliknięciem skopiować "
+			      "bezpieczny raport diagnostyczny (konfiguracja i wersje bez treści wiadomości czy haseł), aby wkleić go do zgłoszenia."
 		)
-		introLabel.Wrap(580)
+		introLabel.Wrap(640)
 		mainSizer.Add(introLabel, flag=wx.ALL, border=10)
 
+		# Sekcja przycisków głównych kontaktu
+		actionBox = wx.BoxSizer(wx.HORIZONTAL)
+		self.btnGitHub = wx.Button(self, label="&Otwórz stronę zgłoszeń na GitHubie (GitHub Issues)...")
+		self.btnGitHub.Bind(wx.EVT_BUTTON, self.onOpenGitHubIssues)
+		actionBox.Add(self.btnGitHub, flag=wx.RIGHT, border=10)
+
+		self.copyBtn = wx.Button(self, label="&Kopiuj raport diagnostyczny do schowka")
+		self.copyBtn.Bind(wx.EVT_BUTTON, self.onCopyReport)
+		actionBox.Add(self.copyBtn)
+		mainSizer.Add(actionBox, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+
+		# Sekcja szczegółowości raportu
 		lvlBox = wx.BoxSizer(wx.HORIZONTAL)
-		lvlLabel = wx.StaticText(self, label="Poziom szczegółowości raportu:")
+		lvlLabel = wx.StaticText(self, label="Szczegółowość raportu diagnostycznego:")
 		lvlBox.Add(lvlLabel, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=10)
 
 		self.rbBasic = wx.RadioButton(self, label="&Podstawowy (konfiguracja i audio)", style=wx.RB_GROUP)
@@ -3918,17 +3932,13 @@ class DiagnosticReportDialog(wx.Dialog):
 
 		mainSizer.Add(lvlBox, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
 
+		# Sekcja podglądu i zapisu
 		btnBox = wx.BoxSizer(wx.HORIZONTAL)
-
-		self.copyBtn = wx.Button(self, label="&Kopiuj raport do schowka")
-		self.copyBtn.Bind(wx.EVT_BUTTON, self.onCopyReport)
-		btnBox.Add(self.copyBtn, flag=wx.RIGHT, border=10)
-
 		self.viewBtn = wx.Button(self, label="&Podgląd raportu...")
 		self.viewBtn.Bind(wx.EVT_BUTTON, self.onViewReport)
 		btnBox.Add(self.viewBtn, flag=wx.RIGHT, border=10)
 
-		self.saveBtn = wx.Button(self, label="&Zapisz raport (Panel i Pulpit)")
+		self.saveBtn = wx.Button(self, label="&Zapisz raport na Pulpicie...")
 		self.saveBtn.Bind(wx.EVT_BUTTON, self.onSaveReport)
 		btnBox.Add(self.saveBtn)
 
@@ -3942,6 +3952,9 @@ class DiagnosticReportDialog(wx.Dialog):
 		self.SetSizer(mainSizer)
 		self.Layout()
 		self.CentreOnParent()
+
+	def onOpenGitHubIssues(self, evt):
+		safeOpenUrl("https://github.com/strugo10/outlookImageHelper/issues")
 
 	def getReport(self) -> str:
 		level = "advanced" if self.rbAdvanced.GetValue() else "basic"
@@ -3969,7 +3982,7 @@ class DiagnosticReportDialog(wx.Dialog):
 			except Exception:
 				pass
 		if ok:
-			ui.message("Raport diagnostyczny został pomyślnie skopiowany do schowka systemowego.")
+			ui.message("Raport techniczny został skopiowany do schowka. Możesz wkleić go do swojego zgłoszenia na GitHubie.")
 		else:
 			ui.message("Nie udało się skopiować raportu do schowka.")
 
@@ -12323,13 +12336,24 @@ class CreatorAdminDialog(wx.Dialog):
 		sboxUpd.Add(lblUpd, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
 		defaultUpd = sec.get("updateSourceUrl", "https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json")
+		if not defaultUpd or "mój dysk" in str(defaultUpd).lower() or str(defaultUpd).strip().endswith("updates.json"):
+			defaultUpd = "https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json"
 		self.txtUpdateSource = wx.TextCtrl(self, value=str(defaultUpd))
 		self.txtUpdateSource.SetName("Lokalizacja pliku ogłoszeniowego (ścieżka na dysku lub URL):")
 		sboxUpd.Add(self.txtUpdateSource, 0, wx.EXPAND | wx.ALL, 5)
 
+		updBtnBox = wx.BoxSizer(wx.HORIZONTAL)
 		self.btnCheckUpdatesNow = wx.Button(self, label="&Sprawdź dostępność aktualizacji teraz")
 		self.btnCheckUpdatesNow.Bind(wx.EVT_BUTTON, self.onCheckUpdates)
-		sboxUpd.Add(self.btnCheckUpdatesNow, 0, wx.ALL, 5)
+		updBtnBox.Add(self.btnCheckUpdatesNow, 0, wx.RIGHT, 10)
+
+		self.btnResetGitHub = wx.Button(self, label="&Przywróć oficjalny adres GitHub")
+		def onResetGh(evt):
+			self.txtUpdateSource.SetValue("https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json")
+			ui.message("Wstawiono oficjalny adres aktualizacji GitHub.")
+		self.btnResetGitHub.Bind(wx.EVT_BUTTON, onResetGh)
+		updBtnBox.Add(self.btnResetGitHub, 0)
+		sboxUpd.Add(updBtnBox, 0, wx.ALL, 5)
 
 		mainSizer.Add(sboxUpd, 0, wx.EXPAND | wx.ALL, 10)
 
@@ -12841,7 +12865,22 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		self.testSoundBtn = wx.Button(self, label=_T("set_test_volume"))
 		def onTestSound(evt):
 			val = self.soundVolumeSlider.GetValue()
-			playAlertSound("image_alert", volume=val, context="Test głośności w panelu ustawień")
+			sounds = [
+				("image_alert", "Powiadomienie o obecności obrazu"),
+				("link", "Obraz zawierający link"),
+				("divider", "Linia podziału / separator"),
+				("social_media", "Ikona mediów społecznościowych"),
+				("email", "Ikona adresu e-mail"),
+				("phone", "Ikona numeru telefonu"),
+			]
+			ui.message(f"Odtwarzanie kolejno wszystkich dźwięków dodatku ({len(sounds)} dźwięków, głośność {val}%)...")
+			import threading
+			def _worker():
+				for sName, desc in sounds:
+					playAlertSound(sName, volume=val, context=f"Test dźwięku: {desc}", force=True)
+					time.sleep(0.48)
+			t = threading.Thread(target=_worker, daemon=True)
+			t.start()
 		self.testSoundBtn.Bind(wx.EVT_BUTTON, onTestSound)
 		volBox.Add(self.testSoundBtn, flag=wx.ALIGN_CENTER_VERTICAL)
 		sHelper.addItem(volBox)
@@ -13781,6 +13820,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				sec["minDimension"] = _to_int(sec["minDimension"], default=15, min_val=1, max_val=500)
 			if str(sec.get("geminiModel", "")).strip() in _RETIRED_GEMINI_MODELS:
 				sec["geminiModel"] = _DEFAULT_GEMINI_MODEL
+			# Migracja starej lokalizacji pliku aktualizacji na oficjalne repozytorium GitHub
+			curUpd = str(sec.get("updateSourceUrl", "")).strip()
+			if not curUpd or "mój dysk" in curUpd.lower() or curUpd.endswith("updates.json"):
+				sec["updateSourceUrl"] = "https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json"
 		except Exception as e:
 			log.warning(f"outlookImageHelper: Błąd sanitizacji konfiguracji: {e}")
 
