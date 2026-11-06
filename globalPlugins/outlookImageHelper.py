@@ -77,7 +77,7 @@ ADDON_BUILD_ID = "20261106.1"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.0"
+ADDON_VERSION = "1.6.1"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -4237,25 +4237,35 @@ def getStrictGraphicUnderCaret(
 	if not items:
 		return None
 
-	# 1. Sprawdź, czy w edytorze Word obiekt graficzny jest bezpośrednio zaznaczony
-	# (np. po nawigacji klawiszem G / Shift+G lub kliknięciu myszą)
+	# 1. Jeśli użytkownik nawigował po grafikach klawiszem G / Shift+G lub strzałkami
+	# i wciąż znajduje się na tej grafice (_currentGraphicItem jest aktywny i nie został wyczyszczony ruchem na tekst):
+	if GlobalPlugin.instance and getattr(GlobalPlugin.instance, "_currentGraphicItem", None):
+		cand = GlobalPlugin.instance._currentGraphicItem
+		matched = next((it for it in items if it.index == cand.index), None)
+		if matched:
+			return matched
+
+	# 2. Sprawdź, czy w edytorze Word obiekt graficzny jest zaznaczony lub kursor Worda stoi na grafice
 	try:
 		sel = getattr(doc.Application, "Selection", None)
-		if sel and getattr(sel, "Type", 0) in (7, 8):  # 7: wdSelectionInlineShape, 8: wdSelectionShape
-			if getattr(sel, "InlineShapes", None) and sel.InlineShapes.Count > 0:
-				selShape = sel.InlineShapes(1)
+		if sel:
+			selType = getattr(sel, "Type", 0)
+			selStart = getattr(sel, "Start", None)
+			# 7: wdSelectionInlineShape, 8: wdSelectionShape
+			if selType in (7, 8):
+				if selStart is not None:
+					for it in items:
+						if abs(it.rangeStart - selStart) <= 5 or (it.rangeStart <= selStart <= it.rangeEnd):
+							return it
+				return items[0]
+			if selStart is not None:
 				for it in items:
-					if getattr(it, "rawObject", None) == selShape:
-						return it
-			if getattr(sel, "ShapeRange", None) and sel.ShapeRange.Count > 0:
-				selShape = sel.ShapeRange(1)
-				for it in items:
-					if getattr(it, "rawObject", None) == selShape:
+					if (it.rangeStart <= selStart <= it.rangeEnd) or abs(it.rangeStart - selStart) <= 1:
 						return it
 	except Exception as ex:
 		log.debug(f"outlookImageHelper: getStrictGraphicUnderCaret selection check error: {ex}")
 
-	# 2. Sprawdź pozycję w buforze przeglądania (treeInterceptor)
+	# 3. Sprawdź pozycję w buforze przeglądania (treeInterceptor)
 	tiInstance = treeInterceptor
 	if not tiInstance:
 		focus = api.getFocusObject()
@@ -4265,15 +4275,6 @@ def getStrictGraphicUnderCaret(
 		try:
 			ti = getattr(tiInstance, "selection", None)
 			if ti:
-				rawText = getattr(ti, "text", "") or ""
-				clean = rawText.strip()
-
-				# Jeśli w bieżącej linii/fragmencie znajdują się jakiekolwiek czytelne znaki alfanumeryczne,
-				# użytkownik bezsprzecznie czyta tekst — kursor NIE stoi na samej grafice!
-				if any(ch.isalnum() for ch in clean):
-					return None
-
-				# Wiersz/pozycja jest pusta lub zawiera znak obiektu osadzonego (\x01, \ufffc)
 				curPos = targetPos
 				if curPos is None and hasattr(ti, "_rangeObj") and ti._rangeObj:
 					try:
@@ -4283,20 +4284,18 @@ def getStrictGraphicUnderCaret(
 
 				if curPos is not None:
 					for it in items:
-						if (it.rangeStart <= curPos < it.rangeEnd) or (curPos == it.rangeStart):
-							return it
-						if it.isInline and abs(curPos - it.rangeStart) <= 1:
+						if (it.rangeStart <= curPos < it.rangeEnd) or abs(curPos - it.rangeStart) <= 1:
 							return it
 		except Exception as ex:
 			log.debug(f"outlookImageHelper: getStrictGraphicUnderCaret treeInterceptor check error: {ex}")
 
-	# 3. Jeśli podano targetPos bez bufora przeglądania
+	# 4. Jeśli podano targetPos bez bufora przeglądania
 	if targetPos is not None:
 		for it in items:
 			if (it.rangeStart <= targetPos < it.rangeEnd) or (targetPos == it.rangeStart):
 				return it
 
-	# 4. Sprawdź, czy obiekt fokusu NVDA to bezpośrednio grafika (poza buforem przeglądania)
+	# 5. Sprawdź, czy obiekt fokusu NVDA to bezpośrednio grafika (poza buforem przeglądania)
 	focus = api.getFocusObject()
 	if focus:
 		role = getattr(focus, "role", None)
@@ -4550,6 +4549,26 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 
 	if GlobalPlugin.instance:
 		GlobalPlugin.instance._lastNavigatedCaretPos = newCaretPos
+
+	# Spróbuj zaznaczyć bezpośrednio obiekt graficzny, jeśli Word to umożliwia
+	try:
+		if getattr(targetItem, "rawObject", None) and hasattr(targetItem.rawObject, "Select"):
+			targetItem.rawObject.Select()
+	except Exception:
+		pass
+
+	# Zsynchronizuj pozycję wirtualnego bufora przeglądania NVDA z pozycją grafiki
+	if treeInterceptor and getattr(treeInterceptor, "isAlive", False):
+		try:
+			root = getattr(treeInterceptor, "rootNVDAObject", None)
+			if root and hasattr(root, "makeTextInfo"):
+				import textInfos
+				tiInfo = root.makeTextInfo(textInfos.POSITION_CARET)
+				if hasattr(tiInfo, "_rangeObj"):
+					tiInfo._rangeObj = doc.Range(targetItem.rangeStart, max(targetItem.rangeStart + 1, targetItem.rangeEnd))
+					treeInterceptor.selection = tiInfo
+		except Exception as ex:
+			log.debug(f"outlookImageHelper: navigateGraphic treeInterceptor sync error: {ex}")
 
 	# Określ czytelny prefiks pozycji (Pierwsza / Ostatnia / Jedyna grafika)
 	if total == 1:
@@ -4906,6 +4925,12 @@ def _patchOutlookTreeInterceptors():
 			cls.speakTextInfo = _treeInterceptor_speakTextInfo
 
 		# Powiąż gesty Shift+F10 i Applications
+		if not hasattr(cls, "__gestures__") or cls.__gestures__ is None:
+			cls.__gestures__ = {}
+		else:
+			cls.__gestures__ = dict(cls.__gestures__)
+		cls.__gestures__["kb:shift+f10"] = "oih_contextMenu"
+		cls.__gestures__["kb:applications"] = "oih_contextMenu"
 		try:
 			cls.bindGesture("kb:shift+f10", "oih_contextMenu")
 			cls.bindGesture("kb:applications", "oih_contextMenu")
@@ -14313,24 +14338,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		focus = api.getFocusObject()
 		ti = getattr(focus, "treeInterceptor", None)
-		if ti and getattr(ti, "isAlive", False) and not getattr(ti, "passThrough", False):
-			# Bufor przeglądania ma własny handler _treeInterceptor_script_contextMenu.
-			# Jeśli gest dotarł tutaj, bufor przeglądania podjął już decyzję o przekazaniu menu do tekstu/Outlooka.
-			gesture.send()
-			return
 
 		doc = getActiveWordDocument()
 		if not doc:
 			gesture.send()
 			return
 
-		item = getStrictGraphicUnderCaret(doc, treeInterceptor=None)
+		item = getStrictGraphicUnderCaret(doc, treeInterceptor=ti)
 		if item:
 			import wx
 			wx.CallAfter(showGraphicActionsMenu, item)
 			return
 
 		# Jeśli kursor NIE stoi ściśle na grafice, przepuść gest do standardowego menu Outlooka
+		self._bypassNextContextMenu = True
 		gesture.send()
 
 

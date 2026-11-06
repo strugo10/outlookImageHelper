@@ -1,7 +1,7 @@
 {
   "name": "outlookImageHelper",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-  "changelog": "Wersja 1.6.0:\n• Obsługa zaznaczenia wielu wiadomości: inteligentne komunikaty o liczbie wybranych maili oraz załącznikach przy skrótach Ctrl+NVDA+A, OCR i opisie AI.\n• Instrukcja odblokowywania zewnętrznych obrazów w Outlooku (Ctrl+Shift+W) oraz stałego włączenia pobierania obrazów w Centrum zaufania.\n• Poprawki interfejsu (WCAG): automatyczne zawijanie wierszy (WordWrap) w oknie 'O dodatku', wykazie zmian i szczegółach bez ucinania tekstu.\n• Pełna obsługa odczytu na liście wiadomości zarówno przy włączonym, jak i wyłączonym oknie podglądu (Reading Pane).\n• Zaktualizowana, kompleksowa dokumentacja HTML w języku polskim i angielskim.",
+  "changelog": "Wersja 1.6.1:\n• Poprawka wywoływania menu czynności dla grafiki (Shift+F10 oraz klawisz Aplikacje) po nawigacji klawiszem G i Shift+G w treści maila.\n• Niezawodne przekazywanie menu kontekstowego do programu Outlook podczas czytania tekstu wiadomości.\n• Dodano opcję 'Podziel się dodatkiem ze znajomymi...' w ustawieniach zaawansowanych.\n• Zaktualizowana instrukcja konfiguracji klucza OpenAI obok Google Gemini.",
   "minNVDAVersion": "2024.1.0"
 }
