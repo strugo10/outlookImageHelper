@@ -118,6 +118,11 @@
 <p>An NVDA screen reader add-on providing full accessibility, local optical character recognition (OCR), magnified image preview for low-vision users, audio descriptions and interactive multi-turn chat with artificial intelligence (<strong>Google Gemini</strong>), prompt presets library, context-sensitive help (<kbd>F1</kbd>), hyperlink activation, file attachments support (PDF, Word DOCX, images), and batch saving for images and attachments in <strong>Microsoft Outlook Classic</strong> messages (WordMail editor).</p>
 
 
+<div class="note" role="region" aria-label="Compatibility Information">
+  <p><strong>Important Compatibility Notice — Microsoft Outlook Classic Only:</strong><br>
+  This add-on is designed and optimized strictly for the <strong>classic desktop version of Microsoft Outlook (Outlook Classic)</strong> on Windows (versions 2013, 2016, 2019, 2021, and classic Microsoft 365 with the WordMail editor). The "New Outlook for Windows" (a web-based Edge application) does not contain Microsoft Word's native COM object model and does not support screen reader add-ons of this type.</p>
+</div>
+
 <h2>Table of Contents</h2>
 <ul>
   <li><a href="#shortcuts">Keyboard Shortcuts</a></li>
@@ -134,9 +139,11 @@
   <li><a href="#custom-naming">Custom Graphic Naming (F2) &amp; Persistent Memory</a></li>
   <li><a href="#navigation-sounds">Navigation Earcons &amp; Audio Themes</a></li>
   <li><a href="#batch-save">Batch Saving &amp; Clean Filenames (GDPR)</a></li>
-  <li><a href="#distribution">How to Share the Add-on with Others?</a></li>
+  <li><a href="#distribution">How to Share the Add-on with Others? (GitHub)</a></li>
   <li><a href="#gemini-key">Free Google Gemini API Key Setup</a></li>
+  <li><a href="#openai-key">OpenAI (ChatGPT API) Key Setup</a></li>
   <li><a href="#settings">Add-on Settings in NVDA Preferences</a></li>
+  <li><a href="#feedback">Feedback &amp; Bug Reports (GitHub Issues)</a></li>
   <li><a href="#authors">Authors &amp; Legal Info</a></li>
 </ul>
 
@@ -415,14 +422,21 @@
 </ul>
 
 <h2 id="distribution">How to Share the Add-on with Others?</h2>
-<div class="tip">
-  <strong>Important Note:</strong> To share the add-on, <strong>you do NOT need to zip the entire project folder!</strong>
-</div>
-<p>You only need to send the single generated installer file:</p>
-<p style="text-align: center; margin: 20px 0;">
-  <code style="font-size: 1.2em; padding: 8px 16px; background: #eef2f7; border: 1px solid #005a9e; border-radius: 6px; font-weight: bold;">outlookImageHelper.nvda-addon</code>
-</p>
-<p>The recipient simply double-clicks or presses <kbd>Enter</kbd> on <code>outlookImageHelper.nvda-addon</code> in Windows Explorer. NVDA will prompt for installation confirmation, and upon restarting NVDA, the add-on will be fully installed and ready.</p>
+<p>If you would like to recommend this add-on to colleagues and friends using <strong>Microsoft Outlook Classic</strong>, you can share it in several easy ways:</p>
+<ul>
+  <li><strong>In Add-on Settings:</strong> In NVDA Menu &rarr; <em>Preferences</em> &rarr; <em>Settings</em> &rarr; <em>Outlook - Pomocnik obrazów</em>, check <em>"Show advanced settings"</em> and click <strong>"Share add-on with others..."</strong>. A dialog opens allowing you to copy the direct download link, copy the full message, or instantly compose a recommendation email in Outlook with one click!</li>
+  <li><strong>Direct Download Link:</strong><br>
+    <a href="https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon">Download latest outlookImageHelper.nvda-addon from GitHub</a></li>
+  <li><strong>Project Page on GitHub:</strong><br>
+    <a href="https://github.com/strugo10/outlookImageHelper" target="_blank">https://github.com/strugo10/outlookImageHelper</a></li>
+</ul>
+<p><strong>Installation Instructions for Friends:</strong></p>
+<ol>
+  <li>Download the <code>outlookImageHelper.nvda-addon</code> package from the link above.</li>
+  <li>Open the downloaded file by pressing <kbd>Enter</kbd> in Windows Explorer.</li>
+  <li>When NVDA displays the installation confirmation prompt, choose <strong>"Yes"</strong>.</li>
+  <li>Restart NVDA when prompted. The add-on is immediately active and will automatically check for future free updates!</li>
+</ol>
 
 <h2 id="gemini-key">Free Google Gemini API Key Setup</h2>
 <div class="tip">
@@ -434,6 +448,19 @@
   <li>Click <strong>"Create API key"</strong> and select a new project.</li>
   <li>Click <strong>"Copy"</strong> to copy the generated key.</li>
   <li>In Outlook, press <kbd>Ctrl+NVDA+A</kbd> &rarr; <kbd>Shift+F10</kbd> &rarr; <strong>"Go to add-on settings..."</strong> (or open NVDA menu &rarr; <em>Preferences</em> &rarr; <em>Settings</em> &rarr; <em>Outlook - Pomocnik obrazów i OCR</em>), check <em>"Show advanced settings"</em> and paste the key.</li>
+</ol>
+
+<h2 id="openai-key">OpenAI (ChatGPT API) Key Setup</h2>
+<div class="note">
+  Unlike Google Gemini, which offers a generous free tier for personal Google accounts, the OpenAI platform (ChatGPT API) requires adding billing credit (e.g. $5 USD) under the Billing section in your OpenAI developer account.
+</div>
+<ol>
+  <li>Open OpenAI API keys in your browser: <a href="https://platform.openai.com/api-keys" target="_blank">https://platform.openai.com/api-keys</a>.</li>
+  <li>Log in or register an OpenAI account.</li>
+  <li>Click <strong>"Create new secret key"</strong>.</li>
+  <li>Provide an identifier name (e.g. <em>NVDA Outlook</em>) and confirm.</li>
+  <li>Copy the generated secret key (starts with <code>sk-...</code>). Store it safely as OpenAI only shows the full key once.</li>
+  <li>In add-on Advanced Settings, switch the provider to <strong>OpenAI (ChatGPT)</strong>, paste the key into <em>OpenAI API Key</em>, and click <strong>"Test OpenAI API Key"</strong>.</li>
 </ol>
 
 <h2 id="settings">Add-on Settings in NVDA Preferences</h2>
@@ -460,11 +487,24 @@
   </li>
 </ul>
 
+<h2 id="feedback">Feedback &amp; Bug Reports (GitHub Issues)</h2>
+<p>User feedback, questions, feature requests, and bug reports are actively tracked on the official GitHub project repository:</p>
+<p style="text-align: center; margin: 20px 0;">
+  <a href="https://github.com/strugo10/outlookImageHelper/issues" target="_blank" style="font-size: 1.1em; font-weight: bold; background: #005a9e; color: #fff; padding: 10px 22px; border-radius: 6px; text-decoration: none; display: inline-block;">Open GitHub Issues Page</a>
+</p>
+<p>To submit feedback:</p>
+<ol>
+  <li>Navigate to: <a href="https://github.com/strugo10/outlookImageHelper/issues" target="_blank">https://github.com/strugo10/outlookImageHelper/issues</a>.</li>
+  <li>Log in with your free GitHub account.</li>
+  <li>Click <strong>"New issue"</strong>.</li>
+  <li>Enter a concise title, describe your suggestion or issue, and click <strong>"Submit new issue"</strong>.</li>
+</ol>
+
 <h2 id="authors">Authors &amp; Legal Info</h2>
 <p><strong>Main Author &amp; Concept:</strong> Sławomir Strugarek<br>
 <strong>Development &amp; Architecture:</strong> Antigravity (Google DeepMind)<br>
 <strong>License:</strong> GNU General Public License v2 (GPL-2.0)<br>
-<strong>Contact:</strong> A universal contact form module for the Outlook accessibility suite is currently in development.</p>
+<strong>Project Page &amp; Issues:</strong> <a href="https://github.com/strugo10/outlookImageHelper" target="_blank">https://github.com/strugo10/outlookImageHelper</a></p>
 
 </body>
 </html>

@@ -117,6 +117,11 @@
 
 <p>Dodatek dla czytnika ekranu <strong>NVDA</strong> zapewniający pełną dostępność, lokalne rozpoznawanie tekstu (OCR), powiększony podgląd obrazów dla słabowidzących, audiodeskrypcję i wieloturową rozmowę ze sztuczną inteligencją (<strong>Google Gemini</strong>), bibliotekę promptów, pomoc kontekstową (<kbd>F1</kbd>), aktywację hiperłączy, obsługę załączników plikowych (PDF, Word DOCX, obrazy) oraz inteligentny i seryjny zapis grafik i plików z wiadomości programu <strong>Microsoft Outlook Classic</strong> (edytor WordMail).</p>
 
+<div class="note" role="region" aria-label="Informacja o kompatybilności">
+  <p><strong>Ważna uwaga o kompatybilności — wyłącznie dla Microsoft Outlook Classic:</strong><br>
+  Dodatek został stworzony i ściśle zoptymalizowany dla <strong>klasycznej wersji programu Microsoft Outlook (Outlook Classic)</strong> na systemie Windows (wersje 2013, 2016, 2019, 2021 oraz klasyczny Microsoft 365 z edytorem WordMail). Nowa aplikacja pocztowa „Nowy Outlook” (New Outlook for Windows, oparty na technologii przeglądarkowej Web / Edge) nie posiada natywnego silnika WordMail COM i nie obsługuje wtyczek tego typu.</p>
+</div>
+
 <h2>Spis treści</h2>
 <ul>
   <li><a href="#tabela-skrotow">Tabela skrótów klawiszowych</a></li>
@@ -130,8 +135,11 @@
   <li><a href="#menu-czynnosci">Menu Czynności (kontekstowe)</a></li>
   <li><a href="#czat-ai">Dostępna rozmowa z AI (Q&amp;A, nagłówki H, przyciski B, pole E)</a></li>
   <li><a href="#seryjny-zapis">Seryjny zapis i czytelne nazwy plików (RODO)</a></li>
+  <li><a href="#dystrybucja">Jak podzielić się dodatkiem ze znajomymi? (GitHub)</a></li>
   <li><a href="#klucz-gemini">Instrukcja uzyskania bezpłatnego klucza Google Gemini</a></li>
+  <li><a href="#klucz-openai">Instrukcja uzyskania klucza OpenAI (ChatGPT API)</a></li>
   <li><a href="#ustawienia">Ustawienia dodatku w preferencjach NVDA</a></li>
+  <li><a href="#kontakt">Zgłaszanie uwag i kontakt (GitHub Issues)</a></li>
   <li><a href="#autorzy">Autorzy i informacje prawne</a></li>
 </ul>
 
@@ -414,21 +422,22 @@
   <li><strong>Ochrona prywatności i RODO:</strong> Domyślnie generowanie nazw plików odbywa się w 100% lokalnie na Twoim komputerze bez wysyłania jakichkolwiek danych na zewnątrz. Generowanie nazw przez AI jest opcjonalne i wymaga świadomego włączenia w preferencjach.</li>
 </ul>
 
-<h2 id="dystrybucja">Jak udostępnić dodatek innym użytkownikom?</h2>
-<div class="tip">
-  <strong>Bardzo ważna wskazówka:</strong> Aby udostępnić dodatek innej osobie, <strong>nie musisz pakować całego folderu z plikami źródłowymi!</strong>
-</div>
-<p>Wystarczy, że prześlesz <strong>jeden gotowy plik instalacyjny</strong>:</p>
-<p style="text-align: center; margin: 20px 0;">
-  <code style="font-size: 1.2em; padding: 8px 16px; background: #eef2f7; border: 1px solid #005a9e; border-radius: 6px; font-weight: bold;">outlookImageHelper.nvda-addon</code>
-</p>
-<p>Plik ten jest kompletnym, autonomicznym instalatorem pakietu NVDA. Odbiorca dodatku wykonuje tylko jeden krok:</p>
+<h2 id="dystrybucja">Jak podzielić się dodatkiem ze znajomymi?</h2>
+<p>Jeśli chcesz polecić dodatek innym użytkownikom czytnika NVDA korzystającym z programu <strong>Microsoft Outlook Classic</strong>, możesz to zrobić na kilka wygodnych sposobów:</p>
+<ul>
+  <li><strong>Przycisk w ustawieniach dodatku:</strong> W menu NVDA &rarr; <em>Preferencje</em> &rarr; <em>Ustawienia</em> &rarr; <em>Outlook - Pomocnik obrazów</em> zaznacz pole <em>„Pokaż ustawienia zaawansowane”</em> i kliknij przycisk <strong>„Podziel się dodatkiem ze znajomymi...”</strong>. Otworzy się okno, z którego jednym kliknięciem możesz skopiować bezpośredni link do instalatora, skopiować gotowy tekst polecający lub od razu otworzyć nowy e-mail w Outlooku z wypełnioną treścią!</li>
+  <li><strong>Oficjalny link do bezpośredniego pobrania pakietu:</strong><br>
+    <a href="https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon">Pobierz najnowszą wersję outlookImageHelper.nvda-addon z profilu GitHub</a></li>
+  <li><strong>Strona projektu na GitHubie:</strong><br>
+    <a href="https://github.com/strugo10/outlookImageHelper" target="_blank">https://github.com/strugo10/outlookImageHelper</a></li>
+</ul>
+<p><strong>Instrukcja instalacji dla znajomego:</strong></p>
 <ol>
-  <li>Otwiera pobrany plik <code>outlookImageHelper.nvda-addon</code> (klikając go dwukrotnie lub wciskając <kbd>Enter</kbd> w Eksploratorze Windows).</li>
-  <li>NVDA wyświetla monit z pytaniem, czy zainstalować dodatek <em>Outlook - Pomocnik obrazów, załączników i OCR</em>. Użytkownik wybiera <strong>„Tak”</strong>.</li>
-  <li>Następnie NVDA prosi o ponowne uruchomienie programu. Po restarcie dodatek jest od razu w pełni aktywny i gotowy do pracy!</li>
+  <li>Osoba pobiera plik <code>outlookImageHelper.nvda-addon</code> z powyższego linku.</li>
+  <li>Otwiera pobrany plik (klikając go dwukrotnie lub wciskając <kbd>Enter</kbd> w Eksploratorze Windows).</li>
+  <li>NVDA wyświetla oficjalny komunikat instalatora pytający o instalację lub aktualizację dodatku. Należy wybrać przycisk <strong>„Tak”</strong>.</li>
+  <li>NVDA prosi o ponowne uruchomienie programu. Po restarcie dodatek jest od razu aktywny i automatycznie pobiera kolejne bezpłatne aktualizacje!</li>
 </ol>
-<p>Jeśli samodzielnie wprowadzasz zmiany w plikach źródłowych w folderze projektu, uruchom skrypt <code>build.ps1</code> (lub <code>build.cmd</code>) – skrypt ten automatycznie utworzy świeży plik <code>outlookImageHelper.nvda-addon</code> gotowy do wysłania.</p>
 
 <h2 id="klucz-gemini">Instrukcja uzyskania bezpłatnego klucza Google Gemini</h2>
 <div class="tip">
@@ -441,6 +450,19 @@
   <li>Wybierz opcję <strong>„Create API key in new project”</strong> (Utwórz klucz w nowym projekcie).</li>
   <li>Skopiuj wygenerowany klucz przyciskiem <strong>„Copy”</strong>.</li>
   <li>Wróć do Outlooka, wciśnij <kbd>Ctrl+NVDA+A</kbd> &rarr; <kbd>Shift+F10</kbd> &rarr; <strong>„Przejdź do ustawień dodatku...”</strong> (lub otwórz menu NVDA &rarr; <em>Preferencje</em> &rarr; <em>Ustawienia</em> &rarr; <em>Outlook - Pomocnik obrazów i OCR</em>), zaznacz <em>„Pokaż ustawienia zaawansowane”</em> i wklej klucz w polu Gemini API.</li>
+</ol>
+
+<h2 id="klucz-openai">Instrukcja uzyskania klucza OpenAI (ChatGPT API)</h2>
+<div class="note">
+  W odróżnieniu od Google Gemini, które dla kont osobistych oferuje bezpłatną pulę zapytań, platforma OpenAI (ChatGPT API) wymaga doładowania minimalnego salda (np. 5 USD) w sekcji rozliczeń (Billing) na koncie programisty OpenAI.
+</div>
+<ol>
+  <li>Otwórz stronę zarządzania kluczami OpenAI w przeglądarce: <a href="https://platform.openai.com/api-keys" target="_blank">https://platform.openai.com/api-keys</a>.</li>
+  <li>Zaloguj się lub utwórz konto OpenAI.</li>
+  <li>Kliknij przycisk <strong>„Create new secret key”</strong> (Utwórz nowy klucz tajny).</li>
+  <li>Wpisz nazwę identyfikacyjną (np. <em>NVDA Outlook</em>) i kliknij przycisk potwierdzenia.</li>
+  <li>Skopiuj wygenerowany klucz API (ciąg znaków rozpoczynający się od <code>sk-...</code>). Zapisz go w bezpiecznym miejscu, ponieważ OpenAI wyświetla pełny klucz tylko raz.</li>
+  <li>W oknie ustawień zaawansowanych dodatku zmień dostawcę na <strong>OpenAI (ChatGPT)</strong>, wklej klucz w polu <em>Klucz API OpenAI</em> i kliknij przycisk <strong>„Testuj klucz OpenAI”</strong>.</li>
 </ol>
 
 <h2 id="ustawienia">Ustawienia dodatku w preferencjach NVDA</h2>
@@ -477,11 +499,24 @@ Odpowiedź: Przełącz widok na <em>Załączniki do wiadomości</em> (<kbd>Alt+K
 <p><strong>Pytanie: Czy moje maile i dane osobowe są wysyłane do AI?</strong><br>
 Odpowiedź: Nie. Treść wiadomości e-mail nie jest nigdzie wysyłana. Jedynie w momencie, gdy użytkownik świadomie kliknie <em>Opisz przez AI</em> lub <em>Rozmowa z AI</em>, pojedynczy wskazany element (obraz lub dokument) wraz z krótkim nagłówkiem jest przesyłany do Twojego prywatnego projektu w Google Gemini API.</p>
 
+<h2 id="kontakt">Zgłaszanie uwag, pomysłów i błędów (GitHub Issues)</h2>
+<p>Wszystkie uwagi, pomysły na nowe funkcje oraz zgłoszenia błędów zbierane są na oficjalnej stronie projektu w serwisie GitHub:</p>
+<p style="text-align: center; margin: 20px 0;">
+  <a href="https://github.com/strugo10/outlookImageHelper/issues" target="_blank" style="font-size: 1.1em; font-weight: bold; background: #005a9e; color: #fff; padding: 10px 22px; border-radius: 6px; text-decoration: none; display: inline-block;">Otwórz stronę zgłoszeń na GitHubie (GitHub Issues)</a>
+</p>
+<p>Aby przesłać uwagę:</p>
+<ol>
+  <li>Wejdź na stronę: <a href="https://github.com/strugo10/outlookImageHelper/issues" target="_blank">https://github.com/strugo10/outlookImageHelper/issues</a>.</li>
+  <li>Zaloguj się na bezpłatne konto GitHub.</li>
+  <li>Kliknij zielony przycisk <strong>„New issue”</strong>.</li>
+  <li>Wpisz krótki tytuł oraz opisz swoją uwagę, pomysł lub problem i zatwierdź przyciskiem <strong>„Submit new issue”</strong>. Twórca dodatku od razu otrzyma powiadomienie!</li>
+</ol>
+
 <h2 id="autorzy">Autorzy i informacje prawne</h2>
 <p><strong>Główny autor i pomysłodawca:</strong> Sławomir Strugarek<br>
 <strong>Współpraca programistyczna i architektoniczna:</strong> Antigravity (Google DeepMind)<br>
 <strong>Licencja:</strong> GNU General Public License v2 (GPL-2.0)<br>
-<strong>Kontakt:</strong> Formularz kontaktowy jest obecnie przygotowywany jako moduł uniwersalny dla wszystkich dodatków pakietu Outlook.</p>
+<strong>Strona projektu i zgłoszenia:</strong> <a href="https://github.com/strugo10/outlookImageHelper" target="_blank">https://github.com/strugo10/outlookImageHelper</a></p>
 
 </body>
 </html>

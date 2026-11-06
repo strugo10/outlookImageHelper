@@ -12454,6 +12454,13 @@ class AddonAboutDialog(wx.Dialog):
 		self.btnGuide.Bind(wx.EVT_BUTTON, lambda evt: openUserGuide())
 		btnSizer.Add(self.btnGuide, 0, wx.RIGHT, 10)
 
+		self.btnShare = wx.Button(
+			self,
+			label="&Podziel się dodatkiem..." if effLang == "pl" else "&Share add-on..."
+		)
+		self.btnShare.Bind(wx.EVT_BUTTON, lambda evt: showShareAddonDialog(self))
+		btnSizer.Add(self.btnShare, 0, wx.RIGHT, 10)
+
 		self.btnClose = wx.Button(self, wx.ID_CLOSE, label="&Zamknij" if effLang == "pl" else "&Close")
 		self.btnClose.Bind(wx.EVT_BUTTON, lambda evt: self.EndModal(wx.ID_CLOSE))
 		btnSizer.Add(self.btnClose, 0)
@@ -12482,6 +12489,142 @@ class AddonAboutDialog(wx.Dialog):
 			config_section=CONFIG_SECTION
 		)
 		updater.check_for_updates(manual=True)
+
+
+class ShareAddonDialog(wx.Dialog):
+	"""
+	W pełni dostępne okno umożliwiające podzielenie się dodatkiem ze znajomymi.
+	Zawiera linki do pobrania z oficjalnego profilu GitHub, gotowy tekst polecający
+	oraz przyciski kopiowania do schowka i bezpośredniej wysyłki wiadomości e-mail.
+	"""
+
+	def __init__(self, parent):
+		effLang = getEffectiveLanguage()
+		isPl = (effLang == "pl")
+		title = "Podziel się dodatkiem ze znajomymi" if isPl else "Share Add-on with Others"
+		super().__init__(
+			parent or gui.mainFrame,
+			title=title,
+			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+		)
+		self.SetMinSize((640, 460))
+		mainSizer = wx.BoxSizer(wx.VERTICAL)
+
+		lblIntro = wx.StaticText(
+			self,
+			label=(
+				"Skorzystaj z poniższych przycisków, aby skopiować link do pobrania, "
+				"skopiować gotową treść lub od razu otworzyć nowy e-mail w programie Outlook:"
+				if isPl else
+				"Use the buttons below to copy the download link, copy the recommendation text, "
+				"or instantly open a new email message in Outlook:"
+			)
+		)
+		mainSizer.Add(lblIntro, 0, wx.ALL, 10)
+
+		downloadUrl = "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon"
+		repoUrl = "https://github.com/strugo10/outlookImageHelper"
+
+		shareBody = (
+			"Cześć,\n\n"
+			"Polecam Ci bezpłatny i w pełni dostępny dodatek dla czytnika ekranu NVDA:\n"
+			"Outlook - Pomocnik obrazów, załączników i OCR (dedykowany dla Microsoft Outlook Classic).\n\n"
+			"Kluczowe możliwości dodatku:\n"
+			"• Automatyczne wykrywanie i lista wszystkich grafik, zrzutów ekranu i linii podziału w mailu,\n"
+			"• Szybkie rozpoznawanie tekstu (OCR) ze zdjęć oraz skanowanych dokumentów PDF,\n"
+			"• Szczegółowe opisywanie obrazów i interaktywna rozmowa z AI (Google Gemini / ChatGPT),\n"
+			"• Powiększony podgląd z trybem inwersji kolorów (wysoki kontrast / negatyw) dla osób słabowidzących,\n"
+			"• Seryjny zapis i obsługa załączników plikowych (PDF, Word DOCX, archiwa, obrazy).\n\n"
+			f"Bezpośredni link do pobrania najnowszej wersji instalatora (.nvda-addon):\n{downloadUrl}\n\n"
+			f"Oficjalna strona projektu na GitHubie:\n{repoUrl}\n\n"
+			"Instalacja:\n"
+			"Pobierz plik 'outlookImageHelper.nvda-addon' i otwórz go klawiszem Enter w Eksploratorze Windows, "
+			"a następnie potwierdź instalację w programie NVDA.\n\n"
+			"Wymagania: klasyczny program pocztowy Microsoft Outlook Classic (wersje 2013-365) oraz NVDA 2024.1+."
+		) if isPl else (
+			"Hello,\n\n"
+			"I would like to recommend a free and accessible add-on for the NVDA screen reader:\n"
+			"Outlook Image, Attachment & OCR Helper (specifically for Microsoft Outlook Classic).\n\n"
+			"Key Features:\n"
+			"• Automatic detection and listing of all inline graphics, screenshots, and divider lines in emails,\n"
+			"• Fast optical character recognition (OCR) for images and scanned PDF documents,\n"
+			"• Rich image descriptions and interactive Q&A chat with AI (Google Gemini / ChatGPT),\n"
+			"• Magnified preview with high-contrast color inversion (negative mode) for low-vision users,\n"
+			"• Batch saving and file attachment processing (PDF, Word DOCX, archives, images).\n\n"
+			f"Direct download link for latest installer (.nvda-addon):\n{downloadUrl}\n\n"
+			f"Official GitHub Project Page:\n{repoUrl}\n\n"
+			"Installation:\n"
+			"Download 'outlookImageHelper.nvda-addon', press Enter in Windows Explorer to open it, "
+			"and confirm installation in NVDA.\n\n"
+			"Compatibility: Microsoft Outlook Classic (2013-365) and NVDA 2024.1+."
+		)
+
+		self.txtShare = wx.TextCtrl(
+			self,
+			value=shareBody,
+			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_BESTWRAP,
+			size=(-1, 230)
+		)
+		self.txtShare.SetName("Gotowy tekst wiadomości z łączami do pobrania" if isPl else "Share message text with download links")
+		mainSizer.Add(self.txtShare, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+		btnSizer = wx.WrapSizer(wx.HORIZONTAL)
+
+		btnCopyLink = wx.Button(self, label="&Kopiuj link do pobrania" if isPl else "&Copy download link")
+		def onCopyLink(evt):
+			if api.copyToClip(downloadUrl):
+				ui.message("Skopiowano bezpośredni link do pobrania dodatku do schowka." if isPl else "Download link copied to clipboard.")
+			tones.beep(880, 50)
+		btnCopyLink.Bind(wx.EVT_BUTTON, onCopyLink)
+		btnSizer.Add(btnCopyLink, 0, wx.ALL, 4)
+
+		btnCopyMsg = wx.Button(self, label="Kopiuj &całą treść" if isPl else "Copy &entire text")
+		def onCopyMsg(evt):
+			if api.copyToClip(shareBody):
+				ui.message("Skopiowano kompletną treść polecającą do schowka." if isPl else "Recommendation text copied to clipboard.")
+			tones.beep(880, 50)
+		btnCopyMsg.Bind(wx.EVT_BUTTON, onCopyMsg)
+		btnSizer.Add(btnCopyMsg, 0, wx.ALL, 4)
+
+		btnEmail = wx.Button(self, label="&Wyślij e-mail z poleceniem..." if isPl else "&Send email recommendation...")
+		def onEmail(evt):
+			try:
+				import urllib.parse
+				subj = "Polecam bezpłatny dodatek: Outlook Image Helper dla NVDA" if isPl else "Recommended free NVDA add-on: Outlook Image Helper"
+				mailto = f"mailto:?subject={urllib.parse.quote(subj)}&body={urllib.parse.quote(shareBody)}"
+				os.startfile(mailto)
+			except Exception as ex:
+				log.debug(f"Share mailto error: {ex}")
+		btnEmail.Bind(wx.EVT_BUTTON, onEmail)
+		btnSizer.Add(btnEmail, 0, wx.ALL, 4)
+
+		btnClose = wx.Button(self, wx.ID_CLOSE, label="&Zamknij" if isPl else "&Close")
+		btnClose.Bind(wx.EVT_BUTTON, lambda evt: self.EndModal(wx.ID_CLOSE))
+		btnSizer.Add(btnClose, 0, wx.ALL, 4)
+
+		mainSizer.Add(btnSizer, 0, wx.ALIGN_RIGHT | wx.ALL, 8)
+		self.SetSizer(mainSizer)
+		self.Layout()
+		self.CenterOnScreen()
+
+		self.Bind(wx.EVT_CHAR_HOOK, self.onCharHook)
+		wx.CallLater(50, lambda: self.txtShare.SetFocus())
+
+	def onCharHook(self, evt):
+		if evt.GetKeyCode() == wx.WXK_ESCAPE:
+			self.EndModal(wx.ID_CLOSE)
+		else:
+			evt.Skip()
+
+
+def showShareAddonDialog(parent=None):
+	dlg = ShareAddonDialog(parent)
+	gui.mainFrame.prePopup()
+	try:
+		dlg.ShowModal()
+	finally:
+		dlg.Destroy()
+		gui.mainFrame.postPopup()
 
 
 class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
@@ -12888,6 +13031,13 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		self.btnCheckUpdates = wx.Button(self, label="&Sprawdź dostępność aktualizacji teraz")
 		self.btnCheckUpdates.Bind(wx.EVT_BUTTON, self.onCheckUpdatesNow)
 		self.btnUpdBox.Add(self.btnCheckUpdates, 0, wx.RIGHT, 10)
+
+		self.btnShareAddon = wx.Button(
+			self,
+			label="&Podziel się dodatkiem ze znajomymi..." if effLang == "pl" else "&Share add-on with others..."
+		)
+		self.btnShareAddon.Bind(wx.EVT_BUTTON, lambda evt: showShareAddonDialog(self))
+		self.btnUpdBox.Add(self.btnShareAddon, 0)
 		sHelper.addItem(self.btnUpdBox)
 
 		# J. Narzędzia twórcy dodatku (NA SAMYM DOLE USTAWIEŃ ZAAWANSOWANYCH)
@@ -12947,6 +13097,7 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 			self.chkAutoUpdates,
 			self.btnUpdBox,
 			self.btnCheckUpdates,
+			self.btnShareAddon,
 			self.btnAuthorTools,
 		]
 		self.onShowAdvancedToggled()
