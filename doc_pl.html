@@ -109,7 +109,7 @@
 <h1>Outlook - Pomocnik obrazów, załączników i OCR (Outlook Image Helper)</h1>
 
 <div class="info-box">
-  <p><strong>Wersja dodatku:</strong> <strong>1.5.6</strong> (Kompilacja: <strong>20261105.1</strong>, data wydania: <strong>2026-11-05</strong>)</p>
+  <p><strong>Wersja dodatku:</strong> <strong>1.6.0</strong> (Kompilacja: <strong>20261106.1</strong>, data wydania: <strong>2026-11-06</strong>)</p>
   <p><strong>Autor dodatku:</strong> <strong>Sławomir Strugarek</strong> (z pomocą sztucznej inteligencji <strong>Antigravity</strong> — Google DeepMind)</p>
   <p><strong>Kompatybilność:</strong> NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013, 2016, 2019, 2021, Microsoft 365 (wersja klasyczna)</p>
   <p><strong>Licencja:</strong> Bezpłatna, Open Source (GPL v2+)</p>
@@ -121,6 +121,8 @@
 <ul>
   <li><a href="#tabela-skrotow">Tabela skrótów klawiszowych</a></li>
   <li><a href="#zasada-dzialania">Zasada działania dodatku</a></li>
+  <li><a href="#lista-i-podglad">Praca na liście wiadomości (Okno podglądu vs wyłączony podgląd)</a></li>
+  <li><a href="#odblokowywanie-obrazow">Jak odblokować i pobrać obrazy w Outlooku (InfoBar i Centrum zaufania)</a></li>
   <li><a href="#okno-listy">Trzy kategorie elementów (Grafiki / Linie podziału / Załączniki)</a></li>
   <li><a href="#podglad-obrazu">Powiększony podgląd grafiki dla osób słabowidzących (P)</a></li>
   <li><a href="#pomoc-f1">Pomoc kontekstowa pod klawiszem F1</a></li>
@@ -146,8 +148,13 @@
   <tbody>
     <tr>
       <td><kbd>Ctrl+NVDA+A</kbd> / <kbd>NVDA+Shift+G</kbd> / <kbd>Alt+Shift+G</kbd></td>
-      <td>Otwiera okno dialogowe „Lista grafik i załączników w wiadomości”</td>
-      <td>W otwartej wiadomości programu Microsoft Outlook Classic.</td>
+      <td>Otwiera okno dialogowe „Lista grafik i załączników w wiadomości” (lub informuje o statusie grafik i załączników na liście wiadomości)</td>
+      <td>W otwartej wiadomości lub na liście wiadomości programu Microsoft Outlook Classic.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+Shift+W</kbd> &rarr; <kbd>Enter</kbd></td>
+      <td>Przenosi fokus na pasek informacyjny (InfoBar) Outlooka i pobiera zablokowane obrazy zewnętrzne</td>
+      <td>W oknie otwartej wiadomości e-mail.</td>
     </tr>
     <tr>
       <td><kbd>NVDA+Windows+G</kbd> / <kbd>Alt+Shift+O</kbd></td>
@@ -245,6 +252,37 @@
 </ol>
 <p>Dodatek <strong>Outlook Image Helper</strong> bezpośrednio łączy się z modelem obiektowym WordMail COM w pamięci procesu, odnajdując 100% wklejonych obiektów, odczytując ich dokładne wymiary w pikselach, powiązane hiperłącza, tekst alternatywny oraz tekst akapitów bezpośrednio nad nimi.</p>
 
+<h2 id="lista-i-podglad">Praca na liście wiadomości (Okno podglądu vs wyłączony podgląd)</h2>
+<p>Dodatek jest w pełni zintegrowany z listą wiadomości w oknie głównym Outlooka (Explorer), dostosowując się automatycznie do Twojej konfiguracji czytnika i programu pocztowego:</p>
+<ul>
+  <li><strong>Gdy okno podglądu (Reading Pane) jest włączone:</strong> Treść zaznaczonej wiadomości jest na bieżąco renderowana przez Outlooka. Naciśnięcie skrótu <kbd>Ctrl+NVDA+A</kbd> lub skrótów szybkiego OCR i AI bezpośrednio na liście wiadomości natychmiast otwiera listę wszystkich grafik i załączników, bez wymuszania otwierania maila w osobnym oknie.</li>
+  <li><strong>Gdy okno podglądu jest wyłączone (standardowa konfiguracja wielu niewidomych użytkowników):</strong> Outlook wczytuje w pamięci jedynie nagłówki wiadomości. Naciśnięcie skrótu na liście wiadomości odtwarza dźwięk alertu i odczytuje czytelną informację z tematem oraz liczbą wykrytych załączników plikowych, informując, że pełna analiza wklejonych grafik będzie dostępna po otwarciu maila klawiszem <kbd>Enter</kbd>.</li>
+  <li><strong>Gdy na liście zaznaczonych jest kilka wiadomości naraz:</strong> Dodatek informuje głosem o liczbie zaznaczonych wiadomości oraz liczbie maili z załącznikami (np. <em>„Zaznaczono 4 wiadomości (w tym 2 z załącznikami). Aby przejrzeć grafiki i załączniki, zaznacz jedną wiadomość lub otwórz ją klawiszem Enter.”</em>).</li>
+</ul>
+
+<h2 id="odblokowywanie-obrazow">Jak odblokować i pobrać obrazy w programie Outlook</h2>
+<p>Ze względów bezpieczeństwa i ochrony prywatności program Outlook domyślnie blokuje automatyczne pobieranie zewnętrznych obrazów z internetu w wiadomościach HTML. W ich miejscu widoczna jest pusta ramka lub ikona czerwonego krzyżyka. Dodatek umożliwia odblokowanie grafik na dwa sposoby:</p>
+<div class="tip">
+  <strong>1. Szybkie odblokowanie w bieżącej wiadomości:</strong>
+  <ol>
+    <li>W oknie otwartej wiadomości naciśnij skrót <kbd>Ctrl + Shift + W</kbd>. Fokus natychmiast przeniesie się na pasek informacyjny (InfoBar) u góry wiadomości i rozwinie jego menu.</li>
+    <li>Naciśnij klawisz <kbd>Enter</kbd> (pierwsza opcja w menu paska to <em>„Pobierz obrazy”</em>).</li>
+    <li>Outlook natychmiast pobierze wszystkie zdjęcia. Naciśnij ponownie <kbd>Ctrl + NVDA + A</kbd>, aby je obejrzeć, rozpoznać tekst (OCR) lub opisać przez AI.</li>
+  </ol>
+</div>
+<div class="info-box">
+  <strong>2. Stałe włączenie automatycznego pobierania obrazów we wszystkich mailach:</strong>
+  <p>Jeśli chcesz, aby Outlook zawsze automatycznie ładował obrazy:</p>
+  <ol>
+    <li>W programie Outlook przejdź do: <strong>Plik &rarr; Opcje</strong> (skrót: <kbd>Alt+P</kbd>, a następnie <kbd>O</kbd>).</li>
+    <li>W oknie opcji przejdź na zakładkę <strong>Centrum zaufania</strong>.</li>
+    <li>Naciśnij <kbd>Tab</kbd>, wybierz przycisk <strong>„Ustawienia Centrum zaufania...”</strong> i zatwierdź <kbd>Enterem</kbd>.</li>
+    <li>W nowym oknie przejdź do kategorii <strong>Automatyczne pobieranie</strong>.</li>
+    <li>Odznacz pole wyboru: <em>„Nie pobieraj automatycznie obrazów w standardowych wiadomościach e-mail w formacie HTML lub elementach RSS”</em> (lub skonfiguruj zaufanych nadawców).</li>
+    <li>Kliknij <strong>OK</strong>, a w oknie głównym Opcji ponownie <strong>OK</strong>, aby zapisać zmiany.</li>
+  </ol>
+</div>
+
 <h2 id="okno-listy">Okno dialogowe i przełącznik kategorii (Grafiki / Załączniki)</h2>
 <p>Naciśnięcie skrótu <kbd>Ctrl+NVDA+A</kbd> w otwartej wiadomości wyświetla główne okno dodatku. Na samej górze znajduje się <strong>Przełącznik kategorii elementów wiadomości</strong> (<kbd>Alt+K</kbd>):</p>
 <ol>
@@ -273,6 +311,7 @@
 <p>Dodatek <strong>Outlook Image Helper</strong> umożliwia również pełną analizę plików załączników:</p>
 <ul>
   <li><strong>Dokumenty PDF (skany i pliki tekstowe):</strong> Wybór opcji <em>Przepisz tekst ze skanu PDF</em> lub <em>Analiza / Streszczenie dokumentu PDF przez AI</em> wysyła dokument do multimodalnego modelu Google Gemini (zgodność z Base64 <code>application/pdf</code>). AI precyzyjnie przepisuje skanowany tekst, rozpoznaje tabele, nagłówki, kwoty faktur i terminy bez konieczności instalowania zewnętrznych narzędzi PDF OCR na komputerze!</li>
+  <li><strong>Obsługa dokumentów PDF chronionych hasłem:</strong> W przypadku otrzymania zaszyfrowanego hasłem pliku PDF (np. wyciągu bankowego, e-faktury, dokumentu medycznego), dodatek automatycznie wykrywa blokadę i wyświetla w pełni dostępne okno z prośbą o hasło. Plik jest bezpiecznie odblokowywany w pamięci lokalnej komputera (za pomocą wbudowanej biblioteki), dzięki czemu hasło nigdy nie jest wysyłane do chmury, a analiza AI przebiega bezbłędnie.</li>
   <li><strong>Dokumenty programu Word (DOCX):</strong> Dodatek posiada wbudowany silnik ekstrakcji OpenXML – tekst akapitów i struktury tabel odczytywane są bezpośrednio z archiwum pliku bez konieczności uruchamiania programu Microsoft Word! Treść można odczytać natychmiast lub przesłać do AI w celu przygotowania streszczenia czy analizy.</li>
   <li><strong>Pliki graficzne w załącznikach (PNG, JPG, BMP, WEBP, TIFF):</strong> Działa dla nich zarówno lokalny silnik Windows Media OCR, jak i opisywanie przez AI.</li>
   <li><strong>Pliki tekstowe (TXT, CSV, LOG, JSON, XML):</strong> Bezpośredni podgląd i analiza treści.</li>

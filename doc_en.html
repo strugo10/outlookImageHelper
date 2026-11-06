@@ -109,7 +109,7 @@
 <h1>Outlook Image &amp; Attachment Helper with OCR</h1>
 
 <div class="info-box">
-  <p><strong>Version:</strong> <strong>1.5.6</strong> (Build: <strong>20261105.1</strong>, Release date: <strong>2026-11-05</strong>)</p>
+  <p><strong>Version:</strong> <strong>1.6.0</strong> (Build: <strong>20261106.1</strong>, Release date: <strong>2026-11-06</strong>)</p>
   <p><strong>Author:</strong> <strong>Sławomir Strugarek</strong> (with the invaluable assistance of <strong>Antigravity</strong> — Google DeepMind)</p>
   <p><strong>Compatibility:</strong> NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013, 2016, 2019, 2021, Microsoft 365 (Classic desktop version)</p>
   <p><strong>License:</strong> Free, Open Source (GPL v2+)</p>
@@ -122,6 +122,8 @@
 <ul>
   <li><a href="#shortcuts">Keyboard Shortcuts</a></li>
   <li><a href="#how-it-works">How It Works</a></li>
+  <li><a href="#message-list">Message List Navigation (Reading Pane On vs Off)</a></li>
+  <li><a href="#unblock-pictures">How to Unblock &amp; Download Pictures in Outlook</a></li>
   <li><a href="#image-list">Three Item Categories (Graphics / Dividers / Attachments)</a></li>
   <li><a href="#preview">Magnified Image Preview for Low-Vision Users (P)</a></li>
   <li><a href="#context-help">Context-Sensitive Help (F1)</a></li>
@@ -151,8 +153,13 @@
   <tbody>
     <tr>
       <td><kbd>Ctrl+NVDA+A</kbd> / <kbd>NVDA+Shift+G</kbd> / <kbd>Alt+Shift+G</kbd></td>
-      <td>Open the "Graphics &amp; Attachments List" dialog</td>
-      <td>In opened Microsoft Outlook Classic message.</td>
+      <td>Open the "Graphics &amp; Attachments List" dialog (or report message elements status when in message list / multi-selection)</td>
+      <td>In opened Microsoft Outlook Classic message or message list.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+Shift+W</kbd> &rarr; <kbd>Enter</kbd></td>
+      <td>Move focus to Outlook Information Bar (InfoBar) and download blocked external pictures</td>
+      <td>In opened Microsoft Outlook email message.</td>
     </tr>
     <tr>
       <td><kbd>NVDA+Windows+G</kbd> / <kbd>Alt+Shift+O</kbd></td>
@@ -259,6 +266,37 @@
   <li><strong>Shapes (floating graphics with text wrapping):</strong> Banners, diagrams, company logos, social icons. <strong>NVDA's standard single-letter <code>G</code> command completely skips these</strong>.</li>
 </ol>
 <p><strong>Outlook Image Helper</strong> connects directly to the WordMail COM object model in process memory, identifying 100% of embedded graphics, extracting exact pixel dimensions, hyperlinks, alt text, and surrounding text context.</p>
+
+<h2 id="message-list">Message List Navigation (Reading Pane On vs Off)</h2>
+<p>The add-on seamlessly supports Outlook's message list (Explorer) across different reading pane configurations:</p>
+<ul>
+  <li><strong>When Reading Pane is enabled:</strong> Outlook continuously renders the selected message. Pressing <kbd>Ctrl+NVDA+A</kbd> or quick OCR/AI shortcuts directly on the message list immediately inspects and displays all images and attachments without requiring opening the email in an Inspector window.</li>
+  <li><strong>When Reading Pane is disabled (common among screen reader users):</strong> Outlook does not construct message bodies in memory. When invoking the add-on on the message list, it plays an alert tone, reports the message subject and detected file attachments, and guides you to open the email with <kbd>Enter</kbd> to inspect inline images.</li>
+  <li><strong>When multiple messages are selected:</strong> The add-on announces the number of selected messages and how many contain attachments (e.g., <em>"4 messages are selected (including 2 with attachments). To browse images and attachments, select a single message or open it with Enter."</em>).</li>
+</ul>
+
+<h2 id="unblock-pictures">How to Unblock &amp; Download Pictures in Outlook</h2>
+<p>For privacy and security, Outlook blocks automatic downloading of external internet pictures by default. You can unblock pictures in two convenient ways:</p>
+<div class="tip">
+  <strong>1. Quick unblock in current message:</strong>
+  <ol>
+    <li>In an open message, press <kbd>Ctrl + Shift + W</kbd>. Focus immediately jumps to the Information Bar (InfoBar) at the top of the message and opens its dropdown menu.</li>
+    <li>Press <kbd>Enter</kbd> (the first option in the menu is <em>"Download Pictures"</em>).</li>
+    <li>Outlook downloads all images. Press <kbd>Ctrl + NVDA + A</kbd> again to inspect, OCR, or describe them with AI.</li>
+  </ol>
+</div>
+<div class="info-box">
+  <strong>2. Permanently enable automatic picture download across all messages:</strong>
+  <p>To have Outlook automatically load pictures in all incoming HTML emails:</p>
+  <ol>
+    <li>In Outlook, go to: <strong>File &rarr; Options</strong> (shortcut: <kbd>Alt+F</kbd>, then <kbd>T</kbd>).</li>
+    <li>In the Options dialog, select <strong>Trust Center</strong>.</li>
+    <li>Press <kbd>Tab</kbd> to find <strong>"Trust Center Settings..."</strong> and press <kbd>Enter</kbd>.</li>
+    <li>In the Trust Center window, select <strong>Automatic Download</strong>.</li>
+    <li>Uncheck the checkbox: <em>"Don't download pictures automatically in standard HTML email messages or RSS items"</em> (or customize trusted senders).</li>
+    <li>Click <strong>OK</strong> twice to save your settings.</li>
+  </ol>
+</div>
 
 <h2 id="image-list">Three Item Categories (Graphics / Attachments / Dividers)</h2>
 <p>Pressing <kbd>Ctrl+NVDA+A</kbd> displays the main dialog. At the top is the <strong>Category Switcher</strong> (<kbd>Alt+K</kbd>):</p>

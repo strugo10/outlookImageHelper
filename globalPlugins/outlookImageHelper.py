@@ -77,7 +77,7 @@ ADDON_BUILD_ID = "20261106.1"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.5.10"
+ADDON_VERSION = "1.6.0"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -436,6 +436,9 @@ STRINGS = {
 		"msg_reading_pane_off_ai_subj": "Opisywanie wklejonych grafik przez AI w wiadomości '{subj}' wymaga jej otwarcia klawiszem Enter.",
 		"msg_reading_pane_off_invert": "Podgląd w negatywie wklejonych grafik wymaga otwarcia wiadomości klawiszem Enter.",
 		"msg_reading_pane_off_invert_subj": "Podgląd w negatywie wklejonych grafik w wiadomości '{subj}' wymaga jej otwarcia klawiszem Enter.",
+		"msg_multiple_selected": "Zaznaczono {count} wiadomości. Okno listy grafik i załączników dotyczy jednej wiadomości. Zaznacz pojedynczą wiadomość lub otwórz ją klawiszem Enter.",
+		"msg_multiple_selected_att": "Zaznaczono {count} wiadomości (w tym {attCount} z załącznikami). Aby przejrzeć grafiki i załączniki, zaznacz jedną wiadomość lub otwórz ją klawiszem Enter.",
+		"msg_multiple_selected_action": "Zaznaczono {count} wiadomości. Ta czynność dotyczy pojedynczej wiadomości. Zaznacz jedną wiadomość lub otwórz ją klawiszem Enter.",
 		"msg_no_elements": "W bieżącej wiadomości nie odnaleziono grafik ani załączników.",
 		"msg_no_elements_subj": "Brak załączników ani grafik w wiadomości '{subj}'.",
 		"msg_no_ocr_subj": "Brak grafik ani załączników do OCR w wiadomości '{subj}'.",
@@ -655,6 +658,9 @@ STRINGS = {
 		"msg_reading_pane_off_ai_subj": "Describing inline graphics with AI in message '{subj}' requires opening it with Enter.",
 		"msg_reading_pane_off_invert": "Inverted preview of inline graphics requires opening the message with Enter.",
 		"msg_reading_pane_off_invert_subj": "Inverted preview of inline graphics in message '{subj}' requires opening it with Enter.",
+		"msg_multiple_selected": "{count} messages are selected. The images and attachments dialog applies to a single message. Please select a single message or open it with Enter.",
+		"msg_multiple_selected_att": "{count} messages are selected (including {attCount} with attachments). To browse images and attachments, select a single message or open it with Enter.",
+		"msg_multiple_selected_action": "{count} messages are selected. This action applies to a single message. Please select a single message or open it with Enter.",
 		"msg_no_elements": "No images or attachments found in current message.",
 		"msg_no_elements_subj": "No attachments or images in message '{subj}'.",
 		"msg_no_ocr_subj": "No images or attachments for OCR in message '{subj}'.",
@@ -1879,6 +1885,16 @@ def getBlockedImageInstructionsText(item=None, actionName: str = "") -> str:
 			"",
 			"--- Wskazówka alternatywna ---",
 			"W otwartej wiadomości możesz również kliknąć myszą na pasek informacyjny u góry ('Kliknij tutaj, aby pobrać obrazy. Aby pomóc chronić prywatność...') lub nacisnąć Shift+F10 w treści wiadomości i wybrać opcję 'Pobierz obrazy'.",
+			"",
+			"--- Jak na stałe włączyć automatyczne pobieranie obrazów w programie Outlook ---",
+			"Jeśli nie chcesz każdorazowo odblokowywać obrazów, możesz włączyć ich automatyczne pobieranie na stałe:",
+			"1. W programie Outlook wejdź w menu: Plik -> Opcje (skrót klawiszowy: Alt+P, a następnie O).",
+			"2. W oknie opcji przejdź strzałką w dół na zakładkę 'Centrum zaufania'.",
+			"3. Klawiszem Tab przejdź na przycisk 'Ustawienia Centrum zaufania...' i naciśnij Enter.",
+			"4. W kolejnym oknie przejdź strzałką na pozycję 'Automatyczne pobieranie'.",
+			"5. Odznacz pole wyboru: 'Nie pobieraj automatycznie obrazów w standardowych wiadomościach e-mail w formacie HTML lub elementach RSS' (lub zaznacz pobieranie od zaufanych nadawców).",
+			"6. Naciśnij Enter lub wybierz przycisk 'OK', a w oknie głównym Opcji ponownie 'OK'.",
+			"Od tego momentu program Outlook będzie zawsze automatycznie pobierał i wyświetlał wszystkie grafiki w Twoich mailach.",
 		]
 		if item:
 			desc = getattr(item, "altText", "") or getattr(item, "title", "") or getattr(item, "customName", "")
@@ -1922,6 +1938,16 @@ def getBlockedImageInstructionsText(item=None, actionName: str = "") -> str:
 			"",
 			"--- Alternative Tip ---",
 			"In the open message, you can also click the InfoBar at the top ('Click here to download pictures') or press Shift+F10 in the message body and select 'Download pictures'.",
+			"",
+			"--- How to permanently enable automatic picture downloading in Outlook ---",
+			"If you do not want to unblock images manually each time, you can enable automatic downloading permanently:",
+			"1. In Outlook, go to: File -> Options (shortcut: Alt+F, then T or O).",
+			"2. In the Outlook Options dialog, select 'Trust Center'.",
+			"3. Press Tab to find 'Trust Center Settings...' and press Enter.",
+			"4. In the Trust Center window, select 'Automatic Download'.",
+			"5. Uncheck the checkbox: 'Don\'t download pictures automatically in standard HTML email messages or RSS items' (or customize trusted senders).",
+			"6. Click 'OK', and in the main Options dialog click 'OK' again to save.",
+			"From now on, Outlook will automatically download and display all images in your emails.",
 		]
 		if item:
 			desc = getattr(item, "altText", "") or getattr(item, "title", "") or getattr(item, "customName", "")
@@ -3176,6 +3202,80 @@ def getCurrentMailItem(doc=None):
 		log.debug(f"outlookImageHelper: getCurrentMailItem ogólny błąd: {ex}")
 
 	return None
+
+
+def getSelectedMessagesInfo() -> tuple[int, object | None, bool]:
+	"""
+	Zwraca informację o zaznaczonych wiadomościach w programie Outlook:
+	(liczba zaznaczonych elementów, obiekt Selection, czy zaznaczono wiele wiadomości).
+	Jeśli aktywna jest otwarta w osobnym oknie wiadomość (Inspector) -> zwraca (1, None, False).
+	"""
+	focus = api.getFocusObject()
+	if not focus:
+		return 0, None, False
+	appMod = getattr(focus, "appModule", None)
+	nativeOm = getattr(appMod, "nativeOm", None) or getOutlookApp()
+	if not nativeOm:
+		return 0, None, False
+	try:
+		activeWin = None
+		try:
+			activeWin = nativeOm.ActiveWindow()
+		except Exception:
+			pass
+		if activeWin and hasattr(activeWin, "CurrentItem"):
+			return 1, None, False
+		if not activeWin:
+			try:
+				activeWin = getattr(nativeOm, "ActiveExplorer", lambda: None)()
+			except Exception:
+				pass
+		if activeWin and hasattr(activeWin, "Selection"):
+			sel = activeWin.Selection
+			cnt = int(getattr(sel, "Count", 0)) if sel else 0
+			if cnt > 1:
+				return cnt, sel, True
+			elif cnt == 1:
+				return 1, sel, False
+
+		actExp = getattr(nativeOm, "ActiveExplorer", lambda: None)()
+		if actExp and hasattr(actExp, "Selection"):
+			sel = actExp.Selection
+			cnt = int(getattr(sel, "Count", 0)) if sel else 0
+			if cnt > 1:
+				return cnt, sel, True
+			elif cnt == 1:
+				return 1, sel, False
+	except Exception:
+		pass
+	return 0, None, False
+
+
+def handleMultipleMessagesSelected(count: int, sel, action: str = "list") -> bool:
+	"""
+	Obsługuje sytuację, gdy użytkownik wywołuje funkcję dodatku mając zaznaczonych
+	kilka wiadomości naraz w programie Outlook.
+	"""
+	attMsgs = 0
+	if sel:
+		try:
+			limit = min(count, 50)
+			for i in range(1, limit + 1):
+				it = sel.Item(i)
+				if int(getattr(getattr(it, "Attachments", None), "Count", 0)) > 0:
+					attMsgs += 1
+		except Exception:
+			pass
+
+	playAlertSound("image_alert", volume=70, context="Powiadomienie o zaznaczeniu wielu wiadomości")
+	if action == "list":
+		if attMsgs > 0:
+			ui.message(_T("msg_multiple_selected_att", count=count, attCount=attMsgs))
+		else:
+			ui.message(_T("msg_multiple_selected", count=count))
+	else:
+		ui.message(_T("msg_multiple_selected_action", count=count))
+	return True
 
 
 def handleReadingPaneOff(mailItem, action: str = "list") -> bool:
@@ -9701,6 +9801,11 @@ class ImagePreviewDialog(wx.Dialog):
 
 def openGraphicListDialog():
 	"""Otwiera okno dialogowe listy wszystkich grafik i załączników w bieżącej wiadomości."""
+	selCount, sel, isMulti = getSelectedMessagesInfo()
+	if isMulti:
+		handleMultipleMessagesSelected(selCount, sel, action="list")
+		return
+
 	ticker = BusySoundTicker(startTone=True, interval=0.25, baseFreq=560, endTone=False).start()
 	try:
 		mailItem = getCurrentMailItem()
@@ -10532,7 +10637,7 @@ class GraphicElementsDialog(wx.Dialog):
 
 		self.detailsText = wx.TextCtrl(
 			self,
-			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL,
+			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_BESTWRAP,
 			size=(-1, 100),
 		)
 		mainSizer.Add(self.detailsText, 0, wx.EXPAND | wx.ALL, 8)
@@ -11487,8 +11592,8 @@ class UpdateNotificationDialog(wx.Dialog):
 		self.txt_changelog = wx.TextCtrl(
 			self,
 			value=changelog or "Brak dodatkowego opisu zmian.",
-			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL,
-			size=(520, 160)
+			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_BESTWRAP,
+			size=(540, 160)
 		)
 		main_sizer.Add(self.txt_changelog, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
 
@@ -12326,8 +12431,8 @@ class AddonAboutDialog(wx.Dialog):
 		self.txtInfo = wx.TextCtrl(
 			self,
 			value=infoText,
-			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL,
-			size=(520, 180)
+			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_BESTWRAP,
+			size=(540, 190)
 		)
 		self.txtInfo.SetName("Informacje o dodatku" if effLang == "pl" else "Add-on Information")
 		mainSizer.Add(self.txtInfo, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
@@ -13751,6 +13856,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message("Fokus znajduje się na nagłówku grupy, a nie na wiadomości e-mail. Zaznacz konkretną wiadomość na liście lub otwórz ją klawiszem Enter.")
 			return
 
+		selCount, sel, isMulti = getSelectedMessagesInfo()
+		if isMulti:
+			handleMultipleMessagesSelected(selCount, sel, action="ocr")
+			return
+
 		mailItem = getCurrentMailItem()
 		doc = getActiveWordDocument(mailItem=mailItem)
 		if not mailItem and doc:
@@ -13819,6 +13929,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		focus = api.getFocusObject()
 		if isGroupHeader(focus):
 			ui.message("Fokus znajduje się na nagłówku grupy, a nie na wiadomości e-mail. Zaznacz konkretną wiadomość na liście lub otwórz ją klawiszem Enter.")
+			return
+
+		selCount, sel, isMulti = getSelectedMessagesInfo()
+		if isMulti:
+			handleMultipleMessagesSelected(selCount, sel, action="ai")
 			return
 
 		mailItem = getCurrentMailItem()
@@ -13891,6 +14006,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		focus = api.getFocusObject()
 		if isGroupHeader(focus):
 			ui.message("Fokus znajduje się na nagłówku grupy, a nie na wiadomości e-mail. Zaznacz konkretną wiadomość na liście lub otwórz ją klawiszem Enter.")
+			return
+
+		selCount, sel, isMulti = getSelectedMessagesInfo()
+		if isMulti:
+			handleMultipleMessagesSelected(selCount, sel, action="invert")
 			return
 
 		mailItem = getCurrentMailItem()
