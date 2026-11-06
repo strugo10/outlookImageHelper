@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Outlook Image Helper — Pomoc i szczegółowy samouczek</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    max-width: 920px;
+    margin: 30px auto;
+    padding: 0 20px;
+    color: #222;
+    background: #fdfdfd;
+  }
+  .lang-switch {
+    background: #eef2f7;
+    border: 1px solid #d0dbe7;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-align: right;
+    margin-bottom: 20px;
+    font-size: 0.95em;
+  }
+  .lang-switch a {
+    color: #005a9e;
+    text-decoration: none;
+    font-weight: bold;
+    margin: 0 8px;
+  }
+  .lang-switch a:hover, .lang-switch a:focus {
+    text-decoration: underline;
+    outline: 2px solid #005a9e;
+  }
+  .lang-switch .active {
+    color: #111;
+    background: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #c2d2e2;
+  }
+  h1, h2, h3 { color: #005a9e; }
+  h1 { border-bottom: 2px solid #005a9e; padding-bottom: 10px; }
+  h2 { border-bottom: 1px solid #cce3f8; padding-bottom: 6px; margin-top: 32px; }
+  h3 { margin-top: 20px; color: #004578; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+  }
+  th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #005a9e; color: #fff; }
+  tr:nth-child(even) { background: #f8f9fa; }
+  .tip {
+    background: #e7f3fe;
+    border-left: 6px solid #2196F3;
+    padding: 12px 16px;
+    margin: 15px 0;
+    border-radius: 4px;
+  }
+  .note {
+    background: #fdf9e7;
+    border-left: 6px solid #fbc02d;
+    padding: 12px 16px;
+    margin: 15px 0;
+    border-radius: 4px;
+  }
+  .info-box {
+    background: #f0f7ff;
+    border: 1px solid #cce3f8;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 20px 0;
+  }
+  .info-box p { margin: 6px 0; }
+  kbd, .shortcut {
+    background: #eee;
+    padding: 2px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+    font-weight: bold;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+  }
+  ul, ol { padding-left: 25px; }
+  li { margin-bottom: 6px; }
+  .feature-box {
+    background: #fafbfc;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 18px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="lang-switch" role="navigation" aria-label="Wybór języka dokumentacji">
+  <span>Język / Language:</span>
+  <span class="active" lang="pl">Polski</span>
+  <a href="doc_en.html" lang="en">English</a>
+</div>
+
+<h1>Outlook - Pomocnik obrazów, załączników i OCR (Outlook Image Helper)</h1>
+
+<div class="info-box">
+  <p><strong>Wersja dodatku:</strong> <strong>1.5.6</strong> (Kompilacja: <strong>20261105.1</strong>, data wydania: <strong>2026-11-05</strong>)</p>
+  <p><strong>Autor dodatku:</strong> <strong>Sławomir Strugarek</strong> (z pomocą sztucznej inteligencji <strong>Antigravity</strong> — Google DeepMind)</p>
+  <p><strong>Kompatybilność:</strong> NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013, 2016, 2019, 2021, Microsoft 365 (wersja klasyczna)</p>
+  <p><strong>Licencja:</strong> Bezpłatna, Open Source (GPL v2+)</p>
+</div>
+
+<p>Dodatek dla czytnika ekranu <strong>NVDA</strong> zapewniający pełną dostępność, lokalne rozpoznawanie tekstu (OCR), powiększony podgląd obrazów dla słabowidzących, audiodeskrypcję i wieloturową rozmowę ze sztuczną inteligencją (<strong>Google Gemini</strong>), bibliotekę promptów, pomoc kontekstową (<kbd>F1</kbd>), aktywację hiperłączy, obsługę załączników plikowych (PDF, Word DOCX, obrazy) oraz inteligentny i seryjny zapis grafik i plików z wiadomości programu <strong>Microsoft Outlook Classic</strong> (edytor WordMail).</p>
+
+<h2>Spis treści</h2>
+<ul>
+  <li><a href="#tabela-skrotow">Tabela skrótów klawiszowych</a></li>
+  <li><a href="#zasada-dzialania">Zasada działania dodatku</a></li>
+  <li><a href="#okno-listy">Trzy kategorie elementów (Grafiki / Linie podziału / Załączniki)</a></li>
+  <li><a href="#podglad-obrazu">Powiększony podgląd grafiki dla osób słabowidzących (P)</a></li>
+  <li><a href="#pomoc-f1">Pomoc kontekstowa pod klawiszem F1</a></li>
+  <li><a href="#obsluga-zalacznikow">Analiza i OCR załączników (PDF, DOCX, obrazy)</a></li>
+  <li><a href="#menu-czynnosci">Menu Czynności (kontekstowe)</a></li>
+  <li><a href="#czat-ai">Dostępna rozmowa z AI (Q&amp;A, nagłówki H, przyciski B, pole E)</a></li>
+  <li><a href="#seryjny-zapis">Seryjny zapis i czytelne nazwy plików (RODO)</a></li>
+  <li><a href="#klucz-gemini">Instrukcja uzyskania bezpłatnego klucza Google Gemini</a></li>
+  <li><a href="#ustawienia">Ustawienia dodatku w preferencjach NVDA</a></li>
+  <li><a href="#autorzy">Autorzy i informacje prawne</a></li>
+</ul>
+
+<h2 id="tabela-skrotow">Tabela skrótów klawiszowych</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th scope="col">Skrót klawiszowy</th>
+      <th scope="col">Działanie</th>
+      <th scope="col">Kontekst / Okno</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><kbd>Ctrl+NVDA+A</kbd> / <kbd>NVDA+Shift+G</kbd> / <kbd>Alt+Shift+G</kbd></td>
+      <td>Otwiera okno dialogowe „Lista grafik i załączników w wiadomości”</td>
+      <td>W otwartej wiadomości programu Microsoft Outlook Classic.</td>
+    </tr>
+    <tr>
+      <td><kbd>NVDA+Windows+G</kbd> / <kbd>Alt+Shift+O</kbd></td>
+      <td>Szybkie rozpoznanie tekstu (OCR) bieżącej grafiki lub załącznika</td>
+      <td>Wiadomość programu Outlook.</td>
+    </tr>
+    <tr>
+      <td><kbd>NVDA+Windows+Shift+G</kbd> / <kbd>Alt+Shift+A</kbd></td>
+      <td>Szybki opis bieżącej grafiki lub załącznika przez AI (Google Gemini)</td>
+      <td>Wiadomość programu Outlook (wymaga bezpłatnego klucza API).</td>
+    </tr>
+    <tr>
+      <td><kbd>NVDA+Windows+I</kbd> / <kbd>Alt+Shift+I</kbd></td>
+      <td>Szybki podgląd grafiki w negatywie (inwersja kolorów dla słabowidzących)</td>
+      <td>Wiadomość programu Outlook.</td>
+    </tr>
+    <tr>
+      <td><kbd>Enter</kbd></td>
+      <td>Uruchamia OCR dla zaznaczonego elementu na liście</td>
+      <td>Okno listy grafik i załączników.</td>
+    </tr>
+    <tr>
+      <td><kbd>P</kbd></td>
+      <td>Otwiera powiększony podgląd wybranej grafiki dla osób słabowidzących</td>
+      <td>Okno listy na wybranej grafice lub obrazie załącznika.</td>
+    </tr>
+    <tr>
+      <td><kbd>I</kbd></td>
+      <td>Przełącza inwersję kolorów (negatyw / wysoki kontrast) i zapamiętuje dla maila</td>
+      <td>Okno powiększonego podglądu obrazu lub lista grafik w oknie głównym.</td>
+    </tr>
+    <tr>
+      <td><kbd>F1</kbd></td>
+      <td>Wyświetla pomoc kontekstową i spis skrótów dla bieżącego okna</td>
+      <td>W oknie listy, czacie AI, oknie podglądu lub ustawieniach.</td>
+    </tr>
+    <tr>
+      <td><kbd>F2</kbd></td>
+      <td>Zmień nazwę / nadaj własny czytelny opis grafice</td>
+      <td>Okno listy; nazwa jest trwale zapamiętywana dla tej wiadomości.</td>
+    </tr>
+    <tr>
+      <td><kbd>Aplikacje</kbd> / <kbd>Shift+F10</kbd> / <kbd>Alt+C</kbd></td>
+      <td>Otwiera Menu Czynności (kontekstowe)</td>
+      <td>Okno listy grafik i załączników.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+Enter</kbd></td>
+      <td>Otwiera link w przeglądarce lub uruchamia plik załącznika</td>
+      <td>Okno listy grafik i załączników.</td>
+    </tr>
+    <tr>
+      <td><kbd>Tab</kbd></td>
+      <td>Przechodzi do pola szczegółów technicznych (px/pt, link, pełny tekst)</td>
+      <td>Okno listy grafik i załączników.</td>
+    </tr>
+    <tr>
+      <td><kbd>H</kbd> / <kbd>Shift+H</kbd></td>
+      <td>Przechodzi do następnego / poprzedniego nagłówka (pytania i odpowiedzi)</td>
+      <td>Okno rozmowy z AI (poza polem wprowadzania pytania).</td>
+    </tr>
+    <tr>
+      <td><kbd>B</kbd> / <kbd>Shift+B</kbd></td>
+      <td>Przeskakuje między przyciskami kopiowania i zapisu pod odpowiedziami</td>
+      <td>Okno rozmowy z AI.</td>
+    </tr>
+    <tr>
+      <td><kbd>E</kbd></td>
+      <td>Przenosi fokus natychmiast do pola wprowadzania kolejnego pytania</td>
+      <td>Okno rozmowy z AI.</td>
+    </tr>
+    <tr>
+      <td><kbd>C</kbd> / <kbd>S</kbd></td>
+      <td>Kopiuje (C) lub zapisuje do pliku (S) aktualnie wskazaną odpowiedź AI</td>
+      <td>Okno rozmowy z AI.</td>
+    </tr>
+    <tr>
+      <td><kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd> / <kbd>1</kbd> / <kbd>I</kbd> / <kbd>O</kbd></td>
+      <td>Sterowanie podglądem obrazu (+/- zoom, 0 dopasuj, 1 100%, I inwersja, O w systemie)</td>
+      <td>Okno powiększonego podglądu obrazu.</td>
+    </tr>
+    <tr>
+      <td><kbd>Escape</kbd></td>
+      <td>Zamyka bieżące okno dialogowe i wraca do poprzedniego widoku</td>
+      <td>Dowolne okno dodatku.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="zasada-dzialania">Zasada działania dodatku</h2>
+<p>W programie Microsoft Outlook Classic wiadomości e-mail renderowane są przez silnik programu Microsoft Word (tzw. WordMail, okno o klasie systemowej <code>_WwG</code>). Obiekty graficzne wklejane do treści dzielą się na dwa typy:</p>
+<ol>
+  <li><strong>InlineShapes (grafiki w linii tekstu):</strong> Zwykłe wklejone zrzuty ekranu, które NVDA czasem wykrywa literą <code>G</code>, o ile posiadają tekst alternatywny. Gdy opisu brak, użytkownik słyszy jedynie lakoniczne „grafika”.</li>
+  <li><strong>Shapes (grafiki swobodne / z opływaniem tekstu):</strong> Logo firmowe, diagramy, banery, wykresy i przyciski z opływaniem ramkowym. <strong>Standardowy czytnik NVDA całkowicie je pomija</strong> pod klawiszem <code>G</code>.</li>
+</ol>
+<p>Dodatek <strong>Outlook Image Helper</strong> bezpośrednio łączy się z modelem obiektowym WordMail COM w pamięci procesu, odnajdując 100% wklejonych obiektów, odczytując ich dokładne wymiary w pikselach, powiązane hiperłącza, tekst alternatywny oraz tekst akapitów bezpośrednio nad nimi.</p>
+
+<h2 id="okno-listy">Okno dialogowe i przełącznik kategorii (Grafiki / Załączniki)</h2>
+<p>Naciśnięcie skrótu <kbd>Ctrl+NVDA+A</kbd> w otwartej wiadomości wyświetla główne okno dodatku. Na samej górze znajduje się <strong>Przełącznik kategorii elementów wiadomości</strong> (<kbd>Alt+K</kbd>):</p>
+<ol>
+  <li><strong>1. Grafiki i zrzuty ekranu w treści wiadomości (domyślny widok):</strong> Wszystkie wklejone obrazy, wykresy, logotypy i zrzuty ekranu osadzone w edytorze WordMail (skrót <kbd>Alt+1</kbd>).</li>
+  <li><strong>2. Załączniki do wiadomości (pliki PDF, DOCX, obrazy itp.):</strong> Rzeczywiste pliki dołączone do maila, w tym wielostronicowe dokumenty PDF, pliki Worda, załączone zdjęcia, pliki tekstowe oraz arkusze kalkulacyjne (skrót <kbd>Alt+2</kbd>).</li>
+  <li><strong>3. Linie podziału i separatory:</strong> Odrębna kategoria dla poziomych kresek i separatorów stopki (odfiltrowane z głównej listy, skrót <kbd>Alt+3</kbd>).</li>
+</ol>
+<p>Pod listą szczegółów znajduje się pole wyboru <strong>„Grupuj powtarzające się grafiki (deduplikacja)”</strong> (<kbd>Alt+A</kbd>), pozwalające ukryć duplikaty powtarzających się awatarów i ikonek.</p>
+<p>Dzięki temu domyślnie masz błyskawiczny dostęp do wklejonych obrazów, a gdy potrzebujesz przeanalizować dołączony plik PDF lub DOCX, wystarczy jedno naciśnięcie strzałki w dół lub w prawo w przełączniku kategorii.</p>
+
+<h2 id="podglad-obrazu">Powiększony podgląd grafiki i inwersja kolorów dla osób słabowidzących (P / I)</h2>
+<p>Dla osób słabowidzących dodatek oferuje dedykowane, dostępne okno powiększonego podglądu z ciemnym tłem o wysokim kontraście (skrót <kbd>P</kbd> na liście lub przycisk <em>Podgląd</em>):</p>
+<ul>
+  <li><strong>Sterowanie powiększeniem:</strong> Klawisze <kbd>+</kbd> / <kbd>=</kbd> / <kbd>Num+</kbd> (powiększ), <kbd>-</kbd> / <kbd>Num-</kbd> (pomniejsz), <kbd>0</kbd> lub <kbd>D</kbd> (dopasuj cały obraz do okna), <kbd>1</kbd> (skala 100% piksel w piksel). NVDA odczytuje głosowo procent powiększenia.</li>
+  <li><strong>Inwersja kolorów (tryb negatywu / wysoki kontrast) — klawisz <kbd>I</kbd>:</strong> Natychmiastowe odwrócenie barw w kodzie C Pythona (czarne tło, jasny tekst) z zachowaniem pełnej przezroczystości kanału Alpha. Doskonałe do odczytywania jasnych zrzutów ekranu na ciemnym monitorze.</li>
+  <li><strong>Trwałe zapamiętywanie inwersji per mail:</strong> Jeśli włączysz inwersję klawiszem <kbd>I</kbd> (w podglądzie lub bezpośrednio na liście), stan ten jest zapamiętywany w pliku <code>outlookImageHelper_image_settings.json</code> dla tej konkretnej wiadomości. Przy ponownym otwarciu maila grafika ma etykietę <code>[Negatyw]</code> i od razu otwiera się w wersji odwróconej!</li>
+  <li><strong>Szybki skrót w Outlooku (<kbd>NVDA+Windows+I</kbd> / <kbd>Alt+Shift+I</kbd>):</strong> Bezpośrednie otwarcie podglądu w trybie negatywu z poziomu treści maila.</li>
+  <li><strong>Otwórz w przeglądarce Windows (<kbd>O</kbd>):</strong> Jeśli włączony jest tryb negatywu, systemowa przeglądarka otworzy obraz z odwróconymi barwami.</li>
+  <li><strong>Zastąp grafikę w treści maila wersją w negatywie:</strong> W Menu Czynności dostępna jest opcja zastąpienia obrazu w samej wiadomości. Jeśli wiadomość jest w trybie edycji (Akcje &rarr; Edytuj wiadomość), WordMail zamienia kształt na negatyw. Jeśli mail jest tylko do odczytu, dodatek bezpiecznie zapamiętuje preferencję w bazie lokalnej bez naruszania serwera pocztowego.</li>
+</ul>
+
+<h2 id="pomoc-f1">Pomoc kontekstowa pod klawiszem F1</h2>
+<p>W dowolnym oknie dodatku (okno listy grafik, rozmowa z AI, powiększony podgląd grafiki czy panel preferencji) naciśnięcie klawisza <kbd>F1</kbd> natychmiast wyświetla w czytelnym buforze tekstowym NVDA wyczerpującą pomoc ze spisem skrótów klawiszowych dotyczącą wyłącznie tego aktywnego okna.</p>
+
+<h2 id="obsluga-zalacznikow">Analiza i OCR załączników (PDF, DOCX, obrazy)</h2>
+<p>Dodatek <strong>Outlook Image Helper</strong> umożliwia również pełną analizę plików załączników:</p>
+<ul>
+  <li><strong>Dokumenty PDF (skany i pliki tekstowe):</strong> Wybór opcji <em>Przepisz tekst ze skanu PDF</em> lub <em>Analiza / Streszczenie dokumentu PDF przez AI</em> wysyła dokument do multimodalnego modelu Google Gemini (zgodność z Base64 <code>application/pdf</code>). AI precyzyjnie przepisuje skanowany tekst, rozpoznaje tabele, nagłówki, kwoty faktur i terminy bez konieczności instalowania zewnętrznych narzędzi PDF OCR na komputerze!</li>
+  <li><strong>Dokumenty programu Word (DOCX):</strong> Dodatek posiada wbudowany silnik ekstrakcji OpenXML – tekst akapitów i struktury tabel odczytywane są bezpośrednio z archiwum pliku bez konieczności uruchamiania programu Microsoft Word! Treść można odczytać natychmiast lub przesłać do AI w celu przygotowania streszczenia czy analizy.</li>
+  <li><strong>Pliki graficzne w załącznikach (PNG, JPG, BMP, WEBP, TIFF):</strong> Działa dla nich zarówno lokalny silnik Windows Media OCR, jak i opisywanie przez AI.</li>
+  <li><strong>Pliki tekstowe (TXT, CSV, LOG, JSON, XML):</strong> Bezpośredni podgląd i analiza treści.</li>
+  <li><strong>Otwieranie i zapis:</strong> Z poziomu listy załączników możesz otworzyć plik w domyślnej aplikacji skrótem <kbd>Ctrl+Enter</kbd> lub zapisać go na dysku.</li>
+</ul>
+
+<h2 id="menu-czynnosci">Menu Czynności (kontekstowe)</h2>
+<p>Zamiast szukać przycisków Tabem na dole okna, zaznacz element na liście i naciśnij klawisz <kbd>Aplikacje</kbd>, <kbd>Shift+F10</kbd> lub przycisk <kbd>Alt+C</kbd>:</p>
+<div class="feature-box">
+  <h3>Dostępne operacje dla wybranego elementu:</h3>
+  <ul>
+    <li><strong>Rozpoznaj tekst (OCR):</strong> Uruchamia szybkie rozpoznawanie tekstu (dla grafik lokalny Windows OCR, dla PDF transkrypcja AI).</li>
+    <li><strong>Opisz / Analizuj przez AI (szybki opis):</strong> Wykonuje natychmiastową analizę domyślnym promptem.</li>
+    <li><strong>Opisz z wyborem prompta:</strong> Otwiera okno biblioteki promptów z możliwością edycji przed wysłaniem.</li>
+    <li><strong>Rozmowa z AI (Q&amp;A):</strong> Otwiera okno wieloturowego czatu z AI o dany obraz lub dokument.</li>
+    <li><strong>Otwórz link / plik (<kbd>Ctrl+Enter</kbd>):</strong> Dla grafik otwiera powiązany adres URL w przeglądarce; dla załączników otwiera plik w aplikacji domyślnej systemu Windows.</li>
+    <li><strong>Przejdź do grafiki w wiadomości:</strong> Fizycznie zaznacza obraz w mailu (umożliwia użycie menu Outlooka).</li>
+    <li><strong>Kopiuj grafikę do schowka:</strong> Kopiuje oryginalną bitmapę do schowka Windows.</li>
+    <li><strong>Zapisz jako plik... (<kbd>Alt+Z</kbd>):</strong> Zapisuje element z inteligentną, czytelną nazwą pliku.</li>
+    <li><strong>Zapisz wszystkie do folderu... (<kbd>Alt+W</kbd>):</strong> Seryjnie zapisuje całą kolekcję do wskazanego folderu.</li>
+  </ul>
+</div>
+
+<h2 id="prompty-ai">Biblioteka i szablony promptów dla AI</h2>
+<p>Różne materiały wymagają różnego podejścia. W oknie wyboru prompta możesz:</p>
+<ul>
+  <li>Wybrać dedykowany szablon z listy (np. <em>Tabela kadrowa / urlopy</em>, <em>Analiza dokumentu PDF / umowy / faktury</em>, <em>Okno programu / błędy</em>, <em>Wykres i diagram</em>, <em>Krótkie podsumowanie</em>),</li>
+  <li>Zmodyfikować treść w polu edycyjnym przed wysłaniem,</li>
+  <li>Zapisać swój własny szablon przyciskiem <em>„Zapisz jako nowy szablon...”</em>,</li>
+  <li>Usunąć niepotrzebny szablon przyciskiem <em>„Usuń wybrany szablon”</em>.</li>
+</ul>
+
+<h2 id="czat-ai">Dostępna rozmowa z AI (jedno okno, nawigacja nagłówkami i dedykowane przyciski)</h2>
+<p>Okno rozmowy z AI działa w jednym, przejrzystym oknie z pełną dostępnością dla czytnika NVDA, wzorowanym na nowoczesnych czatach (np. Gemini w przeglądarce):</p>
+<div class="tip">
+  <strong>Struktura i skróty nawigacyjne w oknie rozmowy:</strong>
+  <ul>
+    <li><strong>Nawigacja nagłówkami (<kbd>H</kbd> oraz <kbd>Shift+H</kbd>):</strong> Klawisz <kbd>H</kbd> przenosi natychmiast kursor do kolejnego pytania lub odpowiedzi (oraz podtytułów wewnątrz wypowiedzi AI). Klawisz <kbd>Shift+H</kbd> cofa do poprzedniego nagłówka. NVDA odczytuje nazwę poziomu i tytuł, a strzałką w dół możesz od razu zacząć czytać treść wypowiedzi.</li>
+    <li><strong>Interaktywne linki, e-maile, telefony i pozycje GEO (<kbd>K</kbd>, <kbd>Shift+K</kbd>, <kbd>Enter</kbd>):</strong> Wszelkie odnośniki w tekście odpowiedzi (adresy URL stron WWW, odnośniki Markdown, adresy poczty e-mail, numery telefonów oraz współrzędne geograficzne) są automatycznie formatowane i wyróżniane w wysokim kontraście. Naciśnięcie klawisza <kbd>K</kbd> przeskakuje do następnego linku, <kbd>Shift+K</kbd> do poprzedniego, a naciśnięcie <kbd>Enter</kbd> (lub kliknięcie myszą) natychmiast otwiera element w domyślnej aplikacji systemu Windows (przeglądarce internetowej, programie pocztowym, aplikacji telefonu lub mapach). Klawisz <kbd>L</kbd> otwiera podręczną listę wszystkich linków w rozmowie.</li>
+    <li><strong>Dedykowane przyciski pod każdą z odpowiedzi:</strong> Bezpośrednio pod każdą odpowiedzią modelu Gemini znajdują się dwa wygodne przyciski:
+      <ul>
+        <li><em>„Kopiuj odpowiedź X do schowka”</em> — kopiuje tylko tę wskazaną odpowiedź (w formacie tekstowym oraz Rich HTML z ewentualnym obrazem),</li>
+        <li><em>„Zapisz odpowiedź X do pliku...”</em> — pozwala zapisać konkretną odpowiedź jako plik HTML, Markdown (.md) lub zwykły tekst (.txt).</li>
+      </ul>
+    </li>
+    <li><strong>Szybkie przeskakiwanie po przyciskach (<kbd>B</kbd> oraz <kbd>Shift+B</kbd>):</strong> Klawisz <kbd>B</kbd> przeskakuje do następnego przycisku w oknie (pod odpowiedziami i na dolnym pasku), a <kbd>Shift+B</kbd> do poprzedniego.</li>
+    <li><strong>Błyskawiczne przejście do zadawania pytania (<kbd>E</kbd>):</strong> Klawisz <kbd>E</kbd> (lub <kbd>Alt+H</kbd> z pola edycji) natychmiast przenosi fokus do pola wprowadzania nowego zapytania.</li>
+    <li><strong>Wygodne zadawanie pytań:</strong> W polu edycyjnym wpisz swoje pytanie i naciśnij <kbd>Enter</kbd> (lub <kbd>Ctrl+Enter</kbd>). Jeśli chcesz wstawić nową linię w pytaniu, naciśnij <kbd>Shift+Enter</kbd>.</li>
+    <li><strong>Klawisze skrótu w historii:</strong> Będąc na danej odpowiedzi, klawisz <kbd>C</kbd> kopiuje ją natychmiast do schowka, a klawisz <kbd>S</kbd> wywołuje okno zapisu tej odpowiedzi.</li>
+    <li><strong>Akustyczny wskaźnik generowania odpowiedzi:</strong> Podczas oczekiwania na odpowiedź Google Gemini dodatek odtwarza subtelne, ciche impulsy dźwiękowe (co 1.5 sekundy) oraz przekazuje komunikaty głosowe, dzięki czemu użytkownik dokładnie wie, że model pracuje i nie ma martwej ciszy.</li>
+    <li><strong>Automatyczny fokus po odpowiedzi:</strong> Gdy Gemini zakończy odpowiadanie, odtwarza się dźwięk sukcesu, a kursor automatycznie ustawia się na początku nowej odpowiedzi w oknie historii.</li>
+  </ul>
+</div>
+
+<h2 id="kopiowanie-eksport">Kopiowanie i uniwersalny format eksportu</h2>
+<p>W oknie rozmowy z AI znajdują się zaawansowane narzędzia kopiowania i eksportu:</p>
+<ul>
+  <li><strong>Dedykowane przyciski pod każdą odpowiedzią:</strong> Kopiowanie i zapis pojedynczych odpowiedzi bez konieczności kopiowania całej historii.</li>
+  <li><strong>Kopiuj ostatnią odpowiedź (<kbd>Alt+O</kbd>):</strong> Kopiuje do schowka wyłącznie najnowszą odpowiedź modelu.</li>
+  <li><strong>Kopiuj całą rozmowę (<kbd>Alt+C</kbd>):</strong> Kopiuje pełny zapis pytań i odpowiedzi.</li>
+  <li><strong>Pole wyboru „Dołącz źródłowy obiekt do kopii i eksportu”:</strong> Umieszcza w schowku uniwersalny format Rich HTML ze zintegrowanym obrazem Base64. Wklejenie do wiadomości Outlook lub dokumentu Microsoft Word <strong>automatycznie osadza oryginalny obraz wraz ze sformatowanym raportem</strong>! W Notatniku wkleja się czysty tekst.</li>
+  <li><strong>Eksportuj do pliku...:</strong> Zapisuje samodzielny plik <code>.html</code> (z wbudowaną grafiką) lub dokument <code>.md</code> (Markdown z plikiem obrazu) całej rozmowy.</li>
+</ul>
+
+<h2 id="hiperlacza">Wykrywanie hiperłączy, SafeLinks i ikon społecznościowych</h2>
+<p>Wiele grafik w stopkach wiadomości to klikalne odnośniki lub ikony serwisów społecznościowych:</p>
+<ul>
+  <li><strong>Odwijanie Microsoft SafeLinks:</strong> Korporacyjny system Outlook zabezpiecza zewnętrzne linki długimi adresami <code>safelinks.protection.outlook.com</code>. Dodatek automatycznie dekoduje te linki, rozpoznając właściwą platformę (np. LinkedIn, YouTube, Facebook, Twitter/X, Instagram, GitHub) i wyświetla czytelną etykietę: <code>Grafika 20: Ikona LinkedIn (29×29 px) [Link: LinkedIn]</code>.</li>
+  <li><strong>Numery telefonów i e-maile:</strong> Ikony z odnośnikami <code>tel:</code> lub <code>mailto:</code> są precyzyjnie oznaczane, np. <code>Ikona telefonu (Telefon (+48 123...))</code> lub <code>Ikona poczty (E-mail (...))</code>.</li>
+  <li><strong>Linie podziału i separatory:</strong> Elementy o grubości do 3 px są automatycznie oznaczane jako <em>Linia podziału / separator</em>.</li>
+  <li><strong>Otwieranie w przeglądarce:</strong> Naciśnięcie <kbd>Ctrl+Enter</kbd> na liście natychmiast otwiera docelowy odnośnik w przeglądarce, wybiera numer telefonu lub tworzy nową wiadomość e-mail.</li>
+</ul>
+
+<h2 id="wlasne-nazwy">Własne nazywanie grafik (<kbd>F2</kbd>) i trwałe zapamiętywanie</h2>
+<p>Dodatek stosuje przejrzysty i w pełni kontrolowany system nazewnictwa grafik:</p>
+<ul>
+  <li><strong>Czyste etykiety:</strong> Domyślne etykiety grafik na liście są zwięzłe i wolne od przypadkowego tekstu (np. <code>Grafika 16 — Zrzut ekranu (419×77 px)</code>).</li>
+  <li><strong>Zmień nazwę / nadaj własny opis (<kbd>F2</kbd>):</strong> Zaznacz grafikę na liście i wciśnij klawisz <kbd>F2</kbd> (lub wybierz tę opcję z Menu Czynności). Wprowadź czytelną nazwę, np. <em>Urlopy lipiec - Zespół IT</em>.</li>
+  <li><strong>Trwałe zapamiętywanie:</strong> Nadana nazwa jest natychmiast zapisywana w lokalnej bazie dodatku, przypisanej do unikalnego identyfikatora tej wiadomości. Każde ponowne otwarcie maila – nawet po restarcie komputera – natychmiast wyświetli Twoją własną nazwę (np. <code>Grafika 16: [Urlopy lipiec - Zespół IT] — Zrzut ekranu</code>).</li>
+  <li><strong>Bezpieczeństwo wiadomości:</strong> Zapis nie wymaga modyfikowania pliku na serwerze pocztowym ani nie wywołuje monitów o zapisanie maila przy zamykaniu. Jeśli mail jest edytowalny, nazwa wpisywana jest dodatkowo jako tekst alternatywny WordMail w pamięci procesu.</li>
+  <li><strong>Przywrócenie domyślnej nazwy:</strong> W Menu Czynności dostępna jest opcja <em>„Usuń własną nazwę (przywróć domyślną)”</em>.</li>
+</ul>
+
+<h2 id="dzwieki-nawigacji">Dźwięki (earcony) nawigacji po liście</h2>
+<p>Podczas przewijania listy strzałkami dodatek odtwarza subtelne, natychmiastowe dźwięki w wybranym motywie (skojarzeniowym, minimalistycznym lub instrumentalnym):</p>
+<ul>
+  <li><strong>Ikona mediów społecznościowych:</strong> Przyjazny, podwójny ton wznoszący.</li>
+  <li><strong>Numer telefonu:</strong> Dźwięk tonowego wybierania telefonu (DTMF).</li>
+  <li><strong>Poczta e-mail:</strong> Dyskretny szum koperty pocztowej.</li>
+  <li><strong>Zwykły link internetowy:</strong> Czysty, krótki klik interfejsu.</li>
+  <li><strong>Linia podziału / separator:</strong> Bardzo ciche, miękkie stuknięcie ołówkiem.</li>
+  <li><strong>Zrzut ekranu / grafika bez opisu:</strong> Dźwięk powiadomienia o obrazie (np. migawka aparatu).</li>
+</ul>
+<p>Dźwięki nawigacji można w każdej chwili włączyć lub wyłączyć w preferencjach NVDA.</p>
+
+<h2 id="seryjny-zapis">Seryjny zapis i czytelne nazwy plików (RODO)</h2>
+<ul>
+  <li>Przycisk <strong>„Zapisz wszystkie...”</strong> lub zaznaczenie wielu pozycji spacją pozwala zapisać kolekcję elementów jednym kliknięciem.</li>
+  <li><strong>Inteligentne nazewnictwo:</strong> Pliki otrzymują czytelne nazwy oparte na kontekście, np. <code>01_Jan_Kowalski.png</code> lub <code>02_Anna_Nowak.png</code>.</li>
+  <li><strong>Ochrona prywatności i RODO:</strong> Domyślnie generowanie nazw plików odbywa się w 100% lokalnie na Twoim komputerze bez wysyłania jakichkolwiek danych na zewnątrz. Generowanie nazw przez AI jest opcjonalne i wymaga świadomego włączenia w preferencjach.</li>
+</ul>
+
+<h2 id="dystrybucja">Jak udostępnić dodatek innym użytkownikom?</h2>
+<div class="tip">
+  <strong>Bardzo ważna wskazówka:</strong> Aby udostępnić dodatek innej osobie, <strong>nie musisz pakować całego folderu z plikami źródłowymi!</strong>
+</div>
+<p>Wystarczy, że prześlesz <strong>jeden gotowy plik instalacyjny</strong>:</p>
+<p style="text-align: center; margin: 20px 0;">
+  <code style="font-size: 1.2em; padding: 8px 16px; background: #eef2f7; border: 1px solid #005a9e; border-radius: 6px; font-weight: bold;">outlookImageHelper.nvda-addon</code>
+</p>
+<p>Plik ten jest kompletnym, autonomicznym instalatorem pakietu NVDA. Odbiorca dodatku wykonuje tylko jeden krok:</p>
+<ol>
+  <li>Otwiera pobrany plik <code>outlookImageHelper.nvda-addon</code> (klikając go dwukrotnie lub wciskając <kbd>Enter</kbd> w Eksploratorze Windows).</li>
+  <li>NVDA wyświetla monit z pytaniem, czy zainstalować dodatek <em>Outlook - Pomocnik obrazów, załączników i OCR</em>. Użytkownik wybiera <strong>„Tak”</strong>.</li>
+  <li>Następnie NVDA prosi o ponowne uruchomienie programu. Po restarcie dodatek jest od razu w pełni aktywny i gotowy do pracy!</li>
+</ol>
+<p>Jeśli samodzielnie wprowadzasz zmiany w plikach źródłowych w folderze projektu, uruchom skrypt <code>build.ps1</code> (lub <code>build.cmd</code>) – skrypt ten automatycznie utworzy świeży plik <code>outlookImageHelper.nvda-addon</code> gotowy do wysłania.</p>
+
+<h2 id="klucz-gemini">Instrukcja uzyskania bezpłatnego klucza Google Gemini</h2>
+<div class="tip">
+  Klucz Google Gemini API jest w 100% bezpłatny do użytku osobistego. Nie wymaga podawania karty kredytowej ani żadnych opłat.
+</div>
+<ol>
+  <li>Otwórz stronę: <a href="https://aistudio.google.com/app/apikey" target="_blank">https://aistudio.google.com/app/apikey</a> (w oknie konfiguracji klucza możesz kliknąć przycisk <em>„Otwórz stronę Google AI Studio w przeglądarce”</em>).</li>
+  <li>Zaloguj się kontem Google (Gmail).</li>
+  <li>Kliknij przycisk <strong>„Create API key”</strong> (Utwórz klucz API).</li>
+  <li>Wybierz opcję <strong>„Create API key in new project”</strong> (Utwórz klucz w nowym projekcie).</li>
+  <li>Skopiuj wygenerowany klucz przyciskiem <strong>„Copy”</strong>.</li>
+  <li>Wróć do Outlooka, wciśnij <kbd>Ctrl+NVDA+A</kbd> &rarr; <kbd>Shift+F10</kbd> &rarr; <strong>„Przejdź do ustawień dodatku...”</strong> (lub otwórz menu NVDA &rarr; <em>Preferencje</em> &rarr; <em>Ustawienia</em> &rarr; <em>Outlook - Pomocnik obrazów i OCR</em>), zaznacz <em>„Pokaż ustawienia zaawansowane”</em> i wklej klucz w polu Gemini API.</li>
+</ol>
+
+<h2 id="ustawienia">Ustawienia dodatku w preferencjach NVDA</h2>
+<p>Opcje dodatku znajdują się w menu NVDA &rarr; <em>Preferencje</em> &rarr; <em>Ustawienia</em> &rarr; <strong>Outlook - Pomocnik obrazów i OCR</strong>. Interfejs podzielony jest na tryb podstawowy i zaawansowany:</p>
+<ul>
+  <li><strong>Tryb podstawowy (domyślny):</strong>
+    <ul>
+      <li><strong>Powiadomienia o grafikach:</strong> Pierwsza opcja panelu — powiadamianie głosem o wklejonych obrazach natychmiast po wejściu do wiadomości e-mail.</li>
+      <li><strong>Dźwięki alertu:</strong> Odtwarzanie dyskretnego dźwięku (earconu) po wykryciu grafik, wybór miejsca odtwarzania (przy otwarciu, na liście lub w obu miejscach).</li>
+      <li><strong>Motyw dźwięku powiadomienia:</strong> Wybór jednego z 3 motywów (<em>Skojarzeniowy — migawka aparatu</em>, <em>Minimalistyczny</em>, <em>Instrumentalny</em>) z przyciskiem natychmiastowego odsłuchania.</li>
+      <li><strong>Głośność dźwięków:</strong> Suwak głośności z klawiaturową regulacją i przyciskiem testu.</li>
+      <li><strong>Przyciski podręcznika i skrótów klawiszowych.</strong></li>
+    </ul>
+  </li>
+  <li><strong>Tryb zaawansowany (pole wyboru „Pokaż ustawienia zaawansowane”):</strong>
+    <ul>
+      <li><strong>Język interfejsu dodatku:</strong> <em>Automatyczny (zgodny z NVDA)</em>, <em>Polski</em>, <em>English</em>.</li>
+      <li><strong>Domyślny język OCR:</strong> Rozwijana lista języków silnika Windows Media OCR oraz opcja własnego kodu języka.</li>
+      <li><strong>Raport diagnostyczny i stan dodatku (<kbd>Alt+R</kbd>):</strong> Szczegółowe podsumowanie stanu systemu, aktywnych silników OCR oraz łączności AI.</li>
+      <li><strong>Sztuczna inteligencja AI:</strong> Generowanie nazw plików przez AI, wybór dostawcy (Google Gemini / OpenAI), klucze API, asystent pobierania klucza, test połączenia, wybór modelu (domyślnie <code>gemini-3.8-flash</code>) oraz własna domyślna instrukcja promptu.</li>
+      <li><strong>Aktualizacje dodatku:</strong> Opcja automatycznego sprawdzania aktualizacji przy uruchomieniu NVDA oraz przycisk natychmiastowego sprawdzenia nowej wersji.</li>
+      <li><strong>Narzędzia twórcy dodatku (<kbd>Alt+N</kbd>):</strong> Umieszczony na samym dole panel chroniony hasłem twórcy (z możliwością zmiany oraz odzyskiwania hasła jednorazowym kodem wysyłanym na autoryzowaną skrzynkę e-mail twórcy). Zawiera narzędzia tłumaczeń AI, eksport/import szablonów JSON, folder tłumaczeń oraz ścieżkę do pliku ogłoszeniowego aktualizacji.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="faq">FAQ i rozwiązywanie problemów</h2>
+<p><strong>Pytanie: Dlaczego przycisk OCR na obrazie nie wykrył żadnego tekstu?</strong><br>
+Odpowiedź: Jeśli obraz przedstawia zdjęcie lub schemat graficzny bez liter, silnik Windows Media OCR zgłasza brak tekstu. W takim przypadku skorzystaj z opcji <em>Opisz przez AI</em>.</p>
+
+<p><strong>Pytanie: Jak rozpoznać tekst ze skanowanego dokumentu PDF?</strong><br>
+Odpowiedź: Przełącz widok na <em>Załączniki do wiadomości</em> (<kbd>Alt+K</kbd>), zaznacz plik PDF i wybierz z Menu Czynności opcję <em>Przepisz tekst ze skanu PDF (OCR / AI)</em>. Gemini przepisze całą treść z zachowaniem tabel i układu.</p>
+
+<p><strong>Pytanie: Czy moje maile i dane osobowe są wysyłane do AI?</strong><br>
+Odpowiedź: Nie. Treść wiadomości e-mail nie jest nigdzie wysyłana. Jedynie w momencie, gdy użytkownik świadomie kliknie <em>Opisz przez AI</em> lub <em>Rozmowa z AI</em>, pojedynczy wskazany element (obraz lub dokument) wraz z krótkim nagłówkiem jest przesyłany do Twojego prywatnego projektu w Google Gemini API.</p>
+
+<h2 id="autorzy">Autorzy i informacje prawne</h2>
+<p><strong>Główny autor i pomysłodawca:</strong> Sławomir Strugarek<br>
+<strong>Współpraca programistyczna i architektoniczna:</strong> Antigravity (Google DeepMind)<br>
+<strong>Licencja:</strong> GNU General Public License v2 (GPL-2.0)<br>
+<strong>Kontakt:</strong> Formularz kontaktowy jest obecnie przygotowywany jako moduł uniwersalny dla wszystkich dodatków pakietu Outlook.</p>
+
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Outlook Image Helper — Documentation / Dokumentacja</title>
+<script>
+  (function() {
+    var userLang = navigator.language || navigator.userLanguage || "";
+    if (userLang.toLowerCase().indexOf("pl") === -1) {
+      window.location.replace("doc_en.html");
+    } else {
+      window.location.replace("doc_pl.html");
+    }
+  })();
+</script>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 20px;
+    color: #222;
+    text-align: center;
+  }
+  .lang-card {
+    display: inline-block;
+    background: #f0f7ff;
+    border: 2px solid #005a9e;
+    border-radius: 8px;
+    padding: 24px 32px;
+    margin: 15px;
+    text-decoration: none;
+    color: #005a9e;
+    font-size: 1.2em;
+    font-weight: bold;
+    min-width: 260px;
+    transition: background 0.2s;
+  }
+  .lang-card:hover, .lang-card:focus {
+    background: #005a9e;
+    color: #fff;
+    outline: 3px solid #ffbf47;
+  }
+</style>
+</head>
+<body>
+
+<h1>Outlook Image Helper — Documentation / Dokumentacja</h1>
+<p>Wybierz wersję językową dokumentacji / Please select documentation language:</p>
+
+<div>
+  <a class="lang-card" href="doc_pl.html" lang="pl">
+    Dokumentacja po polsku<br>
+    <small style="font-weight: normal; font-size: 0.8em; color: inherit;">(Pomoc i szczegółowy samouczek)</small>
+  </a>
+
+  <a class="lang-card" href="doc_en.html" lang="en">
+    English Documentation<br>
+    <small style="font-weight: normal; font-size: 0.8em; color: inherit;">(Help &amp; Comprehensive Tutorial)</small>
+  </a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Pliki tymczasowe Pythona
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pakiety budowania
+*.nvda-addon
+
+# Klucze API i ustawienia lokalne (bezpieczeństwo)
+*api_key*.txt
+*.secret
+
+# Pliki tymczasowe edytorów i systemowe
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

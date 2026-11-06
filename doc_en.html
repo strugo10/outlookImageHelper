@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Outlook Image Helper — Help and Comprehensive Tutorial</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    max-width: 920px;
+    margin: 30px auto;
+    padding: 0 20px;
+    color: #222;
+    background: #fdfdfd;
+  }
+  .lang-switch {
+    background: #eef2f7;
+    border: 1px solid #d0dbe7;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-align: right;
+    margin-bottom: 20px;
+    font-size: 0.95em;
+  }
+  .lang-switch a {
+    color: #005a9e;
+    text-decoration: none;
+    font-weight: bold;
+    margin: 0 8px;
+  }
+  .lang-switch a:hover, .lang-switch a:focus {
+    text-decoration: underline;
+    outline: 2px solid #005a9e;
+  }
+  .lang-switch .active {
+    color: #111;
+    background: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #c2d2e2;
+  }
+  h1, h2, h3 { color: #005a9e; }
+  h1 { border-bottom: 2px solid #005a9e; padding-bottom: 10px; }
+  h2 { border-bottom: 1px solid #cce3f8; padding-bottom: 6px; margin-top: 32px; }
+  h3 { margin-top: 20px; color: #004578; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+  }
+  th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #005a9e; color: #fff; }
+  tr:nth-child(even) { background: #f8f9fa; }
+  .tip {
+    background: #e7f3fe;
+    border-left: 6px solid #2196F3;
+    padding: 12px 16px;
+    margin: 15px 0;
+    border-radius: 4px;
+  }
+  .note {
+    background: #fdf9e7;
+    border-left: 6px solid #fbc02d;
+    padding: 12px 16px;
+    margin: 15px 0;
+    border-radius: 4px;
+  }
+  .info-box {
+    background: #f0f7ff;
+    border: 1px solid #cce3f8;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 20px 0;
+  }
+  .info-box p { margin: 6px 0; }
+  kbd, .shortcut {
+    background: #eee;
+    padding: 2px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+    font-weight: bold;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+  }
+  ul, ol { padding-left: 25px; }
+  li { margin-bottom: 6px; }
+  .feature-box {
+    background: #fafbfc;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 18px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="lang-switch" role="navigation" aria-label="Documentation language selection">
+  <span>Język / Language:</span>
+  <a href="doc_pl.html" lang="pl">Polski</a>
+  <span class="active" lang="en">English</span>
+</div>
+
+<h1>Outlook Image &amp; Attachment Helper with OCR</h1>
+
+<div class="info-box">
+  <p><strong>Version:</strong> <strong>1.5.6</strong> (Build: <strong>20261105.1</strong>, Release date: <strong>2026-11-05</strong>)</p>
+  <p><strong>Author:</strong> <strong>Sławomir Strugarek</strong> (with the invaluable assistance of <strong>Antigravity</strong> — Google DeepMind)</p>
+  <p><strong>Compatibility:</strong> NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013, 2016, 2019, 2021, Microsoft 365 (Classic desktop version)</p>
+  <p><strong>License:</strong> Free, Open Source (GPL v2+)</p>
+</div>
+
+<p>An NVDA screen reader add-on providing full accessibility, local optical character recognition (OCR), magnified image preview for low-vision users, audio descriptions and interactive multi-turn chat with artificial intelligence (<strong>Google Gemini</strong>), prompt presets library, context-sensitive help (<kbd>F1</kbd>), hyperlink activation, file attachments support (PDF, Word DOCX, images), and batch saving for images and attachments in <strong>Microsoft Outlook Classic</strong> messages (WordMail editor).</p>
+
+
+<h2>Table of Contents</h2>
+<ul>
+  <li><a href="#shortcuts">Keyboard Shortcuts</a></li>
+  <li><a href="#how-it-works">How It Works</a></li>
+  <li><a href="#image-list">Three Item Categories (Graphics / Dividers / Attachments)</a></li>
+  <li><a href="#preview">Magnified Image Preview for Low-Vision Users (P)</a></li>
+  <li><a href="#context-help">Context-Sensitive Help (F1)</a></li>
+  <li><a href="#attachments">File Attachments Analysis &amp; OCR (PDF, DOCX, Images)</a></li>
+  <li><a href="#action-menu">Context Action Menu</a></li>
+  <li><a href="#chat">Accessible AI Chat (Unified Window, Heading Navigation, Action Buttons)</a></li>
+  <li><a href="#copy-export">Universal Rich Copy &amp; Export</a></li>
+  <li><a href="#custom-naming">Custom Graphic Naming (F2) &amp; Persistent Memory</a></li>
+  <li><a href="#navigation-sounds">Navigation Earcons &amp; Audio Themes</a></li>
+  <li><a href="#batch-save">Batch Saving &amp; Clean Filenames (GDPR)</a></li>
+  <li><a href="#distribution">How to Share the Add-on with Others?</a></li>
+  <li><a href="#gemini-key">Free Google Gemini API Key Setup</a></li>
+  <li><a href="#settings">Add-on Settings in NVDA Preferences</a></li>
+  <li><a href="#authors">Authors &amp; Legal Info</a></li>
+</ul>
+
+<h2 id="shortcuts">Keyboard Shortcuts</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th scope="col">Shortcut</th>
+      <th scope="col">Action</th>
+      <th scope="col">Context / Dialog</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><kbd>Ctrl+NVDA+A</kbd> / <kbd>NVDA+Shift+G</kbd> / <kbd>Alt+Shift+G</kbd></td>
+      <td>Open the "Graphics &amp; Attachments List" dialog</td>
+      <td>In opened Microsoft Outlook Classic message.</td>
+    </tr>
+    <tr>
+      <td><kbd>NVDA+Windows+G</kbd> / <kbd>Alt+Shift+O</kbd></td>
+      <td>Quick OCR on current image or attachment</td>
+      <td>Outlook message window.</td>
+    </tr>
+    <tr>
+      <td><kbd>NVDA+Windows+Shift+G</kbd> / <kbd>Alt+Shift+A</kbd></td>
+      <td>Quick AI description of current image or attachment</td>
+      <td>Outlook message window (requires free Gemini API key).</td>
+    </tr>
+    <tr>
+      <td><kbd>NVDA+Windows+I</kbd> / <kbd>Alt+Shift+I</kbd></td>
+      <td>Quick magnified preview in negative mode (color inversion for low vision)</td>
+      <td>Outlook message window.</td>
+    </tr>
+    <tr>
+      <td><kbd>Enter</kbd></td>
+      <td>Run OCR on selected item in list</td>
+      <td>Graphics &amp; Attachments list dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>P</kbd></td>
+      <td>Open magnified image preview for low-vision users</td>
+      <td>Graphics &amp; Attachments list dialog on an image.</td>
+    </tr>
+    <tr>
+      <td><kbd>I</kbd></td>
+      <td>Toggle color inversion (negative mode) and remember for this email</td>
+      <td>Image preview window or items list in main dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>F1</kbd></td>
+      <td>Display context-sensitive help and shortcuts for current window</td>
+      <td>In list dialog, AI chat, image preview, or settings.</td>
+    </tr>
+    <tr>
+      <td><kbd>F2</kbd></td>
+      <td>Rename / assign persistent custom name to image</td>
+      <td>Graphics list; persistently remembered for this email.</td>
+    </tr>
+    <tr>
+      <td><kbd>Applications</kbd> / <kbd>Shift+F10</kbd> / <kbd>Alt+C</kbd></td>
+      <td>Open the Context Action Menu</td>
+      <td>Graphics &amp; Attachments list dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>Ctrl+Enter</kbd></td>
+      <td>Open associated link in browser or launch attachment file</td>
+      <td>Graphics &amp; Attachments list dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>Tab</kbd></td>
+      <td>Move to technical details field (px/pt, link, full text)</td>
+      <td>Graphics &amp; Attachments list dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>H</kbd> / <kbd>Shift+H</kbd></td>
+      <td>Move to next / previous heading (questions and answers)</td>
+      <td>AI Chat dialog (when not in question input field).</td>
+    </tr>
+    <tr>
+      <td><kbd>K</kbd> / <kbd>Shift+K</kbd></td>
+      <td>Move to next / previous clickable link, email, phone number, or GEO coordinate</td>
+      <td>AI Chat dialog (press <kbd>Enter</kbd> to open in default app).</td>
+    </tr>
+    <tr>
+      <td><kbd>L</kbd></td>
+      <td>Display list of all detected links in conversation</td>
+      <td>AI Chat dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>B</kbd> / <kbd>Shift+B</kbd></td>
+      <td>Cycle through action buttons under responses</td>
+      <td>AI Chat dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>E</kbd></td>
+      <td>Jump directly to question input field</td>
+      <td>AI Chat dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>C</kbd> / <kbd>S</kbd></td>
+      <td>Copy (C) or save to file (S) currently focused AI response</td>
+      <td>AI Chat dialog.</td>
+    </tr>
+    <tr>
+      <td><kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd> / <kbd>1</kbd> / <kbd>I</kbd> / <kbd>O</kbd></td>
+      <td>Magnifier &amp; contrast controls (+/- zoom, 0 fit, 1 100%, I invert, O in OS viewer)</td>
+      <td>Image preview window.</td>
+    </tr>
+    <tr>
+      <td><kbd>Escape</kbd></td>
+      <td>Close current dialog and return to previous view</td>
+      <td>Any add-on dialog.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="how-it-works">How It Works</h2>
+<p>Microsoft Outlook Classic renders message bodies using Microsoft Word's rendering engine (WordMail, window class <code>_WwG</code>). Embedded images belong to two categories:</p>
+<ol>
+  <li><strong>InlineShapes (in-line graphics):</strong> Typical pasted screenshots. When lacking alt text, standard NVDA only announces "graphic" without interactivity.</li>
+  <li><strong>Shapes (floating graphics with text wrapping):</strong> Banners, diagrams, company logos, social icons. <strong>NVDA's standard single-letter <code>G</code> command completely skips these</strong>.</li>
+</ol>
+<p><strong>Outlook Image Helper</strong> connects directly to the WordMail COM object model in process memory, identifying 100% of embedded graphics, extracting exact pixel dimensions, hyperlinks, alt text, and surrounding text context.</p>
+
+<h2 id="image-list">Three Item Categories (Graphics / Attachments / Dividers)</h2>
+<p>Pressing <kbd>Ctrl+NVDA+A</kbd> displays the main dialog. At the top is the <strong>Category Switcher</strong> (<kbd>Alt+K</kbd>):</p>
+<ol>
+  <li><strong>1. Inline graphics and screenshots in message body (Default):</strong> Content visuals, photos, screenshots, and diagrams (shortcut <kbd>Alt+1</kbd>).</li>
+  <li><strong>2. Message attachments:</strong> Real files attached to the email (multi-page PDF documents, Word files, spreadsheets, attached image files) (shortcut <kbd>Alt+2</kbd>).</li>
+  <li><strong>3. Divider lines and horizontal separators:</strong> Decorative separator lines and rules (thin elements &le; 3 px). Separated to keep the primary visual list clean and focused (shortcut <kbd>Alt+3</kbd>).</li>
+</ol>
+<p>Directly beneath the details box is the <strong>"Group repeating images (deduplication)"</strong> checkbox (<kbd>Alt+A</kbd>), allowing you to hide duplicate avatars and icons.</p>
+
+<h2 id="preview">Magnified Image Preview &amp; Color Inversion for Low-Vision Users (<kbd>P</kbd> / <kbd>I</kbd>)</h2>
+<p>For users with residual vision or low vision, the add-on provides a dedicated image previewer with high magnification and high-contrast color inversion:</p>
+<ul>
+  <li>Press <kbd>P</kbd> or click <em>"Preview (P)..."</em> on any graphic in the list.</li>
+  <li><strong>Contrast &amp; Centering:</strong> Images are presented against a solid dark high-contrast background with smooth double-buffered scaling.</li>
+  <li><strong>Keyboard Zoom:</strong> Press <kbd>+</kbd> to zoom in, <kbd>-</kbd> to zoom out. NVDA announces current zoom level aloud (e.g. <em>"Zoom: 200%"</em>).</li>
+  <li><strong>Color Inversion (Negative Mode) — Key <kbd>I</kbd>:</strong> Instant C-level byte array color inversion (dark background, bright text) preserving full Alpha channel transparency. Essential for reading bright white screenshots on dark setups.</li>
+  <li><strong>Persistent Inversion Memory:</strong> Pressing <kbd>I</kbd> (in preview or directly on the graphics list) saves your preference to <code>outlookImageHelper_image_settings.json</code> for that specific email. The graphic displays <code>[Inverted]</code> in the list and automatically opens inverted on future visits.</li>
+  <li><strong>Quick Outlook Shortcut (<kbd>NVDA+Windows+I</kbd> / <kbd>Alt+Shift+I</kbd>):</strong> Instantly opens the negative preview directly from message reading mode.</li>
+  <li><strong>Quick Sizing:</strong> Press <kbd>0</kbd> or <kbd>D</kbd> to fit image perfectly to window; press <kbd>1</kbd> for 100% natural resolution.</li>
+  <li><strong>Open in Windows (<kbd>O</kbd>):</strong> Press <kbd>O</kbd> to open the graphic in the default Windows image viewer (opens the negative version when inversion is active).</li>
+  <li><strong>Replace Graphic in Email Body:</strong> The Context Action Menu allows replacing the image inside the message body with its negative counterpart (when WordMail is in Edit Message mode), while explaining write-protection in read-only emails and offering persistent preview as a safe non-destructive alternative.</li>
+  <li>Press <kbd>Esc</kbd> to close the preview and return to the list.</li>
+</ul>
+
+<h2 id="context-help">Context-Sensitive Help (<kbd>F1</kbd>)</h2>
+<p>Help is available anywhere at any time without leaving your workflow:</p>
+<ul>
+  <li>Press <kbd>F1</kbd> in any dialog (Graphics List, AI Chat, Image Preview, or Settings).</li>
+  <li>NVDA immediately displays a clean, browseable buffer containing helpful guidance, keyboard shortcuts, and tips strictly relevant to that specific window.</li>
+  <li>Press <kbd>Esc</kbd> to dismiss help and immediately resume what you were doing.</li>
+</ul>
+
+<h2 id="attachments">File Attachments Analysis &amp; OCR (PDF, DOCX, Images)</h2>
+<ul>
+  <li><strong>PDF Documents (Scans and text files):</strong> Choosing <em>Transcribe text from PDF scan</em> or <em>AI PDF Analysis</em> sends the file to Google Gemini multimodal AI (native Base64 <code>application/pdf</code>). Gemini transcribes text, detects tables, headers, invoice amounts, and due dates without requiring third-party PDF OCR software!</li>
+  <li><strong>Word Documents (DOCX):</strong> Built-in OpenXML reader extracts paragraphs and table structures instantly from the file package without launching Microsoft Word.</li>
+  <li><strong>Image Attachments (PNG, JPG, BMP, WEBP, TIFF):</strong> Supports both local Windows Media OCR and AI descriptions.</li>
+  <li><strong>Opening &amp; Saving:</strong> Press <kbd>Ctrl+Enter</kbd> to open attachments in their default application or save them individually or in batches.</li>
+</ul>
+
+<h2 id="action-menu">Context Action Menu</h2>
+<p>Press <kbd>Applications</kbd>, <kbd>Shift+F10</kbd>, or <kbd>Alt+C</kbd> on any selected item:</p>
+<div class="feature-box">
+  <h3>Available operations:</h3>
+  <ul>
+    <li><strong>Recognize text (OCR) (<kbd>Enter</kbd>):</strong> Fast local Windows OCR or AI transcription.</li>
+    <li><strong>Magnified image preview (<kbd>P</kbd>):</strong> Opens the high-contrast zoom viewer.</li>
+    <li><strong>Describe with AI (Quick):</strong> Instant description using the default prompt preset.</li>
+    <li><strong>Describe with AI (Choose Prompt):</strong> Select or customize prompt templates.</li>
+    <li><strong>Chat with AI (Q&amp;A):</strong> Interactive multi-turn conversation.</li>
+    <li><strong>Open link / file (<kbd>Ctrl+Enter</kbd>):</strong> Opens hyperlink in browser or opens attachment file in default app.</li>
+    <li><strong>Go to graphic in message:</strong> Physically selects the graphic in WordMail.</li>
+    <li><strong>Copy image to clipboard:</strong> Copies the bitmap to the Windows clipboard.</li>
+    <li><strong>Save selected item as file... (<kbd>Alt+Z</kbd>):</strong> Saves item with a descriptive name.</li>
+    <li><strong>Save all items to folder... (<kbd>Alt+W</kbd>):</strong> Batch exports all items to a chosen folder.</li>
+  </ul>
+</div>
+
+<h2 id="chat">Accessible AI Chat (Unified Window, Heading Navigation, Action Buttons)</h2>
+<p>The conversation dialog operates in a single, accessible window styled after modern AI interfaces:</p>
+<div class="tip">
+  <strong>Structure and navigation shortcuts in the AI chat:</strong>
+  <ul>
+    <li><strong>Heading Navigation (<kbd>H</kbd> and <kbd>Shift+H</kbd>):</strong> Press <kbd>H</kbd> to jump between questions, AI answers, and subheadings within markdown. Press <kbd>Shift+H</kbd> to jump backwards. NVDA announces heading levels and titles, and pressing Down Arrow reads the text immediately.</li>
+    <li><strong>Interactive Links, Emails, Phones &amp; GEO (<kbd>K</kbd>, <kbd>Shift+K</kbd>, <kbd>Enter</kbd>):</strong> Any URLs, Markdown links, email addresses, phone numbers, or geographic coordinates detected in AI responses are formatted and highlighted with high contrast. Press <kbd>K</kbd> to jump to the next link, <kbd>Shift+K</kbd> for previous, and press <kbd>Enter</kbd> (or click) to open in the system default application (browser, mail client, phone dialer, or maps). Press <kbd>L</kbd> for a popup menu listing all detected links.</li>
+    <li><strong>Dedicated buttons under each response:</strong>
+      <ul>
+        <li><em>"Copy response X to clipboard"</em> — copies only that specific response (Plain Text + Rich HTML with source image),</li>
+        <li><em>"Save response X to file..."</em> — exports that specific response as HTML, Markdown (.md), or plain text (.txt).</li>
+      </ul>
+    </li>
+    <li><strong>Button Navigation (<kbd>B</kbd> and <kbd>Shift+B</kbd>):</strong> Cycles directly through action buttons under responses and on the bottom toolbar.</li>
+    <li><strong>Jump to Input Field (<kbd>E</kbd>):</strong> Moves focus immediately to the question input field.</li>
+    <li><strong>Send Questions:</strong> In the question input field, press <kbd>Enter</kbd> or <kbd>Ctrl+Enter</kbd> to send. Press <kbd>Shift+Enter</kbd> for a new line.</li>
+    <li><strong>Quick History Actions:</strong> When focused on a response, press <kbd>C</kbd> to copy it or <kbd>S</kbd> to save it.</li>
+    <li><strong>Acoustic Progress Cues:</strong> Gentle beeps sound every 1.5 seconds while waiting for Gemini, followed by a success chime and automatic focus placement on the new answer.</li>
+  </ul>
+</div>
+
+<h2 id="copy-export">Universal Rich Copy &amp; Export</h2>
+<ul>
+  <li><strong>Per-answer action buttons:</strong> Copy and save individual answers without needing to copy the whole conversation.</li>
+  <li><strong>Copy last response (<kbd>Alt+O</kbd>):</strong> Copies only the most recent AI answer.</li>
+  <li><strong>Copy entire conversation (<kbd>Alt+C</kbd>):</strong> Copies the complete Q&amp;A transcript.</li>
+  <li><strong>"Include source object" checkbox:</strong> Places Rich HTML with embedded Base64 image onto the clipboard. Pasting into Outlook or Word <strong>embeds the original image alongside styled text</strong>. Pasting into Notepad outputs clean plain text.</li>
+  <li><strong>Export report to file...:</strong> Saves the full conversation as a self-contained <code>.html</code> report or <code>.md</code> Markdown document.</li>
+</ul>
+
+<h2 id="custom-naming">Custom Graphic Naming (<kbd>F2</kbd>) &amp; Persistent Memory</h2>
+<ul>
+  <li><strong>Clean Labels:</strong> Default list labels are clean and concise (e.g. <code>16: Screenshot</code>).</li>
+  <li><strong>Rename / Custom Description (<kbd>F2</kbd>):</strong> Select an image and press <kbd>F2</kbd> (or choose from the Context Menu). Enter a friendly name, such as <em>Vacation Schedule - IT Team</em>.</li>
+  <li><strong>Persistent Storage:</strong> The custom name is immediately saved in the add-on database linked to the email's unique ID. Reopening the email — even after restarting your PC — preserves your custom name (e.g. <code>16: [Vacation Schedule - IT Team]</code>).</li>
+  <li><strong>Safe &amp; Non-intrusive:</strong> No modification of emails on the server. If the email is editable, the name is also written to WordMail alt text in memory.</li>
+  <li><strong>Reset Name:</strong> Select <em>"Remove custom name (restore default)"</em> in the Context Menu.</li>
+</ul>
+
+<h2 id="navigation-sounds">Navigation Earcons &amp; Audio Themes</h2>
+<p>While navigating the list with arrow keys, subtle audio cues indicate the type of item:</p>
+<ul>
+  <li><strong>Social media icon:</strong> Double rising tone.</li>
+  <li><strong>Phone number:</strong> DTMF phone dialing tone.</li>
+  <li><strong>Email link:</strong> Mail envelope rustle.</li>
+  <li><strong>Web hyperlink:</strong> Clean interface click.</li>
+  <li><strong>Divider line / separator:</strong> Soft pencil tap.</li>
+  <li><strong>Screenshot / unlabeled image:</strong> Camera shutter notification.</li>
+</ul>
+<p>Navigation sounds can be enabled or disabled anytime in NVDA Preferences.</p>
+
+<h2 id="batch-save">Batch Saving &amp; Clean Filenames (GDPR)</h2>
+<ul>
+  <li>Click <strong>"Save all..."</strong> or select multiple items with <kbd>Space</kbd> to export all files at once.</li>
+  <li>Filenames are automatically generated from context (e.g. <code>01_John_Doe.png</code>).</li>
+  <li><strong>Privacy &amp; GDPR:</strong> Filename generation runs 100% locally on your computer without sending any data externally. AI filename generation is optional and disabled by default.</li>
+</ul>
+
+<h2 id="distribution">How to Share the Add-on with Others?</h2>
+<div class="tip">
+  <strong>Important Note:</strong> To share the add-on, <strong>you do NOT need to zip the entire project folder!</strong>
+</div>
+<p>You only need to send the single generated installer file:</p>
+<p style="text-align: center; margin: 20px 0;">
+  <code style="font-size: 1.2em; padding: 8px 16px; background: #eef2f7; border: 1px solid #005a9e; border-radius: 6px; font-weight: bold;">outlookImageHelper.nvda-addon</code>
+</p>
+<p>The recipient simply double-clicks or presses <kbd>Enter</kbd> on <code>outlookImageHelper.nvda-addon</code> in Windows Explorer. NVDA will prompt for installation confirmation, and upon restarting NVDA, the add-on will be fully installed and ready.</p>
+
+<h2 id="gemini-key">Free Google Gemini API Key Setup</h2>
+<div class="tip">
+  The Google Gemini API key is 100% free for personal use. No credit card or payment is required.
+</div>
+<ol>
+  <li>Go to: <a href="https://aistudio.google.com/app/apikey" target="_blank">https://aistudio.google.com/app/apikey</a>.</li>
+  <li>Log in with your Google account (Gmail).</li>
+  <li>Click <strong>"Create API key"</strong> and select a new project.</li>
+  <li>Click <strong>"Copy"</strong> to copy the generated key.</li>
+  <li>In Outlook, press <kbd>Ctrl+NVDA+A</kbd> &rarr; <kbd>Shift+F10</kbd> &rarr; <strong>"Go to add-on settings..."</strong> (or open NVDA menu &rarr; <em>Preferences</em> &rarr; <em>Settings</em> &rarr; <em>Outlook - Pomocnik obrazów i OCR</em>), check <em>"Show advanced settings"</em> and paste the key.</li>
+</ol>
+
+<h2 id="settings">Add-on Settings in NVDA Preferences</h2>
+<p>Located in NVDA menu &rarr; <em>Preferences</em> &rarr; <em>Settings</em> &rarr; <strong>Outlook - Pomocnik obrazów i OCR</strong>. The interface is split into Basic and Advanced modes:</p>
+<ul>
+  <li><strong>Basic Mode (Default):</strong>
+    <ul>
+      <li><strong>Announce pasted graphics on open:</strong> Topmost option of the panel — speech cue when opening messages with pasted images.</li>
+      <li><strong>Alert Sound &amp; Earcons:</strong> Discretionary audio chime when graphics are found, trigger mode choice, and list navigation sounds.</li>
+      <li><strong>Notification Sound Theme:</strong> Selection of 3 distinct themes (<em>Associative — camera shutter</em>, <em>Minimalist</em>, <em>Instrumental</em>) with a <em>Preview sound</em> button.</li>
+      <li><strong>Sound Volume:</strong> Volume slider with full keyboard control and test button.</li>
+      <li><strong>Input Gestures &amp; User Guide buttons.</strong></li>
+    </ul>
+  </li>
+  <li><strong>Advanced Mode (Checkbox "Show advanced settings"):</strong>
+    <ul>
+      <li><strong>Interface Language:</strong> <em>Auto (matches NVDA)</em>, <em>Polski</em>, <em>English</em>.</li>
+      <li><strong>Default OCR Language:</strong> Dropdown selection of installed Windows Media OCR languages and custom language code.</li>
+      <li><strong>Diagnostic Report (<kbd>Alt+R</kbd>):</strong> Comprehensive summary of system status, OCR engine availability, and AI connectivity.</li>
+      <li><strong>Artificial Intelligence (AI):</strong> AI filename generation, provider choice (Google Gemini / OpenAI), API key field, wizard dialog, connectivity test, model selection (default: <code>gemini-3.8-flash</code>), and custom prompt template.</li>
+      <li><strong>Add-on Updates:</strong> Option to check for updates on NVDA startup and a button to check immediately.</li>
+      <li><strong>Creator Tools (<kbd>Alt+N</kbd>):</strong> Located at the very bottom of the advanced panel, protected by creator password (with password change and recovery via a 6-digit verification code sent to the author's authorized email). Houses AI translation tools, JSON language template import/export, translations folder, and the update definition path.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="authors">Authors &amp; Legal Info</h2>
+<p><strong>Main Author &amp; Concept:</strong> Sławomir Strugarek<br>
+<strong>Development &amp; Architecture:</strong> Antigravity (Google DeepMind)<br>
+<strong>License:</strong> GNU General Public License v2 (GPL-2.0)<br>
+<strong>Contact:</strong> A universal contact form module for the Outlook accessibility suite is currently in development.</p>
+
+</body>
+</html>
