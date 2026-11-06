@@ -1,0 +1,20 @@
+{
+  "docListNavigator": {
+    "version": "1.0.4",
+    "downloadUrl": "G:\\Mój dysk\\Antigravity\\Nvda dodatki\\Pakiety_Instalacyjne\\docListNavigator.nvda-addon",
+    "changelog": "Wersja 1.0.4:\n• Wprowadzenie oficjalnego nazewnictwa Zasad Techniki Prawodawczej:\n  - Rozdział IV\n  - ustęp 1.\n  - pkt 1)\n  - litera a)\n  - tiret pierwszy, tiret drugie, tiret trzecie...\n• Automatyczne wyliczanie kolejności tiretów i podpunktów w ramach nadrzędnego elementu.\n• Pełna integracja ze ścieżką hierarchiczną (NVDA+Alt+L): np. Rozdział IV > ustęp 1. > pkt 1) > litera a) > tiret pierwszy.",
+    "minNVDAVersion": "2021.1.0"
+  },
+  "outlookSpeechFilter": {
+    "version": "1.18.1",
+    "downloadUrl": "https://github.com/strugo10/outlookSpeechFilter/releases/latest/download/outlookSpeechFilter.nvda-addon",
+    "changelog": "Wersja 1.18.1:\n• Poprawka precyzji nawigacji: wyeliminowano przesunięcie (drift) kursora w długich wątkach mailowych dzięki wyszukiwaniu natywnemu Word.Range.Find.\n• Poprawka dostępności okna wątku (NVDA+F7): wyeliminowano blokadę wątku NVDA (wx.CallAfter), fokus natychmiast trafia na listę, a NVDA bezbłędnie wypowiada każdy zaznaczany element.\n• Dodano opcję włączania/wyłączania nawigatora wątków w ustawieniach dodatku oraz szybki skrót przełączający NVDA+Ctrl+Shift+T.\n• Zintegrowano oficjalne automatyczne aktualizacje bezpośrednio z serwisu GitHub.",
+    "minNVDAVersion": "2021.1.0"
+  },
+  "outlookImageHelper": {
+    "version": "1.5.9",
+    "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
+    "changelog": "Wersja 1.5.9:\n• Obsługa zabezpieczonych hasłem dokumentów PDF przy analizie AI i OCR:\n  - Dodano automatyczne wykrywanie zaszyfrowanych plików PDF przed wysłaniem do AI.\n  - W pełni dostępne (WCAG 2.1/2.2 AA) okno dialogowe z prośbą o hasło do dokumentu PDF.\n  - Bezpieczne odblokowywanie pliku w pamięci/folderze tymczasowym za pomocą wbudowanej biblioteki pypdf bez wysyłania hasła do chmury.\n  - Eliminacja błędu 'HTTP Error 400: Bad Request' przy próbie analizy zahasłowanych plików PDF.\n  - Zapamiętywanie odblokowanego pliku w danej sesji wiadomości.\n• Zintegrowano oficjalne automatyczne aktualizacje bezpośrednio z serwisu GitHub.",
+    "minNVDAVersion": "2024.1.0"
+  }
+}

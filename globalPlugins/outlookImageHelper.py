@@ -211,7 +211,7 @@ confspec = {
 	"showAdvancedSettings": "boolean(default=False)",
 	"contextMenuEnabled": "boolean(default=True)",
 	"autoCheckUpdates": "boolean(default=True)",
-	"updateSourceUrl": r"string(default='G:\Mój dysk\Antigravity\Nvda dodatki\updates.json')",
+	"updateSourceUrl": r"string(default='https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json')",
 	"lastUpdateCheckTime": "float(default=0.0)",
 }
 
@@ -11435,7 +11435,7 @@ class AddonUpdaterEngine:
 
 	def get_configured_source(self) -> str:
 		conf = config.conf.get(self.config_section, {})
-		return conf.get("updateSourceUrl", r"G:\Mój dysk\Antigravity\Nvda dodatki\updates.json")
+		return conf.get("updateSourceUrl", "https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json")
 
 	def fetch_manifest(self) -> tuple[dict | None, str | None]:
 		configured = self.get_configured_source()
@@ -11443,6 +11443,8 @@ class AddonUpdaterEngine:
 		if configured:
 			candidates.append(configured.strip())
 		candidates.extend([
+			"https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json",
+			"https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/updates.json",
 			r"G:\Mój dysk\Antigravity\Nvda dodatki\updates.json",
 			os.path.join(self.addon_dir, "update_info.json"),
 			os.path.join(self.addon_dir, "updates.json"),
@@ -12049,7 +12051,7 @@ class CreatorAdminDialog(wx.Dialog):
 		lblUpd = wx.StaticText(self, label="&Lokalizacja pliku ogłoszeniowego (ścieżka na dysku lub URL):")
 		sboxUpd.Add(lblUpd, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
-		defaultUpd = sec.get("updateSourceUrl", r"G:\Mój dysk\Antigravity\Nvda dodatki\updates.json")
+		defaultUpd = sec.get("updateSourceUrl", "https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json")
 		self.txtUpdateSource = wx.TextCtrl(self, value=str(defaultUpd))
 		self.txtUpdateSource.SetName("Lokalizacja pliku ogłoszeniowego (ścieżka na dysku lub URL):")
 		sboxUpd.Add(self.txtUpdateSource, 0, wx.EXPAND | wx.ALL, 5)

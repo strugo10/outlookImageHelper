@@ -1,7 +1,7 @@
 {
   "name": "outlookImageHelper",
   "version": "1.5.9",
-  "downloadUrl": "G:\\Mój dysk\\Antigravity\\Nvda dodatki\\Pakiety_Instalacyjne\\outlookImageHelper.nvda-addon",
-  "changelog": "Wersja 1.5.9:\n• Obsługa zabezpieczonych hasłem dokumentów PDF przy analizie AI i OCR:\n  - Dodano automatyczne wykrywanie zaszyfrowanych plików PDF przed wysłaniem do AI.\n  - W pełni dostępne (WCAG 2.1/2.2 AA) okno dialogowe z prośbą o hasło do dokumentu PDF.\n  - Bezpieczne odblokowywanie pliku w pamięci/folderze tymczasowym za pomocą wbudowanej biblioteki pypdf bez wysyłania hasła do chmury.\n  - Eliminacja błędu 'HTTP Error 400: Bad Request' przy próbie analizy zahasłowanych plików PDF.\n  - Zapamiętywanie odblokowanego pliku w danej sesji wiadomości.",
+  "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
+  "changelog": "Wersja 1.5.9:\n• Obsługa zabezpieczonych hasłem dokumentów PDF przy analizie AI i OCR:\n  - Dodano automatyczne wykrywanie zaszyfrowanych plików PDF przed wysłaniem do AI.\n  - W pełni dostępne (WCAG 2.1/2.2 AA) okno dialogowe z prośbą o hasło do dokumentu PDF.\n  - Bezpieczne odblokowywanie pliku w pamięci/folderze tymczasowym za pomocą wbudowanej biblioteki pypdf bez wysyłania hasła do chmury.\n  - Eliminacja błędu 'HTTP Error 400: Bad Request' przy próbie analizy zahasłowanych plików PDF.\n  - Zapamiętywanie odblokowanego pliku w danej sesji wiadomości.\n• Zintegrowano oficjalne automatyczne aktualizacje bezpośrednio z serwisu GitHub.",
   "minNVDAVersion": "2024.1.0"
 }
