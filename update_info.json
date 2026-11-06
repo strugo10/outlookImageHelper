@@ -1,7 +1,7 @@
 {
   "name": "outlookImageHelper",
-  "version": "1.5.9",
+  "version": "1.5.10",
   "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-  "changelog": "Wersja 1.5.9:\n• Obsługa zabezpieczonych hasłem dokumentów PDF przy analizie AI i OCR:\n  - Dodano automatyczne wykrywanie zaszyfrowanych plików PDF przed wysłaniem do AI.\n  - W pełni dostępne (WCAG 2.1/2.2 AA) okno dialogowe z prośbą o hasło do dokumentu PDF.\n  - Bezpieczne odblokowywanie pliku w pamięci/folderze tymczasowym za pomocą wbudowanej biblioteki pypdf bez wysyłania hasła do chmury.\n  - Eliminacja błędu 'HTTP Error 400: Bad Request' przy próbie analizy zahasłowanych plików PDF.\n  - Zapamiętywanie odblokowanego pliku w danej sesji wiadomości.\n• Zintegrowano oficjalne automatyczne aktualizacje bezpośrednio z serwisu GitHub.",
+  "changelog": "Wersja 1.5.10:\n• Bezpieczeństwo i prywatność: całkowite maskowanie kluczy API, tokenów i haseł w raportach diagnostycznych oraz usunięcie kodów awaryjnych.\n• Bezpieczne uruchamianie: walidacja linków i celów interaktywnych przed otwarciem.\n• Poprawki OpenAI API: dostosowanie formatu plików PDF do najnowszej specyfikacji OpenAI Responses API.\n• Stabilność operacji seryjnych: bezpieczne przygotowywanie załączników na wątku głównym przed analizą w tle (OCR / AI).\n• Niezawodna obsługa PDF: uodpornienie mechanizmu odszyfrowywania hasłem (PasswordType).\n• Wyeliminowanie przejmowania skrótów poza programem Microsoft Outlook.\n• Pełna zgodność z kontrolkami tabel i wierszy w najnowszych wersjach NVDA 2024+.",
   "minNVDAVersion": "2024.1.0"
 }

@@ -9,6 +9,8 @@ import array
 import base64
 import ctypes
 from ctypes import byref, POINTER, c_void_p, oledll
+import hashlib
+import html
 import json
 import os
 import platform
@@ -50,6 +52,8 @@ import wx.html
 import zipfile
 import xml.etree.ElementTree as ET
 
+ROLE_TABLEROW = getattr(controlTypes.Role, "TABLEROW", getattr(controlTypes.Role, "ROW", None))
+
 addonHandler.initTranslation()
 
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -73,7 +77,7 @@ ADDON_BUILD_ID = "20261106.1"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.5.9"
+ADDON_VERSION = "1.5.10"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -2360,7 +2364,8 @@ class AttachmentItem:
 		# Rozpoznawanie typów plików
 		self.isImage = self.ext in (".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tif", ".tiff")
 		self.isPdf = self.ext == ".pdf"
-		self.isDocx = self.ext in (".docx", ".doc")
+		self.isDocx = self.ext == ".docx"
+		self.isDoc = self.ext == ".doc"
 		self.isText = self.ext in (".txt", ".csv", ".log", ".json", ".xml", ".ini")
 		self.isSpreadsheet = self.ext in (".xlsx", ".xls")
 
@@ -2499,16 +2504,8 @@ def openInteractiveTarget(target: str, kind: str = "") -> bool:
 		if not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", cleanTarget):
 			cleanTarget = f"https://{cleanTarget}"
 
-	try:
-		os.startfile(cleanTarget)
-		return True
-	except Exception as e:
-		try:
-			return safeOpenUrl(cleanTarget)
-		except Exception as e2:
-			log.error(f"outlookImageHelper: Błąd otwierania {cleanTarget}: {e} / {e2}")
-			ui.message(f"Nie udało się otworzyć: {e}")
-			return False
+	# Zawsze walidujemy protokół PRZED wywołaniem jakiegokolwiek adresu w powłoce systemowej
+	return safeOpenUrl(cleanTarget)
 
 
 def safeOpenAttachment(item: AttachmentItem, parent=None) -> bool:
@@ -2622,11 +2619,8 @@ def generateDescriptiveFilename(item: GraphicItem, useAi: bool = False, apiKey: 
 					)
 					if aiName and len(aiName) < 60:
 						candidate = aiName.strip().strip('"').strip("'")
-				finally:
-					try:
-						os.remove(tempPng)
-					except Exception:
-						pass
+				except Exception as aiEx:
+					log.debug(f"outlookImageHelper: błąd zapytania AI o nazwę pliku: {aiEx}")
 		except Exception as e:
 			log.debug(f"outlookImageHelper: AI filename generation fallback: {e}")
 
@@ -2904,7 +2898,7 @@ def isMessageListFocused(focus=None) -> bool:
 		if any(k in cls for k in ("supergrid", "outlookgrid", "netui", "tableview")) or cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "GroupHeader"):
 			return True
 		role = getattr(focus, "role", None)
-		if role in (controlTypes.Role.LISTITEM, controlTypes.Role.TABLECELL, controlTypes.Role.ROW, controlTypes.Role.LIST, controlTypes.Role.DATAITEM):
+		if role in (controlTypes.Role.LISTITEM, controlTypes.Role.TABLECELL, ROLE_TABLEROW, controlTypes.Role.LIST, controlTypes.Role.DATAITEM):
 			return True
 		app = getOutlookApp()
 		if app:
@@ -3431,7 +3425,7 @@ def isMessageListFocused(focus=None) -> bool:
 		if any(k in cls for k in ("supergrid", "outlookgrid", "netui", "tableview")) or cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "GroupHeader"):
 			return True
 		role = getattr(focus, "role", None)
-		if role in (controlTypes.Role.LISTITEM, controlTypes.Role.TABLECELL, controlTypes.Role.ROW, controlTypes.Role.LIST, controlTypes.Role.DATAITEM):
+		if role in (controlTypes.Role.LISTITEM, controlTypes.Role.TABLECELL, ROLE_TABLEROW, controlTypes.Role.LIST, controlTypes.Role.DATAITEM):
 			return True
 		app = getOutlookApp()
 		if app:
@@ -3654,10 +3648,11 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 
 	lines.append("--- AKTUALNA KONFIGURACJA DODATKU ---")
 	for k, v in sorted(sec.items()):
-		if k == "geminiApiKey":
+		k_lower = k.lower()
+		if any(w in k_lower for w in ("key", "password", "token", "secret", "cred", "hash")):
 			key_str = str(v).strip()
 			if key_str:
-				masked = key_str[:6] + "..." + ("*" * 6) + f" [długość: {len(key_str)} znaków]"
+				masked = key_str[:4] + "..." + ("*" * 6) + f" [długość: {len(key_str)} znaków]"
 			else:
 				masked = "(nie skonfigurowano)"
 			lines.append(f"  {k} = {masked}")
@@ -3703,7 +3698,15 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 					and not any(s in l.lower() for s in ("speaking [", "io - speech", "speaktext"))
 				]
 				for fl in filtered[-60:]:
-					lines.append(f"  {fl}")
+					redacted_fl = fl
+					for sec_k, sec_v in sec.items():
+						if any(w in sec_k.lower() for w in ("key", "password", "token")):
+							sv = str(sec_v).strip()
+							if len(sv) >= 6 and sv in redacted_fl:
+								redacted_fl = redacted_fl.replace(sv, "[ZREDAGOWANO_SEKRET]")
+					redacted_fl = re.sub(r'sk-[a-zA-Z0-9_\-]{20,}', '[ZREDAGOWANO_KLUCZ_OPENAI]', redacted_fl)
+					redacted_fl = re.sub(r'AIza[a-zA-Z0-9_\-]{30,}', '[ZREDAGOWANO_KLUCZ_GEMINI]', redacted_fl)
+					lines.append(f"  {redacted_fl}")
 			else:
 				lines.append("  Brak dostępu do pliku dziennika NVDA")
 		except Exception as ex:
@@ -5107,6 +5110,40 @@ def extractGraphicToPngFile(item: GraphicItem) -> str | None:
 		return None
 
 
+def _is_attachment_inline_image(att):
+	"""
+	Precyzyjnie rozpoznaje, czy załącznik jest osadzony w treści (inline).
+	Chroni zwykłe pliki (np. image_budget.pdf) i załączone maile .msg (Type == 5).
+	"""
+	try:
+		fn = (getattr(att, "FileName", "") or "").lower()
+		ext = os.path.splitext(fn)[1]
+		cid = ""
+		flags = 0
+		try:
+			pa = getattr(att, "PropertyAccessor", None)
+			if pa:
+				cid = str(pa.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F") or "")
+				flags = int(pa.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x37140003") or 0)
+		except Exception:
+			pass
+
+		img_exts = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".ico", ".svg"}
+		if (cid or (flags & 4)) and (ext in img_exts or not ext):
+			return True
+
+		attType = int(getattr(att, "Type", 1) or 1)
+		if attType == 6 and (fn.startswith("oledata") or not ext):
+			return True
+
+		if ext in img_exts and re.match(r'^image\d{3,}\.(?:png|jpg|jpeg|gif|bmp)$', fn) and (cid or not fn):
+			return True
+
+		return False
+	except Exception:
+		return False
+
+
 def extractAttachmentsFromCurrentMessage(mailItem=None, includeInline=False) -> list[AttachmentItem]:
 	"""
 	Pobiera listę załączników z bieżącej wiadomości.
@@ -5134,9 +5171,8 @@ def extractAttachmentsFromCurrentMessage(mailItem=None, includeInline=False) -> 
 				if not fn:
 					continue
 				sz = int(getattr(att, "Size", 0) or 0)
-				attType = int(getattr(att, "Type", 1) or 1)
 				fnLower = fn.lower()
-				isInline = attType in (5, 6) or fnLower.startswith("image") or fnLower.startswith("oledata")
+				isInline = _is_attachment_inline_image(att)
 
 				if not includeInline and isInline:
 					continue
@@ -5273,7 +5309,9 @@ def unlockPdfFile(pdfPath: str, password: str = "") -> tuple[bool, str]:
 			return True, pdfPath
 
 		res = reader.decrypt(password)
-		if res == pypdf.constants.PasswordType.NOT_DECRYPTED:
+		pw_type = getattr(pypdf, "PasswordType", None)
+		not_decrypted = getattr(pw_type, "NOT_DECRYPTED", 0) if pw_type else 0
+		if res == not_decrypted or int(res) == 0:
 			return False, "Podane hasło jest niepoprawne."
 
 		unlockedDir = os.path.dirname(pdfPath)
@@ -5841,13 +5879,23 @@ def callOpenAiVisionApi(
 			b64 = base64.b64encode(f.read()).decode("ascii")
 
 	if b64:
-		content.append({
-			"type": "image_url",
-			"image_url": {
-				"url": f"data:{mimeType};base64,{b64}",
-				"detail": "high"
-			}
-		})
+		if mimeType == "application/pdf" or (imagePath and imagePath.lower().endswith(".pdf")):
+			fn = os.path.basename(imagePath) if imagePath else "document.pdf"
+			content.append({
+				"type": "file",
+				"file": {
+					"filename": fn,
+					"file_data": f"data:application/pdf;base64,{b64}"
+				}
+			})
+		else:
+			content.append({
+				"type": "image_url",
+				"image_url": {
+					"url": f"data:{mimeType};base64,{b64}",
+					"detail": "high"
+				}
+			})
 
 	payload = {
 		"model": model or "gpt-4o-mini",
@@ -5893,6 +5941,26 @@ def callOpenAiVisionApi(
 	raise RuntimeError("Brak odpowiedzi od API OpenAI.")
 
 
+def describeWithOpenAi(
+	filePath: str,
+	apiKey: str | None = None,
+	model: str = "gpt-4o-mini",
+	customPrompt: str | None = None,
+	mimeType: str = "image/png",
+	timeout: int = 40,
+) -> str:
+	"""Adapter wywołujący OpenAI Chat Completions dla pliku obrazu lub dokumentu PDF."""
+	prompt = customPrompt or "Dokładnie opisz ten plik."
+	return callOpenAiVisionApi(
+		prompt=prompt,
+		imagePath=filePath,
+		mimeType=mimeType,
+		apiKey=apiKey,
+		model=model,
+		timeout=timeout,
+	)
+
+
 def askOpenAiMultiTurn(
 	chatHistory: list[dict],
 	apiKey: str | None = None,
@@ -5915,13 +5983,22 @@ def askOpenAiMultiTurn(
 			content = []
 			if textVal:
 				content.append({"type": "text", "text": textVal})
-			content.append({
-				"type": "image_url",
-				"image_url": {
-					"url": f"data:{mimeType};base64,{imgB64}",
-					"detail": "high"
-				}
-			})
+			if mimeType == "application/pdf":
+				content.append({
+					"type": "file",
+					"file": {
+						"filename": turn.get("fileName", "document.pdf"),
+						"file_data": f"data:application/pdf;base64,{imgB64}"
+					}
+				})
+			else:
+				content.append({
+					"type": "image_url",
+					"image_url": {
+						"url": f"data:{mimeType};base64,{imgB64}",
+						"detail": "high"
+					}
+				})
 			messages.append({"role": role, "content": content})
 		else:
 			messages.append({"role": role, "content": textVal})
@@ -6156,7 +6233,8 @@ def getOrSaveSourceImageFile(item: GraphicItem | AttachmentItem) -> str | None:
 		b64 = getattr(item, "base64Image", "") or getattr(item, "base64Data", "")
 		if b64:
 			tempDir = tempfile.gettempdir()
-			filePath = os.path.join(tempDir, f"nvda_oih_clip_{item.index}_{abs(hash(b64[:30]))}.png")
+			img_hash = hashlib.sha256(b64.encode("ascii", errors="ignore")).hexdigest()[:16]
+			filePath = os.path.join(tempDir, f"nvda_oih_clip_{item.index}_{img_hash}.png")
 			if not os.path.isfile(filePath):
 				with open(filePath, "wb") as f:
 					f.write(base64.b64decode(b64))
@@ -6319,20 +6397,28 @@ def buildHtmlSectionReport(
 	"""Tworzy dokument HTML dla wybranej pojedynczej sekcji odpowiedzi AI z opcjonalnym obrazem."""
 	imgTag = ""
 	if includeImage:
-		imgPath = imageFilePath or getOrSaveSourceImageFile(item)
-		if imgPath and os.path.isfile(imgPath):
-			fileUri = urllib.parse.urljoin("file:", urllib.request.pathname2url(imgPath))
+		b64 = getattr(item, "base64Data", "") or getattr(item, "base64Image", "")
+		if not b64:
+			imgPath = imageFilePath or getOrSaveSourceImageFile(item)
+			if imgPath and os.path.isfile(imgPath):
+				try:
+					with open(imgPath, "rb") as f:
+						b64 = base64.b64encode(f.read()).decode("ascii")
+				except Exception:
+					pass
+		if b64:
 			imgTag = f"""
 			<div style="margin: 15px 0; text-align: left;">
-				<img src="{fileUri}" alt="Źródłowy obraz" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;" />
+				<img src="data:image/png;base64,{b64}" alt="Źródłowy obraz" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;" />
 			</div>
 			"""
 	formatted = markdownToHtml(sectionContent)
+	titleEsc = html.escape(sectionTitle)
 	return f"""<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>{sectionTitle}</title></head>
+<head><meta charset="utf-8"><title>{titleEsc}</title></head>
 <body style="font-family: Segoe UI, sans-serif; line-height: 1.6; color: #222; max-width: 850px; margin: 20px auto; padding: 15px;">
-	<h3 style="color: #196f3d; border-bottom: 2px solid #27ae60; padding-bottom: 6px;">{sectionTitle}</h3>
+	<h3 style="color: #196f3d; border-bottom: 2px solid #27ae60; padding-bottom: 6px;">{titleEsc}</h3>
 	{imgTag}
 	<div style="margin-bottom: 14px; padding: 12px 16px; background: #ffffff; border-left: 4px solid #27ae60; border-radius: 4px;">
 		<div style="font-size: 1.05em; line-height: 1.5;">{formatted}</div>
@@ -6347,19 +6433,19 @@ def buildHtmlReport(
 	includeImage: bool,
 	imageFilePath: str | None = None
 ) -> str:
-	"""Tworzy kompletny, uniwersalny dokument HTML raportu z nagłówkami i opcjonalnie wbudowanym obrazem."""
+	"""Tworzy kompletny, uniwersalny dokument HTML raportu z nagłówkami i wbudowanym obrazem (base64)."""
 	imgTag = ""
 	b64 = getattr(item, "base64Data", "") or getattr(item, "base64Image", "")
 	if includeImage:
-		imgPath = imageFilePath or getOrSaveSourceImageFile(item)
-		if imgPath and os.path.isfile(imgPath):
-			fileUri = urllib.parse.urljoin("file:", urllib.request.pathname2url(imgPath))
-			imgTag = f"""
-			<div style="margin: 15px 0; text-align: left;">
-				<img src="{fileUri}" alt="Źródłowy obraz" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;" />
-			</div>
-			"""
-		elif b64 and not getattr(item, "isPdf", False):
+		if not b64:
+			imgPath = imageFilePath or getOrSaveSourceImageFile(item)
+			if imgPath and os.path.isfile(imgPath):
+				try:
+					with open(imgPath, "rb") as f:
+						b64 = base64.b64encode(f.read()).decode("ascii")
+				except Exception:
+					pass
+		if b64 and not getattr(item, "isPdf", False):
 			imgTag = f"""
 			<div style="margin: 15px 0; text-align: left;">
 				<img src="data:image/png;base64,{b64}" alt="Źródłowy obraz" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;" />
@@ -6399,10 +6485,22 @@ def buildHtmlReport(
 		""")
 
 	isAtt = isinstance(item, AttachmentItem)
-	titleText = f"Raport analizy załącznika: {item.fileName}" if isAtt else f"Raport analizy grafiki {item.index}"
-	detailMeta = f"<p><strong>Typ:</strong> {item.typeName} | <strong>Rozmiar:</strong> {item.formattedSize}</p>" if isAtt else f"<p><strong>Wymiary:</strong> {item.widthPx} × {item.heightPx} px</p>"
-	ctxStr = f"<p><strong>Kontekst:</strong> {item.contextText}</p>" if getattr(item, "contextText", "") and not isAtt else ""
-	linkStr = f'<p><strong>Link:</strong> <a href="{item.hyperlinkUrl}">{item.hyperlinkUrl}</a></p>' if getattr(item, "hyperlinkUrl", "") else ""
+	rawTitle = f"Raport analizy załącznika: {item.fileName}" if isAtt else f"Raport analizy grafiki {item.index}"
+	titleText = html.escape(rawTitle)
+	detailMeta = f"<p><strong>Typ:</strong> {html.escape(item.typeName)} | <strong>Rozmiar:</strong> {html.escape(item.formattedSize)}</p>" if isAtt else f"<p><strong>Wymiary:</strong> {item.widthPx} × {item.heightPx} px</p>"
+	ctx_val = getattr(item, "contextText", "") or ""
+	ctxStr = f"<p><strong>Kontekst:</strong> {html.escape(ctx_val)}</p>" if ctx_val and not isAtt else ""
+
+	link_val = getattr(item, "hyperlinkUrl", "") or ""
+	if link_val:
+		safe_url = urllib.parse.quote(link_val, safe=":/?#[]@!$&'()*+,;=-_.~%")
+		parsed_u = urllib.parse.urlparse(safe_url)
+		if parsed_u.scheme.lower() in ("http", "https", "mailto"):
+			linkStr = f'<p><strong>Link:</strong> <a href="{html.escape(safe_url)}">{html.escape(link_val)}</a></p>'
+		else:
+			linkStr = f'<p><strong>Link:</strong> {html.escape(link_val)}</p>'
+	else:
+		linkStr = ""
 
 	continueBox = f"""
 	<div style="margin-top: 26px; padding: 16px; background: #e8f0fe; border-left: 5px solid #1a73e8; border-radius: 4px; font-family: Segoe UI, sans-serif;">
@@ -7768,6 +7866,7 @@ class AiConversationDialog(wx.Dialog):
 
 		if isFirst:
 			if isinstance(self.item, AttachmentItem):
+				tempPath = saveAttachmentToTempFile(self.item)
 				if self.item.isPdf:
 					tempPath = ensurePdfUnlocked(self.item, parentWin=self)
 					if not tempPath:
@@ -7783,7 +7882,6 @@ class AiConversationDialog(wx.Dialog):
 						except Exception:
 							pass
 				elif self.item.isImage:
-					tempPath = saveAttachmentToTempFile(self.item)
 					mimeType = "image/png" if self.item.ext == ".png" else "image/jpeg"
 					if tempPath and os.path.isfile(tempPath):
 						try:
@@ -7791,11 +7889,11 @@ class AiConversationDialog(wx.Dialog):
 								self.item.base64Data = base64.b64encode(f.read()).decode("ascii")
 						except Exception:
 							pass
-				elif self.item.isDocx:
+				elif self.item.isDocx and tempPath:
 					docxText = extractTextFromDocxFile(tempPath)
 					if docxText:
 						question = f"Oto treść załączonego dokumentu Word ({self.item.fileName}):\n\n{docxText}\n\n{question}"
-				elif self.item.isText:
+				elif self.item.isText and tempPath:
 					try:
 						with open(tempPath, "r", encoding="utf-8", errors="replace") as f:
 							txtContent = f.read(30000)
@@ -7855,20 +7953,20 @@ class AiConversationDialog(wx.Dialog):
 
 				wx.CallAfter(updateUi)
 			except Exception as ex:
-				log.error(f"outlookImageHelper: Błąd czatu AI: {ex}", exc_info=True)
+				errStr = str(ex)
+				log.error(f"outlookImageHelper: Błąd czatu AI: {errStr}", exc_info=True)
 				if self.item.chatHistory:
 					self.item.chatHistory.pop()
 
-				def failUi():
-					feedback.stop(f"Błąd AI: {ex}")
+				def failUi(capturedErr=errStr):
+					feedback.stop(f"Błąd AI: {capturedErr}")
 					self.btnSend.Enable()
 					self.questionCtrl.Enable()
 					self.questionCtrl.SetValue(question)
 					self.updateHistoryDisplay(scrollToEnd=True)
 					self.questionCtrl.SetFocus()
 
-					errStr = str(ex)
-					if "503" in errStr or "Service Unavailable" in errStr:
+					if "503" in capturedErr or "Service Unavailable" in capturedErr:
 						msg = (
 							"BŁĄD POŁĄCZENIA Z SERWEREM AI (HTTP 503 SERVICE UNAVAILABLE)\n"
 							+ "=" * 60 + "\n\n"
@@ -11695,17 +11793,7 @@ def verifyAdminPassword(entered: str) -> bool:
 	if not val:
 		return False
 	h = _hashPassword(val)
-	if h == getAdminPasswordHash():
-		return True
-	emergency_hashes = {
-		_hashPassword("admin"),
-		_hashPassword("tworca"),
-		_hashPassword("antigravity"),
-		_hashPassword("admin2026"),
-	}
-	if h in emergency_hashes:
-		return True
-	return False
+	return h == getAdminPasswordHash()
 
 
 def sendPasswordResetEmail(targetEmail: str = "", resetCode: str = "") -> tuple[bool, str]:
@@ -11879,7 +11967,7 @@ class PasswordRecoveryDialog(wx.Dialog):
 		if not val:
 			ui.message("Wpisz kod weryfikacyjny.")
 			return
-		if val == self.expectedCode or val == "000000":
+		if self.expectedCode and val == self.expectedCode:
 			self.EndModal(wx.ID_OK)
 			dlg = ChangeAdminPasswordDialog(self.GetParent(), isReset=True)
 			dlg.ShowModal()
@@ -12157,13 +12245,14 @@ class CreatorAdminDialog(wx.Dialog):
 					ui.message(_T("dlg_import_err_invalid", err=name))
 
 	def onCheckUpdates(self, event):
-		updater = AddonUpdater(
-			addon_name="outlookImageHelper",
+		updater = AddonUpdaterEngine(
+			addon_name=CONFIG_SECTION,
 			addon_title=_T("addon_title"),
 			current_version=ADDON_VERSION,
-			feed_url=self.txtUpdateSource.GetValue().strip()
+			addon_dir=ADDON_DIR,
+			config_section=CONFIG_SECTION,
 		)
-		updater.check_for_updates(parent_window=self, notify_if_no_update=True)
+		updater.check_for_updates(manual=True)
 
 	def onChangePwd(self, event):
 		dlg = ChangeAdminPasswordDialog(self, isReset=False)
@@ -13391,17 +13480,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			addon_dir=ADDON_DIR,
 			config_section=CONFIG_SECTION
 		)
+		wx.CallAfter(self._init_tools_menu_and_cleanup)
 		wx.CallLater(15000, self._check_updates_auto)
 
-	def _check_updates_auto(self):
-		conf = config.conf.get(CONFIG_SECTION, {})
-		if not conf.get("autoCheckUpdates", True):
-			return
-		last_time = conf.get("lastUpdateCheckTime", 0.0)
-		if time.time() - last_time < 86400:
-			return
-		self._updater.check_for_updates(manual=False)
-
+	def _init_tools_menu_and_cleanup(self):
 		# Dodanie skrótów do menu Narzędzia w menu głównym NVDA
 		try:
 			self.toolsMenuItem = gui.mainFrame.sysTrayIcon.toolsMenu.Append(
@@ -13426,6 +13508,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			threading.Thread(target=cleanOldTempFiles, daemon=True, name="oih_temp_cleanup").start()
 		except Exception:
 			pass
+
+	def _check_updates_auto(self):
+		conf = config.conf.get(CONFIG_SECTION, {})
+		if not conf.get("autoCheckUpdates", True):
+			return
+		last_time = conf.get("lastUpdateCheckTime", 0.0)
+		if time.time() - last_time < 86400:
+			return
+		self._updater.check_for_updates(manual=False)
 
 	def terminate(self):
 		super().terminate()
@@ -13560,7 +13651,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 			cachedCls = getattr(getattr(obj, "UIAElement", None), "cachedClassName", "") or getattr(obj, "windowClassName", "") or ""
 			role = getattr(obj, "role", None)
-			isRow = cachedCls in ("LeafRow", "ThreadItem", "TableItem", "UIAGridRow") or role in (controlTypes.Role.ROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM)
+			isRow = cachedCls in ("LeafRow", "ThreadItem", "TableItem", "UIAGridRow") or role in (ROLE_TABLEROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM)
 			if not isRow:
 				return
 
@@ -14091,6 +14182,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(f"Błąd: Nie udało się pobrać pliku {item.fileName}.")
 			return
 
+		if getattr(item, "isDoc", False):
+			ui.message(f"Plik '{item.fileName}' jest w starszym formacie binarnym (.doc). Zapisz go jako .docx, aby odczytać treść.")
+			return
+
 		if item.isDocx:
 			ui.message(f"Odczytywanie zawartości dokumentu Word: {item.fileName}...")
 			def docxWorker():
@@ -14256,16 +14351,31 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		ui.message(f"Rozpoczynanie OCR dla {len(items)} elementów...")
 
+		# Pre-ekstrakcja plików na głównym wątku STA przed uruchomieniem wątku roboczego
+		prepared_items = []
+		for it in items:
+			try:
+				if isinstance(it, AttachmentItem):
+					p = saveAttachmentToTempFile(it)
+					prepared_items.append((it, p))
+				else:
+					p = extractGraphicToPngFile(it)
+					prepared_items.append((it, p))
+			except Exception as ex:
+				log.debug(f"outlookImageHelper: błąd pre-ekstrakcji elementu: {ex}")
+				prepared_items.append((it, None))
+
 		def worker():
 			lang = config.conf[CONFIG_SECTION].get("defaultOcrLang", "pl-PL")
 			sec = config.conf[CONFIG_SECTION]
 			results = []
 
-			for idx, it in enumerate(items):
+			for idx, (it, tempPath) in enumerate(prepared_items):
 				if isinstance(it, AttachmentItem):
-					tempPath = saveAttachmentToTempFile(it)
 					header = f"=== Załącznik {it.index}: {it.fileName} ({it.formattedSize}) ==="
-					if it.isDocx and tempPath:
+					if getattr(it, "isDoc", False):
+						results.append(f"{header}\n(Format .doc nie jest obsługiwany — wymagany format .docx)")
+					elif it.isDocx and tempPath:
 						txt = extractTextFromDocxFile(tempPath)
 						it.ocrText = txt or "(Pusty dokument)"
 						results.append(f"{header}\n{it.ocrText}")
@@ -14275,8 +14385,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						results.append(f"{header}\n{it.ocrText}")
 					elif it.isPdf and tempPath:
 						if not allowCloudPdf:
-							it.ocrText = "(Pominięto OCR w chmurze — brak zgody użytkownika na transmisję)"
-							results.append(f"{header}\n{it.ocrText}")
+							results.append(f"{header}\n(Pominięto OCR w chmurze — brak zgody użytkownika na transmisję)")
 						elif apiKey:
 							try:
 								if prov == "gemini":
@@ -14309,7 +14418,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					else:
 						results.append(f"{header}\n(Nieobsługiwany format do OCR)")
 				else:
-					tempPng = extractGraphicToPngFile(it)
+					tempPng = tempPath
 					header = f"=== Grafika {it.index}"
 					if it.contextText:
 						header += f" [{it.contextText}]"
@@ -14485,7 +14594,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 				firstTurn = {
 					"role": "user",
-					"text": prompt or ("(Szczegółowa analiza załącznika)" if isAtt else "(Domyślny szczegółowy opis)"),
+					"text": fullPrompt or prompt or ("(Szczegółowa analiza załącznika)" if isAtt else "(Domyślny szczegółowy opis)"),
 					"timestamp": time.strftime("%H:%M"),
 				}
 				b64 = getattr(item, "base64Data", "") or getattr(item, "base64Image", "")
@@ -14588,15 +14697,28 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		ui.message(f"Wysyłanie {len(items)} elementów do sztucznej inteligencji ({provName})...")
 
+		# Pre-ekstrakcja załączników i grafik na wątku głównym STA
+		prepared_items = []
+		for it in items:
+			try:
+				if isinstance(it, AttachmentItem):
+					p = saveAttachmentToTempFile(it)
+					prepared_items.append((it, p))
+				else:
+					p = extractGraphicToPngFile(it)
+					prepared_items.append((it, p))
+			except Exception as ex:
+				log.debug(f"outlookImageHelper: błąd pre-ekstrakcji w triggerBatchAi: {ex}")
+				prepared_items.append((it, None))
+
 		def worker():
 			results = []
 
-			for idx, it in enumerate(items):
+			for idx, (it, targetPath) in enumerate(prepared_items):
 				isAtt = isinstance(it, AttachmentItem)
 				tempClean = None
 				try:
 					if isAtt:
-						targetPath = saveAttachmentToTempFile(it)
 						mimeType = "image/png"
 						prefaceText = ""
 						sendPath = targetPath
@@ -14620,11 +14742,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 									b64Data = it.base64Data
 							except Exception:
 								pass
-						elif it.isDocx:
+						elif it.isDocx and targetPath:
 							sendPath = ""
 							docxText = extractTextFromDocxFile(targetPath)
 							prefaceText = f"Zawartość dokumentu Word ({it.fileName}):\n\n{docxText}"
-						elif it.isText:
+						elif it.isText and targetPath:
 							sendPath = ""
 							with open(targetPath, "r", encoding="utf-8", errors="replace") as f:
 								prefaceText = f"Zawartość pliku ({it.fileName}):\n\n{f.read(40000)}"
@@ -14642,7 +14764,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						)
 						it.aiDescription = desc
 						b64 = getattr(it, "base64Data", "")
-						uTurn = {"role": "user", "text": "(Szczegółowa analiza załącznika)", "timestamp": time.strftime("%H:%M")}
+						uTurn = {"role": "user", "text": fullPrompt or "(Szczegółowa analiza załącznika)", "timestamp": time.strftime("%H:%M")}
 						if b64:
 							uTurn["imageData"] = b64
 							uTurn["mimeType"] = mimeType
@@ -14651,7 +14773,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						header = f"=== Opis AI — Załącznik {it.index}: {it.fileName} ({it.formattedSize}) ==="
 						results.append(f"{header}\n\n{desc}")
 					else:
-						tempPng = extractGraphicToPngFile(it)
+						tempPng = targetPath
 						tempClean = tempPng
 						if tempPng and os.path.isfile(tempPng):
 							try:

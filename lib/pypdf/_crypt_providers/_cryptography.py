@@ -172,21 +172,21 @@ class CryptAES(CryptBase):
 
 
 def rc4_encrypt(key: bytes, data: bytes) -> bytes:
-    if CryptRC4._is_rc4_supported:
+    if CryptRC4._is_rc4_supported and ARC4 is not None:
         try:
             encryptor = Cipher(ARC4(key), mode=None).encryptor()
             return encryptor.update(data) + encryptor.finalize()
-        except UnsupportedAlgorithm:
+        except (UnsupportedAlgorithm, TypeError):
             return CryptRC4._disable_rc4(key).encrypt(data)
     return CryptRC4._pure_python_rc4(key).encrypt(data)
 
 
 def rc4_decrypt(key: bytes, data: bytes) -> bytes:
-    if CryptRC4._is_rc4_supported:
+    if CryptRC4._is_rc4_supported and ARC4 is not None:
         try:
             decryptor = Cipher(ARC4(key), mode=None).decryptor()
             return decryptor.update(data) + decryptor.finalize()
-        except UnsupportedAlgorithm:
+        except (UnsupportedAlgorithm, TypeError):
             return CryptRC4._disable_rc4(key).decrypt(data)
     return CryptRC4._pure_python_rc4(key).decrypt(data)
 
