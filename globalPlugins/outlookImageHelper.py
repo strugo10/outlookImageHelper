@@ -10370,12 +10370,6 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 				threading.Thread(target=_aiNamingWorker, daemon=True).start()
 			else:
 				_doSaveWithPrompt()
-				showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=parentWin)
-			finally:
-				try:
-					os.remove(tempPng)
-				except Exception:
-					pass
 	parentWin.Bind(wx.EVT_MENU, onSave, id=idSave)
 
 	def onOpenList(evt):
