@@ -12,9 +12,9 @@
     "minNVDAVersion": "2021.1.0"
   },
   "outlookImageHelper": {
-    "version": "1.6.0",
+    "version": "1.6.4",
     "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-    "changelog": "Wersja 1.6.0:\n• Obsługa zaznaczenia wielu wiadomości: inteligentne komunikaty o liczbie wybranych maili oraz załącznikach przy skrótach Ctrl+NVDA+A, OCR i opisie AI.\n• Instrukcja odblokowywania zewnętrznych obrazów w Outlooku (Ctrl+Shift+W) oraz stałego włączenia pobierania obrazów w Centrum zaufania.\n• Poprawki interfejsu (WCAG): automatyczne zawijanie wierszy (WordWrap) w oknie 'O dodatku', wykazie zmian i szczegółach bez ucinania tekstu.\n• Pełna obsługa odczytu na liście wiadomości zarówno przy włączonym, jak i wyłączonym oknie podglądu (Reading Pane).\n• Zaktualizowana, kompleksowa dokumentacja HTML w języku polskim i angielskim.",
+    "changelog": "Wersja 1.6.4:\n• Wdrożenie pełnego pakietu 15 poprawek stabilności, bezpieczeństwa i integracji COM na podstawie audytu technicznego (Issue #2).\n• Bezpieczeństwo załączników: weryfikacja faktycznego rozszerzenia uruchamianego pliku.\n• Naprawa eksportu do HTML i kopiowania rozmów z AI.\n• Naprawa pobierania grafik z okna podglądu wiadomości (IDispatch COM).\n• Asynchroniczne nazywanie plików przez AI bez blokowania NVDA.\n• Poprawki deduplikacji, zaznaczenia w Inspector/Explorer, nawigacji G/Shift+G, obsługi zaszyfrowanych PDF i ochrony prywatności w raportach.",
     "minNVDAVersion": "2024.1.0"
   }
 }

@@ -72,12 +72,12 @@ CONFIG_SECTION = "outlookImageHelper"
 ADDON_NAME = "Outlook Image Helper"
 ADDON_TITLE = "Outlook - Pomocnik obrazów i załączników"
 ADDON_AUTHOR = "Sławomir Strugarek z pomocą Antigravity (Google DeepMind)"
-ADDON_BUILD_DATE = "2026-11-06"
-ADDON_BUILD_ID = "20261106.1"
+ADDON_BUILD_DATE = "2026-11-07"
+ADDON_BUILD_ID = "20261107.1"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.3"
+ADDON_VERSION = "1.6.4"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -2537,40 +2537,50 @@ def openInteractiveTarget(target: str, kind: str = "") -> bool:
 def safeOpenAttachment(item: AttachmentItem, parent=None) -> bool:
 	"""
 	Bezpiecznie zapisuje i uruchamia plik załącznika.
+	Weryfikuje rozszerzenie zarówno oryginalnej nazwy, jak i rzeczywistego pliku uruchamianego.
 	W przypadku potencjalnie niebezpiecznych rozszerzeń wykonywalnych (np. .exe, .bat, .vbs)
 	wyświetla okno dialogowe z ostrzeżeniem przed uruchomieniem kodu z maila.
 	"""
 	if not item:
 		return False
-	cleanFn = (item.fileName or "").strip().rstrip(". ")
-	ext = os.path.splitext(cleanFn)[1].lower()
-	if ext in DANGEROUS_ATTACHMENT_EXTENSIONS:
+
+	tempPath = saveAttachmentToTempFile(item)
+	if not tempPath or not os.path.isfile(tempPath):
+		showAccessibleMessageBox(f"Nie udało się pobrać pliku załącznika '{item.fileName}' z serwera pocztowego.", title="Błąd załącznika", parent=parent)
+		return False
+
+	# Sprawdź rozszerzenie faktycznie uruchamianego pliku oraz oryginalną nazwę
+	actualExt = os.path.splitext(tempPath)[1].lower()
+	origExt = os.path.splitext((item.fileName or "").strip().rstrip(". "))[1].lower()
+	isDangerous = (actualExt in DANGEROUS_ATTACHMENT_EXTENSIONS) or (origExt in DANGEROUS_ATTACHMENT_EXTENSIONS)
+
+	if isDangerous:
 		isPl = (getEffectiveLanguage() == "pl")
 		warnTitle = "Ostrzeżenie o bezpieczeństwie" if isPl else "Security Warning"
+		warnExt = actualExt if actualExt in DANGEROUS_ATTACHMENT_EXTENSIONS else origExt
 		warnMsg = (
-			f"Załącznik '{item.fileName}' jest plikiem wykonywalnym lub skryptem ({ext}).\n\n"
+			f"Załącznik '{item.fileName}' jest plikiem wykonywalnym lub skryptem ({warnExt}).\n\n"
 			f"Uruchomienie takiego pliku niesie wysokie ryzyko uruchomienia szkodliwego oprogramowania.\n\n"
 			f"Czy na pewno chcesz go otworzyć?"
 			if isPl else
-			f"Attachment '{item.fileName}' is an executable file or script ({ext}).\n\n"
+			f"Attachment '{item.fileName}' is an executable file or script ({warnExt}).\n\n"
 			f"Opening this file carries a high risk of executing malicious software.\n\n"
 			f"Are you sure you want to run it?"
 		)
 		if not showAccessibleConfirmBox(warnMsg, warnTitle, parent=parent, defaultYes=False):
+			try:
+				os.remove(tempPath)
+			except Exception:
+				pass
 			ui.message("Anulowano otwieranie potencjalnie niebezpiecznego pliku." if isPl else "Canceled opening potentially dangerous file.")
 			return False
 
-	tempPath = saveAttachmentToTempFile(item)
-	if tempPath and os.path.isfile(tempPath):
-		try:
-			os.startfile(tempPath)
-			ui.message(f"Otwieram plik: {item.fileName}")
-			return True
-		except Exception as e:
-			showAccessibleMessageBox(f"Nie udało się otworzyć załącznika '{item.fileName}':\n{e}", title="Błąd załącznika", parent=parent)
-			return False
-	else:
-		showAccessibleMessageBox(f"Nie udało się pobrać pliku załącznika '{item.fileName}' z serwera pocztowego.", title="Błąd załącznika", parent=parent)
+	try:
+		os.startfile(tempPath)
+		ui.message(f"Otwieram plik: {item.fileName}")
+		return True
+	except Exception as e:
+		showAccessibleMessageBox(f"Nie udało się otworzyć załącznika '{item.fileName}':\n{e}", title="Błąd załącznika", parent=parent)
 		return False
 
 
@@ -2603,8 +2613,8 @@ def sanitizeFilename(name: str, maxLen: int = 50) -> str:
 	return cleaned
 
 
-def generateDescriptiveFilename(item: GraphicItem, useAi: bool = False, apiKey: str = "") -> str:
-	"""Generuje czytelną, opisową nazwę pliku dla grafiki."""
+def generateDescriptiveFilename(item: GraphicItem, useAi: bool = False, apiKey: str = "", aiCandidate: str = "") -> str:
+	"""Generuje czytelną, opisową nazwę pliku dla grafiki bez blokowania wątku głównego."""
 	indexPrefix = f"{item.index:02d}"
 	candidate = ""
 
@@ -2632,23 +2642,9 @@ def generateDescriptiveFilename(item: GraphicItem, useAi: bool = False, apiKey: 
 		if words:
 			candidate = "_".join(words[:4])
 
-	# 5. Jeśli użytkownik jawnie włączył AI w opcjach
-	if not candidate and useAi and apiKey and item.isScreenshotOrUnlabeled:
-		try:
-			tempPng = extractGraphicToPngFile(item)
-			if tempPng and os.path.isfile(tempPng):
-				try:
-					aiName = describeWithGemini(
-						tempPng,
-						apiKey,
-						customPrompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę."
-					)
-					if aiName and len(aiName) < 60:
-						candidate = aiName.strip().strip('"').strip("'")
-				except Exception as aiEx:
-					log.debug(f"outlookImageHelper: błąd zapytania AI o nazwę pliku: {aiEx}")
-		except Exception as e:
-			log.debug(f"outlookImageHelper: AI filename generation fallback: {e}")
+	# 5. Jeśli przekazano nazwę wygenerowaną asynchronicznie przez AI
+	if not candidate and aiCandidate:
+		candidate = aiCandidate.strip().strip('"').strip("'")
 
 	# 6. Domyślny opis w oparciu o typ i rozmiar
 	if not candidate:
@@ -2811,16 +2807,21 @@ def _getWordDocumentFromHwnd(hwnd: int):
 	try:
 		import comtypes.client
 		from comtypes.automation import IDispatch
+		from comtypes import POINTER
+		from ctypes import byref, oledll
 
-		pUnknown = POINTER(ctypes.c_void_p)()
+		pDispatch = POINTER(IDispatch)()
 		hr = oledll.oleacc.AccessibleObjectFromWindow(
 			hwnd,
 			OBJID_NATIVEOM,
 			byref(IDispatch._iid_),
-			byref(pUnknown),
+			byref(pDispatch),
 		)
-		if hr == 0 and pUnknown:
-			disp = comtypes.client.wrap(pUnknown)
+		if hr == 0 and pDispatch:
+			try:
+				disp = comtypes.client.dynamic.Dispatch(pDispatch)
+			except Exception:
+				disp = comtypes.client.wrap(pDispatch)
 			return getattr(disp, "Document", None)
 	except Exception as e:
 		log.debug(f"outlookImageHelper: _getWordDocumentFromHwnd error: {e}")
@@ -3226,6 +3227,30 @@ def getSelectedMessagesInfo() -> tuple[int, object | None, bool]:
 
 	if nativeOm:
 		try:
+			# Najpierw sprawdź, czy aktywne okno to Inspector (osobne okno wiadomości)
+			activeWin = None
+			for attr in ("ActiveInspector", "activeInspector", "ActiveWindow", "activeWindow"):
+				fn = getattr(nativeOm, attr, None)
+				if fn:
+					try:
+						res = fn() if callable(fn) else fn
+						if res:
+							if "inspector" in attr.lower():
+								activeWin = res
+								break
+							clsVal = getattr(res, "Class", None)
+							clsNum = clsVal() if callable(clsVal) else clsVal
+							if clsNum == 35 or hasattr(res, "CurrentItem") or hasattr(res, "currentItem"):
+								activeWin = res
+								break
+					except Exception:
+						pass
+
+			if activeWin is not None:
+				curItem = getattr(activeWin, "CurrentItem", None) or getattr(activeWin, "currentItem", None)
+				itemObj = curItem() if callable(curItem) else curItem
+				return 1, itemObj, False
+
 			exp = None
 			for attr in ("activeExplorer", "ActiveExplorer"):
 				fn = getattr(nativeOm, attr, None)
@@ -3241,7 +3266,15 @@ def getSelectedMessagesInfo() -> tuple[int, object | None, bool]:
 				for attr in ("selection", "Selection"):
 					s = getattr(exp, attr, None)
 					if s is not None:
-						sel = s() if callable(s) else s
+						if hasattr(s, "Count") or hasattr(s, "count"):
+							sel = s
+						elif callable(s):
+							try:
+								sel = s()
+							except Exception:
+								sel = s
+						else:
+							sel = s
 						if sel is not None:
 							break
 
@@ -3250,7 +3283,7 @@ def getSelectedMessagesInfo() -> tuple[int, object | None, bool]:
 						c = getattr(sel, attr, None)
 						if c is not None:
 							try:
-								cnt = int(c() if callable(c) else c)
+								cnt = int(c() if callable(c) and not isinstance(c, (int, float)) else c)
 								break
 							except Exception:
 								pass
@@ -3810,6 +3843,12 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 	lines.append("")
 
 	lines.append("--- AKTUALNA KONFIGURACJA DODATKU ---")
+	SAFE_CONFIG_KEYS = {
+		"autoAnnounce", "playSound", "navSounds", "aiNaming", "showAdvancedSettings",
+		"minDimension", "geminiModel", "openaiModel", "aiProvider", "defaultOcrLang",
+		"soundTheme", "soundVolume", "soundTriggerMode", "updateSourceUrl",
+		"autoCheckUpdates", "contextMenuEnabled", "uiLanguage"
+	}
 	for k, v in sorted(sec.items()):
 		k_lower = k.lower()
 		if any(w in k_lower for w in ("key", "password", "token", "secret", "cred", "hash")):
@@ -3819,8 +3858,16 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 			else:
 				masked = "(nie skonfigurowano)"
 			lines.append(f"  {k} = {masked}")
-		else:
+		elif "prompt" in k_lower:
+			p_val = str(v).strip()
+			if p_val:
+				lines.append(f"  {k} = [UKRYTO_DLA_OCHRONY_PRYWATNOSCI_RODO: prompt użytkownika, długość: {len(p_val)} znaków]")
+			else:
+				lines.append(f"  {k} = (pusty)")
+		elif k in SAFE_CONFIG_KEYS or not isinstance(v, str) or len(str(v)) < 50:
 			lines.append(f"  {k} = {v}")
+		else:
+			lines.append(f"  {k} = [wartość tekstowa: {len(str(v))} znaków]")
 	lines.append("")
 
 	lines.append(f"--- DZIENNIK ZDARZEŃ AUDIO ({'OSTATNIE 30 ZDARZEŃ' if is_adv else 'OSTATNIE 5 ZDARZEŃ'}) ---")
@@ -3869,6 +3916,9 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 								redacted_fl = redacted_fl.replace(sv, "[ZREDAGOWANO_SEKRET]")
 					redacted_fl = re.sub(r'sk-[a-zA-Z0-9_\-]{20,}', '[ZREDAGOWANO_KLUCZ_OPENAI]', redacted_fl)
 					redacted_fl = re.sub(r'AIza[a-zA-Z0-9_\-]{30,}', '[ZREDAGOWANO_KLUCZ_GEMINI]', redacted_fl)
+					redacted_fl = re.sub(r'[A-Za-z]:\\[Uu]sers\\[^\\]+', r'C:\\Users\\[UZYTKOWNIK]', redacted_fl)
+					redacted_fl = re.sub(r'att_[a-f0-9]{12}', 'att_[ZREDAGOWANO_ID]', redacted_fl)
+					redacted_fl = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '[ZREDAGOWANO_EMAIL]', redacted_fl)
 					lines.append(f"  {redacted_fl}")
 			else:
 				lines.append("  Brak dostępu do pliku dziennika NVDA")
@@ -4117,8 +4167,6 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 			ctx = "" if fast else extractContextTextForShape(doc, ishape, isInline=True)
 
 			itemIdx = len(items) + 1
-			cName = customNames.get(str(itemIdx), "")
-			isInv = bool(allImageSettings.get(str(itemIdx), {}).get("inverted", False))
 
 			gItem = GraphicItem(
 				index=itemIdx,
@@ -4134,9 +4182,9 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 				contextText=ctx,
 				hyperlinkUrl=hlUrl,
 				hyperlinkTip=hlTip,
-				customName=cName,
+				customName="",
 				msgKey=msgKey,
-				isInverted=isInv,
+				isInverted=False,
 				sourceUrl=sourceUrl,
 			)
 			checkText = f"{alt} {title} {cid} {sourceUrl}".lower()
@@ -4201,8 +4249,6 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 			ctx = "" if fast else extractContextTextForShape(doc, shape, isInline=False)
 
 			itemIdx = len(items) + 1
-			cName = customNames.get(str(itemIdx), "")
-			isInv = bool(allImageSettings.get(str(itemIdx), {}).get("inverted", False))
 
 			gItem = GraphicItem(
 				index=itemIdx,
@@ -4218,9 +4264,9 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 				contextText=ctx,
 				hyperlinkUrl=hlUrl,
 				hyperlinkTip=hlTip,
-				customName=cName,
+				customName="",
 				msgKey=msgKey,
-				isInverted=isInv,
+				isInverted=False,
 				sourceUrl=sourceUrl,
 			)
 			checkText = f"{alt} {title} {sourceUrl}".lower()
@@ -4236,10 +4282,8 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 	items.sort(key=lambda it: it.rangeStart)
 	for idx, it in enumerate(items, 1):
 		it.index = idx
-		if not it.customName:
-			it.customName = customNames.get(str(idx), "")
-		if not it.isInverted:
-			it.isInverted = bool(allImageSettings.get(str(idx), {}).get("inverted", False))
+		it.customName = customNames.get(str(idx), "")
+		it.isInverted = bool(allImageSettings.get(str(idx), {}).get("inverted", False))
 
 	return items
 
@@ -4313,13 +4357,48 @@ def getStrictGraphicUnderCaret(
 	if not items:
 		return None
 
-	# 1. Jeśli użytkownik nawigował po grafikach klawiszem G / Shift+G lub strzałkami
-	# i wciąż znajduje się na tej grafice (_currentGraphicItem jest aktywny i nie został wyczyszczony ruchem na tekst):
+	# Pobierz bieżącą pozycję kursora w dokumencie
+	curPos = targetPos
+	tiInstance = treeInterceptor
+	if not tiInstance:
+		focus = api.getFocusObject()
+		tiInstance = getattr(focus, "treeInterceptor", None)
+
+	if curPos is None and tiInstance and getattr(tiInstance, "isAlive", False):
+		try:
+			ti = getattr(tiInstance, "selection", None)
+			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj:
+				try:
+					curPos = int(ti._rangeObj.Start)
+				except Exception:
+					pass
+		except Exception:
+			pass
+
+	if curPos is None:
+		try:
+			sel = getattr(doc.Application, "Selection", None)
+			if sel:
+				selStart = getattr(sel, "Start", None)
+				if selStart is not None:
+					curPos = int(selStart() if callable(selStart) else selStart)
+		except Exception:
+			pass
+
+	# 1. Jeśli użytkownik nawigował po grafikach klawiszem G / Shift+G:
+	# upewnij się, że aktualny kursor wciąż stoi na tej grafice, a nie przesunął się na tekst
 	if GlobalPlugin.instance and getattr(GlobalPlugin.instance, "_currentGraphicItem", None):
 		cand = GlobalPlugin.instance._currentGraphicItem
 		matched = next((it for it in items if it.index == cand.index), None)
 		if matched:
-			return matched
+			if curPos is not None:
+				if (matched.rangeStart - 2) <= curPos <= (matched.rangeEnd + 2):
+					return matched
+				else:
+					GlobalPlugin.instance._currentGraphicItem = None
+			else:
+				# Jeśli nie można potwierdzić pozycji, nie polegaj na starym cache
+				pass
 
 	# 2. Sprawdź, czy w edytorze Word obiekt graficzny jest zaznaczony lub kursor Worda stoi na grafice
 	try:
@@ -4327,39 +4406,26 @@ def getStrictGraphicUnderCaret(
 		if sel:
 			selType = getattr(sel, "Type", 0)
 			selStart = getattr(sel, "Start", None)
+			selStartVal = int(selStart() if callable(selStart) else selStart) if selStart is not None else None
 			# 7: wdSelectionInlineShape, 8: wdSelectionShape
 			if selType in (7, 8):
-				if selStart is not None:
+				if selStartVal is not None:
 					for it in items:
-						if abs(it.rangeStart - selStart) <= 5 or (it.rangeStart <= selStart <= it.rangeEnd):
+						if abs(it.rangeStart - selStartVal) <= 5 or (it.rangeStart <= selStartVal <= it.rangeEnd):
 							return it
 				return items[0]
-			if selStart is not None:
+			if selStartVal is not None:
 				for it in items:
-					if (it.rangeStart <= selStart <= it.rangeEnd) or abs(it.rangeStart - selStart) <= 1:
+					if (it.rangeStart <= selStartVal <= it.rangeEnd) or abs(it.rangeStart - selStartVal) <= 1:
 						return it
 	except Exception as ex:
 		log.debug(f"outlookImageHelper: getStrictGraphicUnderCaret selection check error: {ex}")
 
-	# 3. Sprawdź pozycję w buforze przeglądania (treeInterceptor)
-	tiInstance = treeInterceptor
-	if not tiInstance:
-		focus = api.getFocusObject()
-		tiInstance = getattr(focus, "treeInterceptor", None)
-
-	if tiInstance and getattr(tiInstance, "isAlive", False):
-		try:
-			ti = getattr(tiInstance, "selection", None)
-			if ti:
-				curPos = targetPos
-				if curPos is None and hasattr(ti, "_rangeObj") and ti._rangeObj:
-					try:
-						curPos = int(ti._rangeObj.Start)
-					except Exception:
-						curPos = None
-
-				if curPos is not None:
-					for it in items:
+	# 3. Sprawdź pozycję w buforze przeglądania / dokumencie
+	if curPos is not None:
+		for it in items:
+			if (it.rangeStart <= curPos <= it.rangeEnd) or abs(it.rangeStart - curPos) <= 1:
+				return it
 						if (it.rangeStart <= curPos < it.rangeEnd) or abs(curPos - it.rangeStart) <= 1:
 							return it
 		except Exception as ex:
@@ -5000,20 +5066,7 @@ def _patchOutlookTreeInterceptors():
 		if hasattr(cls, "speakTextInfo"):
 			cls.speakTextInfo = _treeInterceptor_speakTextInfo
 
-		# Powiąż gesty Shift+F10 i Applications
-		if not hasattr(cls, "__gestures__") or cls.__gestures__ is None:
-			cls.__gestures__ = {}
-		else:
-			cls.__gestures__ = dict(cls.__gestures__)
-		cls.__gestures__["kb:shift+f10"] = "oih_contextMenu"
-		cls.__gestures__["kb:applications"] = "oih_contextMenu"
-		try:
-			cls.bindGesture("kb:shift+f10", "oih_contextMenu")
-			cls.bindGesture("kb:applications", "oih_contextMenu")
-		except Exception:
-			pass
-
-	log.info(f"outlookImageHelper: Podłączono obsługę G, Shift+G, Shift+F10 i strzałek dla {len(classesToPatch)} klas bufora przeglądania.")
+	log.info(f"outlookImageHelper: Podłączono obsługę G, Shift+G i nawigacji dla {len(classesToPatch)} klas bufora przeglądania.")
 
 
 def _unpatchOutlookTreeInterceptors():
@@ -5426,16 +5479,21 @@ def saveAttachmentToTempFile(item: AttachmentItem) -> str:
 	except Exception:
 		uniqueSubdir = baseTempDir
 
-	safeName = "".join(c for c in item.fileName if c.isalnum() or c in " ._-()").strip().rstrip(". ") or f"zalacznik_{item.index}"
+	# Bezpieczna sanitizacja bez mutacji rozszerzenia pliku
+	rawFn = (item.fileName or "").strip()
+	stem, ext = os.path.splitext(rawFn)
+	safeStem = "".join(c if (c.isalnum() or c in " ._-()") else "_" for c in stem).strip().rstrip(". ") or f"zalacznik_{item.index}"
+	safeExt = "".join(c if (c.isalnum() or c in "._-") else "_" for c in ext).strip()
+	safeName = f"{safeStem}{safeExt}"
 	targetPath = os.path.join(uniqueSubdir, f"{item.index}_{safeName}")
 
 	try:
 		item.rawAttachment.SaveAsFile(targetPath)
 		item.tempSavedPath = targetPath
-		log.info(f"outlookImageHelper: Zapisano załącznik do bezpiecznego pliku tymczasowego: {targetPath}")
+		log.info(f"outlookImageHelper: Zapisano załącznik #{item.index} do pliku tymczasowego ({item.formattedSize})")
 		return targetPath
 	except Exception as ex:
-		log.error(f"outlookImageHelper: Nie udało się zapisać załącznika {item.fileName}: {ex}", exc_info=True)
+		log.error(f"outlookImageHelper: Nie udało się zapisać załącznika #{item.index}: {ex}", exc_info=True)
 		return ""
 
 
@@ -5454,19 +5512,33 @@ def extractTextFromDocxFile(filePath: str) -> str:
 			xmlContent = z.read("word/document.xml")
 			tree = ET.fromstring(xmlContent)
 			paragraphs = []
-			for elem in tree.iter():
+			body = None
+			for child in tree.iter():
+				if child.tag.endswith("body"):
+					body = child
+					break
+			if body is None:
+				body = tree
+
+			for elem in body:
 				tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
 				if tag == "p":
 					pTexts = [child.text for child in elem.iter() if child.text and (child.tag.endswith("t") or child.tag.endswith("delText"))]
 					if pTexts:
 						paragraphs.append("".join(pTexts))
-				elif tag == "tr":
-					cells = []
-					for tc in elem.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tc"):
-						cTexts = [child.text for child in tc.iter() if child.text]
-						cells.append(" ".join(cTexts).strip())
-					if cells and any(cells):
-						paragraphs.append(" | ".join(cells))
+				elif tag == "tbl":
+					for tr in elem.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tr"):
+						cells = []
+						for tc in tr.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tc"):
+							cTexts = [child.text for child in tc.iter() if child.text and (child.tag.endswith("t") or child.tag.endswith("delText"))]
+							cells.append(" ".join("".join(cTexts).split()))
+						if any(cells):
+							paragraphs.append(" | ".join(cells))
+				elif tag == "sdt":
+					for p in elem.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p"):
+						pTexts = [child.text for child in p.iter() if child.text and (child.tag.endswith("t") or child.tag.endswith("delText"))]
+						if pTexts:
+							paragraphs.append("".join(pTexts))
 
 			return "\n\n".join(paragraphs).strip()
 	except Exception as e:
@@ -6711,7 +6783,7 @@ def buildHtmlReport(
 	</div>
 	"""
 
-	html = f"""<!DOCTYPE html>
+	htmlReport = f"""<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><title>{titleText}</title></head>
 <body style="font-family: Segoe UI, sans-serif; line-height: 1.6; color: #222; max-width: 850px; margin: 20px auto; padding: 15px;">
@@ -6725,7 +6797,7 @@ def buildHtmlReport(
 	{continueBox}
 </body>
 </html>"""
-	return html
+	return htmlReport
 
 
 def buildPlainTextReport(item: GraphicItem | AttachmentItem, turns: list[dict], includeImage: bool) -> str:
@@ -8146,9 +8218,14 @@ class AiConversationDialog(wx.Dialog):
 				def updateUi():
 					feedback.stop()
 					playSuccessChime()
-					self.btnSend.Enable()
-					self.questionCtrl.Enable()
-					self.updateHistoryDisplay(scrollToEnd=True)
+					if not self or not winUser.isWindow(getattr(self, "Handle", 0)):
+						return
+					try:
+						self.btnSend.Enable()
+						self.questionCtrl.Enable()
+						self.updateHistoryDisplay(scrollToEnd=True)
+					except Exception:
+						pass
 					firstSent = ans.split(".")[0] if "." in ans else ans[:80]
 					ui.message(f"{provName}: {firstSent}")
 
@@ -8161,11 +8238,16 @@ class AiConversationDialog(wx.Dialog):
 
 				def failUi(capturedErr=errStr):
 					feedback.stop(f"Błąd AI: {capturedErr}")
-					self.btnSend.Enable()
-					self.questionCtrl.Enable()
-					self.questionCtrl.SetValue(question)
-					self.updateHistoryDisplay(scrollToEnd=True)
-					self.questionCtrl.SetFocus()
+					if not self or not winUser.isWindow(getattr(self, "Handle", 0)):
+						return
+					try:
+						self.btnSend.Enable()
+						self.questionCtrl.Enable()
+						self.questionCtrl.SetValue(question)
+						self.updateHistoryDisplay(scrollToEnd=True)
+						self.questionCtrl.SetFocus()
+					except Exception:
+						pass
 
 					if "503" in capturedErr or "Service Unavailable" in capturedErr:
 						msg = (
@@ -10240,28 +10322,58 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		else:
 			if not ensureGraphicReady(item, parent=parentWin, actionName="zapisania do pliku"):
 				return
-			useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
-			apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
-			suggestedName = generateDescriptiveFilename(item, useAi=useAi, apiKey=apiKey)
-			with wx.FileDialog(
-				parentWin,
-				message="Zapisz grafikę jako plik PNG",
-				defaultFile=suggestedName,
-				wildcard="Pliki obrazów PNG (*.png)|*.png",
-				style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-			) as fileDialog:
-				if fileDialog.ShowModal() == wx.ID_CANCEL:
-					return
-				destPath = fileDialog.GetPath()
 			tempPng = extractGraphicToPngFile(item)
 			if not tempPng or not os.path.isfile(tempPng):
 				showAccessibleMessageBox("Nie udało się pobrać grafiki z edytora wiadomości.", title="Błąd zapisu", parent=parentWin)
 				return
-			try:
-				import shutil
-				shutil.copyfile(tempPng, destPath)
-				ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
-			except Exception as e:
+
+			useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
+			apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
+
+			def _doSaveWithPrompt(aiCandidate=""):
+				suggestedName = generateDescriptiveFilename(item, aiCandidate=aiCandidate)
+				with wx.FileDialog(
+					parentWin,
+					message="Zapisz grafikę jako plik PNG",
+					defaultFile=suggestedName,
+					wildcard="Pliki obrazów PNG (*.png)|*.png",
+					style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+				) as fileDialog:
+					if fileDialog.ShowModal() == wx.ID_CANCEL:
+						try:
+							os.remove(tempPng)
+						except Exception:
+							pass
+						return
+					destPath = fileDialog.GetPath()
+
+				try:
+					import shutil
+					shutil.copyfile(tempPng, destPath)
+					ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
+				except Exception as e:
+					showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=parentWin)
+				finally:
+					try:
+						os.remove(tempPng)
+					except Exception:
+						pass
+
+			if useAi and apiKey and item.isScreenshotOrUnlabeled and not item.ocrText:
+				def _aiNamingWorker():
+					aiCand = ""
+					try:
+						aiCand = describeWithGemini(
+							tempPng,
+							apiKey,
+							customPrompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę."
+						)
+					except Exception as ex:
+						log.debug(f"outlookImageHelper: błąd zapytania AI o nazwę pliku: {ex}")
+					wx.CallAfter(_doSaveWithPrompt, aiCand)
+				threading.Thread(target=_aiNamingWorker, daemon=True).start()
+			else:
+				_doSaveWithPrompt()
 				showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=parentWin)
 			finally:
 				try:
@@ -10866,15 +10978,19 @@ class GraphicElementsDialog(wx.Dialog):
 		result = []
 		for item in items:
 			if isinstance(item, GraphicItem):
-				key = (
-					round(item.widthPt, 1),
-					round(item.heightPt, 1),
-					item.altText,
-					item.title,
-					item.hyperlinkUrl,
-					item.cid,
-					item.customName,
-				)
+				hasCid = bool(item.cid and item.cid.strip())
+				isDivider = bool(getattr(item, "isDivider", False))
+				hasIdenticalSourceUrl = bool(getattr(item, "sourceUrl", "") and item.sourceUrl.strip())
+				if hasCid:
+					key = ("cid", item.cid.strip().lower(), round(item.widthPt, 1), round(item.heightPt, 1))
+				elif hasIdenticalSourceUrl:
+					key = ("sourceUrl", item.sourceUrl.strip().lower(), round(item.widthPt, 1), round(item.heightPt, 1))
+				elif isDivider:
+					key = ("divider", round(item.widthPt, 1), round(item.heightPt, 1))
+				else:
+					# Brak silnego identyfikatora tożsamości źródła - nie uznawaj różnych grafik za identyczne
+					key = ("unique", id(item), item.index)
+
 				if key in seen:
 					seen[key]._repeatCount = getattr(seen[key], "_repeatCount", 1) + 1
 				else:
@@ -11430,37 +11546,58 @@ class GraphicElementsDialog(wx.Dialog):
 			if not self.ensureGraphicReady(item, actionName="zapisania do pliku"):
 				return
 
-			useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
-			apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
-			suggestedName = generateDescriptiveFilename(item, useAi=useAi, apiKey=apiKey)
-
-			with wx.FileDialog(
-				self,
-				message="Zapisz grafikę jako plik PNG",
-				defaultFile=suggestedName,
-				wildcard="Pliki obrazów PNG (*.png)|*.png",
-				style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-			) as fileDialog:
-				if fileDialog.ShowModal() == wx.ID_CANCEL:
-					return
-				destPath = fileDialog.GetPath()
-
 			tempPng = extractGraphicToPngFile(item)
 			if not tempPng or not os.path.isfile(tempPng):
 				showAccessibleMessageBox("Nie udało się pobrać grafiki z edytora wiadomości.", title="Błąd zapisu", parent=self)
 				return
 
-			try:
-				import shutil
-				shutil.copyfile(tempPng, destPath)
-				ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
-			except Exception as e:
-				showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=self)
-			finally:
+			useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
+			apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
+
+			def _doSaveWithPrompt(aiCandidate=""):
+				suggestedName = generateDescriptiveFilename(item, aiCandidate=aiCandidate)
+				with wx.FileDialog(
+					self,
+					message="Zapisz grafikę jako plik PNG",
+					defaultFile=suggestedName,
+					wildcard="Pliki obrazów PNG (*.png)|*.png",
+					style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+				) as fileDialog:
+					if fileDialog.ShowModal() == wx.ID_CANCEL:
+						try:
+							os.remove(tempPng)
+						except Exception:
+							pass
+						return
+					destPath = fileDialog.GetPath()
+
 				try:
-					os.remove(tempPng)
-				except Exception:
-					pass
+					import shutil
+					shutil.copyfile(tempPng, destPath)
+					ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
+				except Exception as e:
+					showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=self)
+				finally:
+					try:
+						os.remove(tempPng)
+					except Exception:
+						pass
+
+			if useAi and apiKey and item.isScreenshotOrUnlabeled and not item.ocrText:
+				def _aiNamingWorker():
+					aiCand = ""
+					try:
+						aiCand = describeWithGemini(
+							tempPng,
+							apiKey,
+							customPrompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę."
+						)
+					except Exception as ex:
+						log.debug(f"outlookImageHelper: błąd zapytania AI o nazwę pliku: {ex}")
+					wx.CallAfter(_doSaveWithPrompt, aiCand)
+				threading.Thread(target=_aiNamingWorker, daemon=True).start()
+			else:
+				_doSaveWithPrompt()
 		else:
 			# Zapisywanie załączników
 			if len(selected) > 1:
@@ -11499,7 +11636,7 @@ class GraphicElementsDialog(wx.Dialog):
 			self._batchSaveAttachments(self.attachments, f"Pomyślnie zapisano wszystkie {len(self.attachments)} załączników")
 
 	def _batchSaveGraphics(self, items: list[GraphicItem], successMessagePrefix: str):
-		"""Seryjny zapis listy grafik do wybranego folderu z automatycznymi opisowymi nazwami."""
+		"""Seryjny zapis listy grafik do wybranego folderu z asynchronicznym nazywaniem AI bez blokowania NVDA."""
 		with wx.DirDialog(
 			self,
 			message="Wybierz folder docelowy dla zapisywanych grafik",
@@ -11513,47 +11650,69 @@ class GraphicElementsDialog(wx.Dialog):
 			ui.message("Wybrany folder nie istnieje.")
 			return
 
-		ui.message(f"Trwa zapisywanie {len(items)} grafik do folderu...")
+		ui.message(f"Trwa przygotowywanie {len(items)} grafik do zapisu...")
 
 		useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
 		apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
 
-		savedCount = 0
-		errors = 0
-		usedNames = set()
+		# Ekstrakcja grafik na wątku STA przed uruchomieniem wątku w tle
+		prepared = []
+		for item in items:
+			try:
+				p = extractGraphicToPngFile(item)
+				prepared.append((item, p))
+			except Exception as ex:
+				log.debug(f"outlookImageHelper: błąd ekstrakcji grafiki {item.index}: {ex}")
+				prepared.append((item, None))
 
-		with BusySoundTicker(startTone=True, interval=0.22, baseFreq=580, endTone=True):
-			for item in items:
-				try:
-					tempPng = extractGraphicToPngFile(item)
+		def _worker():
+			savedCount = 0
+			errors = 0
+			usedNames = set()
+			with BusySoundTicker(startTone=True, interval=0.22, baseFreq=580, endTone=True):
+				for item, tempPng in prepared:
 					if not tempPng or not os.path.isfile(tempPng):
 						errors += 1
 						continue
-
-					baseFilename = generateDescriptiveFilename(item, useAi=useAi, apiKey=apiKey)
-					candidatePath = os.path.join(targetDir, baseFilename)
-					root, ext = os.path.splitext(baseFilename)
-					counter = 1
-					while candidatePath.lower() in usedNames or os.path.exists(candidatePath):
-						candidatePath = os.path.join(targetDir, f"{root}_{counter}{ext}")
-						counter += 1
-
-					usedNames.add(candidatePath.lower())
-					import shutil
-					shutil.copyfile(tempPng, candidatePath)
-					savedCount += 1
 					try:
-						os.remove(tempPng)
-					except Exception:
-						pass
-				except Exception as ex:
-					log.error(f"outlookImageHelper: Błąd seryjnego zapisu grafiki {item.index}: {ex}", exc_info=True)
-					errors += 1
+						aiCand = ""
+						if useAi and apiKey and item.isScreenshotOrUnlabeled and not item.ocrText:
+							try:
+								aiCand = describeWithGemini(
+									tempPng,
+									apiKey,
+									customPrompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę."
+								)
+							except Exception:
+								pass
+						baseFilename = generateDescriptiveFilename(item, aiCandidate=aiCand)
+						candidatePath = os.path.join(targetDir, baseFilename)
+						root, ext = os.path.splitext(baseFilename)
+						counter = 1
+						while candidatePath.lower() in usedNames or os.path.exists(candidatePath):
+							candidatePath = os.path.join(targetDir, f"{root}_{counter}{ext}")
+							counter += 1
 
-		if errors == 0:
-			ui.message(f"{successMessagePrefix} w folderze: {os.path.basename(targetDir)}.")
-		else:
-			ui.message(f"Zapisano {savedCount} grafik (wystąpiły błędy przy {errors} obiektach).")
+						usedNames.add(candidatePath.lower())
+						import shutil
+						shutil.copyfile(tempPng, candidatePath)
+						savedCount += 1
+						try:
+							os.remove(tempPng)
+						except Exception:
+							pass
+					except Exception as ex:
+						log.error(f"outlookImageHelper: Błąd seryjnego zapisu grafiki {item.index}: {ex}", exc_info=True)
+						errors += 1
+
+			def _onDone():
+				if errors == 0:
+					ui.message(f"{successMessagePrefix} w folderze: {os.path.basename(targetDir)}.")
+				else:
+					ui.message(f"Zapisano {savedCount} grafik (wystąpiły błędy przy {errors} obiektach).")
+			wx.CallAfter(_onDone)
+
+		threading.Thread(target=_worker, daemon=True).start()
 
 	def _batchSaveAttachments(self, items: list[AttachmentItem], successMessagePrefix: str):
 		"""
@@ -11871,7 +12030,15 @@ class AddonUpdaterEngine:
 			def _do_install():
 				installed_ok = False
 				try:
-					if hasattr(addonHandler, "installAddonPackage"):
+					if hasattr(addonHandler, "installAddonBundle"):
+						try:
+							bundle = addonHandler.AddonBundle(target_pkg)
+							addonHandler.installAddonBundle(bundle)
+							installed_ok = True
+						except TypeError:
+							addonHandler.installAddonBundle(target_pkg)
+							installed_ok = True
+					elif hasattr(addonHandler, "installAddonPackage"):
 						try:
 							bundle = addonHandler.AddonBundle(target_pkg)
 							addonHandler.installAddonPackage(bundle)
@@ -12247,43 +12414,6 @@ class AdminLoginDialog(wx.Dialog):
 		dlg.ShowModal()
 		dlg.Destroy()
 
-		self.btnCancel = wx.Button(self, wx.ID_CANCEL, label="&Anuluj")
-		btnSizer.Add(self.btnCancel, 0)
-		mainSizer.Add(btnSizer, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
-
-		self.SetSizer(mainSizer)
-		self.Fit()
-		self.CenterOnScreen()
-
-		self.btnLogin.Bind(wx.EVT_BUTTON, self.onLogin)
-		self.Bind(wx.EVT_CHAR_HOOK, self.onCharHook)
-		self.pwdCtrl.SetFocus()
-
-	def onCharHook(self, event):
-		if event.GetKeyCode() == wx.WXK_ESCAPE:
-			self.EndModal(wx.ID_CANCEL)
-		else:
-			event.Skip()
-
-	def onLogin(self, event):
-		val = self.pwdCtrl.GetValue().strip()
-		if verifyAdminPassword(val):
-			self.authenticated = True
-			self.EndModal(wx.ID_OK)
-		else:
-			ui.message("Niepoprawne hasło administratora.")
-			self.pwdCtrl.SetFocus()
-
-	def onChangePwd(self, event):
-		dlg = ChangeAdminPasswordDialog(self, isReset=False)
-		dlg.ShowModal()
-		dlg.Destroy()
-
-	def onForgot(self, event):
-		dlg = PasswordRecoveryDialog(self)
-		dlg.ShowModal()
-		dlg.Destroy()
-
 
 class CreatorAdminDialog(wx.Dialog):
 	"""
@@ -12336,7 +12466,8 @@ class CreatorAdminDialog(wx.Dialog):
 		sboxUpd.Add(lblUpd, 0, wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
 		defaultUpd = sec.get("updateSourceUrl", "https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json")
-		if not defaultUpd or "mój dysk" in str(defaultUpd).lower() or str(defaultUpd).strip().endswith("updates.json"):
+		isOldDefault = bool(defaultUpd and ("mój dysk" in str(defaultUpd).lower() and "antigravity" in str(defaultUpd).lower()))
+		if not defaultUpd or isOldDefault:
 			defaultUpd = "https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json"
 		self.txtUpdateSource = wx.TextCtrl(self, value=str(defaultUpd))
 		self.txtUpdateSource.SetName("Lokalizacja pliku ogłoszeniowego (ścieżka na dysku lub URL):")
@@ -13822,7 +13953,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				sec["geminiModel"] = _DEFAULT_GEMINI_MODEL
 			# Migracja starej lokalizacji pliku aktualizacji na oficjalne repozytorium GitHub
 			curUpd = str(sec.get("updateSourceUrl", "")).strip()
-			if not curUpd or "mój dysk" in curUpd.lower() or curUpd.endswith("updates.json"):
+			isOldDefault = bool(curUpd and ("mój dysk" in curUpd.lower() and "antigravity" in curUpd.lower()))
+			if not curUpd or isOldDefault:
 				sec["updateSourceUrl"] = "https://raw.githubusercontent.com/strugo10/outlookImageHelper/main/update_info.json"
 		except Exception as e:
 			log.warning(f"outlookImageHelper: Błąd sanitizacji konfiguracji: {e}")
@@ -14413,11 +14545,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		],
 	)
 	def script_graphicAppsMenu(self, gesture):
-		if getattr(self, "_bypassNextContextMenu", False):
-			self._bypassNextContextMenu = False
-			gesture.send()
-			return
-
 		if not self.isOutlookActive():
 			gesture.send()
 			return
@@ -14447,7 +14574,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		# Jeśli kursor NIE stoi ściśle na grafice, przepuść gest do standardowego menu Outlooka
-		self._bypassNextContextMenu = True
 		gesture.send()
 
 
@@ -14613,6 +14739,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		if item.isPdf:
+			# Jeśli plik PDF jest chroniony hasłem, odblokuj go przed wysłaniem do OCR
+			unlockedPdf = ensurePdfUnlocked(item, parentWin=parentDialog)
+			if not unlockedPdf or not os.path.isfile(unlockedPdf):
+				ui.message("Anulowano odblokowywanie dokumentu PDF lub błędne hasło.")
+				return
+			tempPath = unlockedPdf
+
 			# Dla PDF tekst rozpoznawany jest za pomocą multimodalnej sztucznej inteligencji
 			prov = getActiveAiProvider()
 			provName = "Google Gemini" if prov == "gemini" else "OpenAI (ChatGPT)"
@@ -14745,6 +14878,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			try:
 				if isinstance(it, AttachmentItem):
 					p = saveAttachmentToTempFile(it)
+					if it.isPdf and p:
+						unlocked = ensurePdfUnlocked(it, parentWin=parentDialog)
+						if not unlocked:
+							ui.message(f"Pominięto zaszyfrowany plik PDF: {it.fileName}")
+							p = None
+						else:
+							p = unlocked
 					prepared_items.append((it, p))
 				else:
 					p = extractGraphicToPngFile(it)
@@ -14868,7 +15008,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# Jeśli rozmowa lub opis już istnieje i nie podano nowego prompta, otwórz okno rozmowy od razu
 		if item.chatHistory and not customPrompt:
 			def showChat():
-				d = AiConversationDialog(parentDialog or gui.mainFrame, item)
+				actualParent = parentDialog if (parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0))) else gui.mainFrame
+				d = AiConversationDialog(actualParent, item)
 				d.ShowModal()
 				d.Destroy()
 				if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
@@ -15005,7 +15146,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 						parentDialog.refreshListLabels()
 					ui.message(f"Analiza AI dla {itemLabel} zakończona sukcesem. Otwieram okno rozmowy...")
-					d = AiConversationDialog(parentDialog or gui.mainFrame, item)
+					actualParent = parentDialog if (parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0))) else gui.mainFrame
+					d = AiConversationDialog(actualParent, item)
 					d.ShowModal()
 					d.Destroy()
 					if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
@@ -15091,6 +15233,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			try:
 				if isinstance(it, AttachmentItem):
 					p = saveAttachmentToTempFile(it)
+					if it.isPdf and p:
+						unlocked = ensurePdfUnlocked(it, parentWin=parentDialog)
+						if not unlocked:
+							ui.message(f"Pominięto zaszyfrowany plik PDF: {it.fileName}")
+							p = None
+						else:
+							p = unlocked
 					prepared_items.append((it, p))
 				else:
 					p = extractGraphicToPngFile(it)
