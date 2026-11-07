@@ -72,12 +72,12 @@ CONFIG_SECTION = "outlookImageHelper"
 ADDON_NAME = "Outlook Image Helper"
 ADDON_TITLE = "Outlook - Pomocnik obrazów i załączników"
 ADDON_AUTHOR = "Sławomir Strugarek z pomocą Antigravity (Google DeepMind)"
-ADDON_BUILD_DATE = "2026-11-07"
-ADDON_BUILD_ID = "20261107.2"
+ADDON_BUILD_DATE = "2026-11-08"
+ADDON_BUILD_ID = "20261108.2"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.6"
+ADDON_VERSION = "1.6.12"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -118,6 +118,7 @@ DANGEROUS_ATTACHMENT_EXTENSIONS = {
 	".mht", ".mhtml", ".svg", ".xbap", ".xll", ".dll", ".sys", ".drv", ".ocx",
 }
 ALLOWED_URL_SCHEMES = ("http", "https", "mailto", "tel", "geo")
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".ico", ".svg"}
 
 # Prekompilowane wyrażenia regularne dla maksymalnej wydajności parsowania
 _RE_HTML_TOKENS = re.compile(r'(<a\s+[^>]*href=["\'](?P<href>[^"\']+)["\'][^>]*>)|(<img\s+[^>]*>)', re.IGNORECASE)
@@ -200,7 +201,6 @@ confspec = {
 	"autoAnnounce": "boolean(default=True)",
 	"playSound": "boolean(default=True)",
 	"soundTheme": "string(default='associative')",
-	"soundTriggerMode": "string(default='open_only')",
 	"soundVolume": "integer(default=80, min=0, max=100)",
 	"navSounds": "boolean(default=True)",
 	"defaultOcrLang": "string(default='pl-PL')",
@@ -347,6 +347,13 @@ STRINGS = {
 		"preview_btn_out": "Pomniejsz (-)",
 		"preview_btn_fit": "Dopasuj do okna (0)",
 		"preview_btn_100": "Skala 100% (1)",
+		"preview_btn_prev": "Poprzednia (Ctrl+Lewo)",
+		"preview_btn_next": "Następna (Ctrl+Prawo)",
+		"preview_btn_actions": "Czynności (Alt+C)...",
+		"preview_side_box": "Podgląd zaznaczonej grafiki",
+		"preview_side_expand": "Powiększ na cały ekran (P)...",
+		"preview_side_no_selection": "Wybierz grafikę z listy po lewej stronie, aby wyświetlić jej podgląd.",
+		"preview_side_loading": "Trwa wczytywanie podglądu grafiki...",
 		"preview_btn_invert": "Inwersja kolorów (I)",
 		"preview_btn_invert_on": "Inwersja: WŁĄCZONA (I)",
 		"preview_btn_invert_off": "Inwersja: wyłączona (I)",
@@ -388,21 +395,16 @@ STRINGS = {
 		"set_lang_lbl": "Język interfejsu dodatku / Add-on language:",
 		"set_ocr_lbl": "&Domyślny język silnika OCR (Windows Media OCR):",
 		"set_custom_ocr_lbl": "&Własny kod języka OCR (gdy wybrano 'Inny / własny kod języka...'):",
+		"set_play_sound": "Na liście wiadomości &odtwarzaj dźwięk, gdy mail zawiera obrazy bez opisu / zrzuty ekranu",
 		"set_auto_announce": "&Powiadamiaj o wklejonych grafikach po otwarciu wiadomości",
-		"set_play_sound": "&Odtwarzaj dźwięk, gdy wiadomość zawiera obrazy bez opisu / zrzuty ekranu",
 		"set_context_menu": "&Otwieraj menu czynności klawiszem menu kontekstowego (Aplikacje / Shift+F10) wyłącznie gdy kursor stoi na grafice",
-		"set_nav_sounds": "&Odtwarzaj subtelne dźwięki rozpoznawania typu podczas nawigacji (linki, ikony, separatory)",
-		"set_sound_theme": "&Motyw dźwięku powiadomienia:",
+		"set_nav_sounds": "&Odtwarzaj dźwięki typu grafik (linki, ikony, separatory) podczas nawigacji klawiszami G/Shift+G w treści oraz na liście grafik",
+		"set_sound_theme": "&Zestaw powiadomień dźwiękowych (dla listy maili, otwartej treści i nawigacji):",
 		"set_test_sound": "&Odtwórz dźwięk",
-		"set_sound_trigger_mode": "&Miejsce odtwarzania dźwięków o obecności obrazów:",
-		"sound_mode_open_only": "Tylko po otwarciu wiadomości (domyślnie)",
-		"sound_mode_list_only": "Tylko na liście wiadomości",
-		"sound_mode_both": "Na liście wiadomości i po otwarciu",
-		"sound_mode_off": "Wyłączone",
-		"set_sound_volume": "&Głośność dźwięków alertów i nawigacji (%):",
-		"set_test_volume": "&Przetestuj dźwięk i głośność",
-		"set_sound_coord_detected": "Koordynacja dźwięków: Wykryto dodatek Outlook Speech Filter — dźwięki obecności grafik są odtwarzane przez Pomocnika obrazów (z wybranym motywem i głośnością).",
-		"set_sound_coord_standalone": "Koordynacja dźwięków: Outlook Speech Filter nie jest aktywny — dźwięki są w pełni kontrolowane przez Pomocnika obrazów.",
+		"set_sound_volume": "&Głośność powiadomień dźwiękowych (%):",
+		"set_test_volume": "&Przetestuj powiadomienia dźwiękowe",
+		"set_sound_coord_detected": "Koordynacja dźwięków: Wykryto dodatek Outlook Speech Filter — dźwięki załączników są obsługiwane przez filtr mowy, a dźwięki obecności grafik przez Pomocnika obrazów.",
+		"set_sound_coord_standalone": "Koordynacja dźwięków: Outlook Speech Filter nie jest aktywny — Pomocnik obrazów samodzielnie odtwarza powiadomienia o załącznikach oraz grafikach.",
 		"set_btn_diagnostics": "&Kontakt z twórcą i zgłaszanie uwag (GitHub)...",
 		"set_ai_provider": "&Dostawca sztucznej inteligencji (AI):",
 		"ai_prov_gemini": "Google Gemini (zalecany, darmowy)",
@@ -569,6 +571,13 @@ STRINGS = {
 		"preview_btn_out": "Zoom Out (-)",
 		"preview_btn_fit": "Fit to Window (0)",
 		"preview_btn_100": "100% Scale (1)",
+		"preview_btn_prev": "Previous (Ctrl+Left)",
+		"preview_btn_next": "Next (Ctrl+Right)",
+		"preview_btn_actions": "Actions (Alt+C)...",
+		"preview_side_box": "Selected image preview",
+		"preview_side_expand": "Full screen preview (P)...",
+		"preview_side_no_selection": "Select an image from the list on the left to show its preview.",
+		"preview_side_loading": "Loading image preview...",
 		"preview_btn_invert": "Invert colors (I)",
 		"preview_btn_invert_on": "Inversion: ON (I)",
 		"preview_btn_invert_off": "Inversion: off (I)",
@@ -610,21 +619,16 @@ STRINGS = {
 		"set_lang_lbl": "Add-on interface language / Język interfejsu:",
 		"set_ocr_lbl": "&Default OCR engine language (Windows Media OCR):",
 		"set_custom_ocr_lbl": "&Custom OCR language code (when 'Other / custom code...' is selected):",
+		"set_play_sound": "On message list, &play sound when email contains unlabeled images / screenshots",
 		"set_auto_announce": "&Announce embedded images when opening a message",
-		"set_play_sound": "&Play sound when message contains unlabeled images / screenshots",
 		"set_context_menu": "&Open actions menu with context menu key (Apps / Shift+F10) only when cursor is directly on a graphic",
-		"set_nav_sounds": "&Play subtle recognition sounds during navigation (links, icons, dividers)",
-		"set_sound_theme": "&Alert sound theme:",
+		"set_nav_sounds": "&Play graphic type sounds (links, icons, dividers) during G/Shift+G navigation in body and in graphics list",
+		"set_sound_theme": "&Sound notifications theme (for message list, open body, and navigation):",
 		"set_test_sound": "&Play sound",
-		"set_sound_trigger_mode": "&Trigger location for image alert sounds:",
-		"sound_mode_open_only": "Only when opening a message (default)",
-		"sound_mode_list_only": "Only on the message list",
-		"sound_mode_both": "Both on the list and when opening",
-		"sound_mode_off": "Disabled",
-		"set_sound_volume": "&Alert and navigation sounds volume (%):",
-		"set_test_volume": "&Test sound and volume",
-		"set_sound_coord_detected": "Sound coordination: Outlook Speech Filter detected — image presence sounds are handled by Outlook Image Helper.",
-		"set_sound_coord_standalone": "Sound coordination: Outlook Speech Filter is not active — sounds are handled independently.",
+		"set_sound_volume": "&Sound notifications volume (%):",
+		"set_test_volume": "&Test sound notifications",
+		"set_sound_coord_detected": "Sound coordination: Outlook Speech Filter detected — attachment sounds are handled by Speech Filter, and image presence sounds by Image Helper.",
+		"set_sound_coord_standalone": "Sound coordination: Outlook Speech Filter is not active — Image Helper plays both attachment and image notifications.",
 		"set_btn_diagnostics": "&Contact author & feedback (GitHub)...",
 		"set_ai_provider": "&AI Provider:",
 		"ai_prov_gemini": "Google Gemini (recommended, free tier)",
@@ -1056,6 +1060,16 @@ def showContextHelp(context: str, parent=None):
 			text = (
 				"OUTLOOK IMAGE & ATTACHMENT HELPER — IMAGE PREVIEW HELP\n"
 				+ "=" * 60 + "\n\n"
+				"NAVIGATION BETWEEN IMAGES IN MESSAGE:\n"
+				"  Ctrl+Right / Ctrl+Shift+Right - Next image in this message\n"
+				"  Ctrl+Left / Ctrl+Shift+Left   - Previous image in this message\n"
+				"  PgDn / N                      - Next image\n"
+				"  PgUp / B                      - Previous image\n\n"
+				"ACTIONS MENU & DIRECT SHORTCUTS:\n"
+				"  Alt+C / Menu / Shift+F10      - Full actions menu for current image\n"
+				"  Enter                         - Recognize text (OCR)\n"
+				"  Alt+O                         - Quick AI description\n"
+				"  F2                            - Rename / custom label for image\n\n"
 				"MAGNIFIER & HIGH-CONTRAST CONTROLS (For low-vision users):\n"
 				"  + / = / Num+  - Zoom in (increase magnification)\n"
 				"  - / Num-      - Zoom out (decrease magnification)\n"
@@ -1063,7 +1077,7 @@ def showContextHelp(context: str, parent=None):
 				"  1             - 100% scale (actual pixel resolution)\n"
 				"  I             - Toggle color inversion (negative / high contrast mode)\n"
 				"  O             - Open image in Windows default photo viewer\n"
-				"  Arrows / PgUp / PgDn - Scroll around magnified image\n"
+				"  Arrows        - Scroll around magnified image in 4 directions\n"
 				"  F1            - Show this contextual help\n"
 				"  Escape        - Close preview\n"
 			)
@@ -1137,6 +1151,16 @@ def showContextHelp(context: str, parent=None):
 			text = (
 				"OUTLOOK POMOCNIK OBRAZÓW I ZAŁĄCZNIKÓW — POMOC PODGLĄDU OBRAZU\n"
 				+ "=" * 60 + "\n\n"
+				"NAWIGACJA MIĘDZY GRAFIKAMI W WIADOMOŚCI:\n"
+				"  Ctrl+Prawo / Ctrl+Shift+Prawo - Następna grafika w tej wiadomości\n"
+				"  Ctrl+Lewo / Ctrl+Shift+Lewo   - Poprzednia grafika w tej wiadomości\n"
+				"  PgDn / N                      - Następna grafika\n"
+				"  PgUp / B                      - Poprzednia grafika\n\n"
+				"MENU CZYNNOŚCI I AKCJE BEZPOŚREDNIE:\n"
+				"  Alt+C / Menu / Shift+F10      - Pełne menu czynności dla bieżącej grafiki\n"
+				"  Enter                         - Rozpoznaj tekst (OCR)\n"
+				"  Alt+O                         - Szybka analiza i opis przez AI\n"
+				"  F2                            - Nadaj własną, zapamiętywaną nazwę grafice\n\n"
 				"STEROWANIE POWIĘKSZENIEM I KONTRASTEM DLA OSÓB SŁABOWIDZĄCYCH:\n"
 				"  + / = / Num+  - Zwiększ powiększenie (przybliż)\n"
 				"  - / Num-      - Zmniejsz powiększenie (oddal)\n"
@@ -1144,7 +1168,7 @@ def showContextHelp(context: str, parent=None):
 				"  1             - Skala 100% (oryginalna rozdzielczość pikselowa)\n"
 				"  I             - Przełącz inwersję kolorów (tryb negatywu / wysoki kontrast)\n"
 				"  O             - Otwórz obraz w domyślnej przeglądarce graficznej Windows\n"
-				"  Strzałki / PgUp / PgDn - Przewijaj powiększony obraz\n"
+				"  Strzałki      - Przewijaj powiększony obraz w 4 kierunkach\n"
 				"  F1            - Wyświetl tę pomoc kontekstową\n"
 				"  Escape        - Zamknij okno podglądu\n"
 			)
@@ -2944,6 +2968,19 @@ def getActiveWordDocument(mailItem=None):
 	Obsługuje aktywne okno wiadomości (Inspector) oraz okienko podglądu (Reading Pane).
 	Zwraca None, jeśli wiadomość nie jest otwarta w osobnym oknie ani w aktywnym okienku podglądu.
 	"""
+	# Jeśli mailItem jest już otwarty w oknie Inspector, bezpiecznie pobierz jego WordEditor
+	if mailItem:
+		try:
+			app = getOutlookApp()
+			if app:
+				actInsp = getattr(app, "ActiveInspector", lambda: None)()
+				if actInsp and getattr(actInsp, "CurrentItem", None) == mailItem:
+					doc = getattr(actInsp, "WordEditor", None)
+					if doc:
+						return doc
+		except Exception:
+			pass
+
 	focus = api.getFocusObject()
 	if not focus:
 		return None
@@ -3013,7 +3050,7 @@ def getActiveWordDocument(mailItem=None):
 	return None
 
 
-def getCurrentMailItem(doc=None):
+def getCurrentMailItem(doc=None, focus=None):
 	"""
 	Pobiera obiekt MailItem ściśle powiązany z bieżącym fokusem użytkownika w Outlooku:
 	1. Jeśli przekazano doc (Word.Document) -> sprawdza doc.MailEnvelope.Item lub doc.Parent.
@@ -3048,7 +3085,8 @@ def getCurrentMailItem(doc=None):
 		except Exception:
 			pass
 
-	focus = api.getFocusObject()
+	if not focus:
+		focus = api.getFocusObject()
 	if not focus:
 		return None
 
@@ -3461,7 +3499,7 @@ def _log_sound_event(sound: str, volume: int | str, context: str, status: str):
 		_sound_events_history.pop(0)
 
 
-def _get_scaled_sound_path(sound_name_or_path: str, volume: int | None = None) -> str | None:
+def _get_scaled_sound_path(sound_name_or_path: str, volume: int | None = None, theme: str | None = None) -> str | None:
 	"""
 	Zwraca ścieżkę do pliku .wav przeskalowanego do podanej głośności (0-100%).
 	Dla głośności 100 zwraca ścieżkę oryginalną.
@@ -3482,11 +3520,12 @@ def _get_scaled_sound_path(sound_name_or_path: str, volume: int | None = None) -
 	if volume <= 0:
 		return None
 
-	theme = "associative"
-	try:
-		theme = str(config.conf.get(CONFIG_SECTION, {}).get("soundTheme", "associative") or "associative")
-	except Exception:
+	if not theme:
 		theme = "associative"
+		try:
+			theme = str(config.conf.get(CONFIG_SECTION, {}).get("soundTheme", "associative") or "associative")
+		except Exception:
+			theme = "associative"
 
 	orig_path = None
 	if os.path.isabs(sound_name_or_path) and os.path.isfile(sound_name_or_path):
@@ -3549,7 +3588,7 @@ def _get_scaled_sound_path(sound_name_or_path: str, volume: int | None = None) -
 		return orig_path
 
 
-def playAlertSound(soundName: str = "image_alert", volume: int | None = None, context: str = "", force: bool = False):
+def playAlertSound(soundName: str = "image_alert", volume: int | None = None, context: str = "", force: bool = False, theme: str | None = None):
 	"""Odtwarza dźwięk alertu lub nawigacji z uwzględnieniem skalowania głośności oraz bufora zdarzeń."""
 	sec = config.conf.get(CONFIG_SECTION, {})
 	if not force and not _to_bool(sec.get("playSound", True), default=True):
@@ -3562,7 +3601,7 @@ def playAlertSound(soundName: str = "image_alert", volume: int | None = None, co
 		except Exception:
 			volume = 80
 
-	scaled_path = _get_scaled_sound_path(soundName, volume=volume)
+	scaled_path = _get_scaled_sound_path(soundName, volume=volume, theme=theme)
 	if scaled_path and os.path.isfile(scaled_path):
 		try:
 			nvwave.playWaveFile(scaled_path, asynchronous=True)
@@ -3653,24 +3692,79 @@ def isSpeechFilterHandlingInlineImages() -> bool:
 	return False
 
 
-def mailItemHasInlineImages(mailItem) -> bool:
+def isSpeechFilterHandlingAttachments() -> bool:
 	"""
-	Błyskawicznie sprawdza, czy dany obiekt MailItem zawiera wklejone obrazy lub zrzuty ekranu.
-	Używa wyłącznie bezpiecznych, niestrzeżonych właściwości obiektu Attachment (Type, FileName),
-	nigdy nie odwołując się do PropertyAccessor ani HTMLBody, co chroni przed alertami bezpieczeństwa Outlook.
+	Sprawdza, czy dodatek Outlook Speech Filter jest aktywny i obsługuje
+	kategorię dźwięków obecności tradycyjnych załączników na liście wiadomości.
+	"""
+	try:
+		if not isSpeechFilterInstalled():
+			return False
+		osf_conf = config.conf.get("outlookSpeechFilter", {})
+		if not osf_conf:
+			return False
+		use_sounds = _to_bool(osf_conf.get("useSounds", True), default=True)
+		sound_att = _to_bool(osf_conf.get("soundAttachments", True), default=True)
+		return bool(use_sounds and sound_att)
+	except Exception as e:
+		log.debug(f"outlookImageHelper: błąd sprawdzania isSpeechFilterHandlingAttachments: {e}")
+	return False
+
+
+def getMessageListItem(focus=None):
+	"""
+	Błyskawicznie i niezawodnie pobiera obiekt MailItem zaznaczony na liście wiadomości (Explorer).
+	Obsługuje bezpośrednie odwołanie do ActiveExplorer.Selection bez ryzyka zablokowania na oknach dialogowych.
+	"""
+	if not focus:
+		focus = api.getFocusObject()
+	appMod = getattr(focus, "appModule", None) if focus else None
+	nativeOm = getattr(appMod, "nativeOm", None) or getOutlookApp()
+	if not nativeOm:
+		return None
+
+	for expGetter in ("ActiveExplorer", "activeExplorer"):
+		try:
+			fn = getattr(nativeOm, expGetter, None)
+			exp = fn() if callable(fn) else fn
+			if exp:
+				sel = getattr(exp, "Selection", getattr(exp, "selection", None))
+				cnt = int(getattr(sel, "Count", getattr(sel, "count", 0)) or 0)
+				if cnt > 0:
+					getItem = getattr(sel, "Item", getattr(sel, "item", None))
+					it = getItem(1) if getItem else sel[1]
+					if it and (hasattr(it, "Subject") or hasattr(it, "Attachments")):
+						return it
+		except Exception as ex:
+			log.debug(f"outlookImageHelper.getMessageListItem error: {ex}")
+	return None
+
+
+def getMailAttachmentsAndImagesInfo(mailItem) -> tuple[bool, bool]:
+	"""
+	Błyskawicznie sprawdza, czy dany obiekt MailItem zawiera:
+	1. Rzeczywiste załączniki plikowe (PDF, DOCX, XLSX, pliki załączone itp.)
+	2. Grafiki osadzone / zrzuty ekranu / obrazy HTML (w treści)
+	Zwraca krotkę (has_regular_attachments, has_inline_images).
 	Wyniki są buforowane w pamięci podręcznej według EntryID.
+	Nigdy nie tworzy obiektu Inspector w tle ani nie blokuje wątku COM.
 	"""
 	if not mailItem:
-		return False
+		return False, False
+
 	entryID = None
 	try:
 		entryID = getattr(mailItem, "EntryID", None)
 		if entryID and entryID in _mail_inline_img_cache:
-			return _mail_inline_img_cache[entryID]
+			res = _mail_inline_img_cache[entryID]
+			if isinstance(res, tuple) and len(res) == 2:
+				return res
 	except Exception:
 		entryID = None
 
-	has_img = False
+	has_regular_attachments = False
+	has_inline_images = False
+
 	try:
 		attColl = getattr(mailItem, "Attachments", None)
 		count = int(getattr(attColl, "Count", 0)) if attColl else 0
@@ -3680,22 +3774,70 @@ def mailItemHasInlineImages(mailItem) -> bool:
 					att = attColl.Item(i)
 					attType = int(getattr(att, "Type", 1) or 1)
 					fn = (getattr(att, "FileName", "") or "").lower()
-					ext = os.path.splitext(fn)[1] if fn else ""
-					# Typ 5=olEmbeddeditem, 6=olOLE to grafiki osadzone w treści.
-					# Rozpoznajemy także rozszerzenia plików graficznych oraz obiekty Outlook (image*, oledata*).
-					if attType in (5, 6) or ext in IMAGE_EXTENSIONS or fn.startswith("image") or fn.startswith("oledata") or not fn:
-						has_img = True
-						break
+
+					# Sprawdź, czy załącznik to grafika osadzona w treści (CID / OLE / typ 5 lub 6)
+					is_inline = False
+					if attType in (5, 6) or fn.startswith("oledata"):
+						is_inline = True
+					else:
+						try:
+							pa = getattr(att, "PropertyAccessor", None)
+							if pa:
+								cid = str(pa.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F") or "")
+								flags = int(pa.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x37140003") or 0)
+								if cid or (flags & 4):
+									is_inline = True
+						except Exception:
+							pass
+
+					if is_inline:
+						has_inline_images = True
+					else:
+						# Załącznik plikowy (PDF, DOCX, XLSX, archiwum, plik graficzny dodany jako plik)
+						has_regular_attachments = True
 				except Exception:
 					pass
 	except Exception as e:
-		log.debug(f"outlookImageHelper: mailItemHasInlineImages błąd: {e}")
+		log.debug(f"outlookImageHelper: getMailAttachmentsAndImagesInfo attachments error: {e}")
 
+	# Jeśli nie wykryto jeszcze grafik osadzonych, sprawdź szybki podgląd kodu HTML wiadomości
+	if not has_inline_images:
+		try:
+			html_snippet = str(getattr(mailItem, "HTMLBody", "") or "")[:25000].lower()
+			if "<img" in html_snippet or "<image" in html_snippet or "src=\"cid:" in html_snippet or "data:image/" in html_snippet:
+				has_inline_images = True
+		except Exception:
+			pass
+
+	# Szybkie sprawdzenie widocznego okienka podglądu (Reading Pane) bez tworzenia nowych okien
+	if not has_inline_images:
+		try:
+			fgHwnd = winUser.getForegroundWindow()
+			if fgHwnd:
+				wHwnd = _findWordGWindow(fgHwnd)
+				if wHwnd and winUser.isWindowVisible(wHwnd):
+					doc = _getWordDocumentFromHwnd(wHwnd)
+					if doc:
+						inlines = int(getattr(getattr(doc, "InlineShapes", None), "Count", 0) or 0)
+						shapes = int(getattr(getattr(doc, "Shapes", None), "Count", 0) or 0)
+						if inlines > 0 or shapes > 0:
+							has_inline_images = True
+		except Exception:
+			pass
+
+	result = (has_regular_attachments, has_inline_images)
 	if entryID:
 		if len(_mail_inline_img_cache) > 200:
 			_mail_inline_img_cache.clear()
-		_mail_inline_img_cache[entryID] = has_img
-	return has_img
+		_mail_inline_img_cache[entryID] = result
+
+	return result
+
+
+def mailItemHasInlineImages(mailItem) -> bool:
+	"""Zwraca True, gdy dany obiekt MailItem zawiera wklejone obrazy, zrzuty ekranu lub grafiki HTML."""
+	_, hasImages = getMailAttachmentsAndImagesInfo(mailItem)
+	return hasImages
 
 
 def _cleanup_old_reports(dir_path: str, addon_prefix: str = "OutlookImageHelper", max_count: int = 20):
@@ -3826,10 +3968,8 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 	sec = config.conf.get(CONFIG_SECTION, {})
 	theme = sec.get("soundTheme", "associative")
 	volSetting = sec.get("soundVolume", 80)
-	trigMode = sec.get("soundTriggerMode", "open_only")
 	lines.append(f"Wybrany motyw dźwiękowy: {theme}")
 	lines.append(f"Głośność dźwięków dodatku: {volSetting}%")
-	lines.append(f"Miejsce odtwarzania dźwięków: {trigMode}")
 
 	theme_dir = os.path.join(SOUNDS_DIR, theme)
 	alert_cand = os.path.join(theme_dir, "image_alert.wav")
@@ -3840,15 +3980,17 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 	lines.append("--- KOORDYNACJA I DEDUPLIKACJA Z OUTLOOK SPEECH FILTER ---")
 	sf_installed = isSpeechFilterInstalled()
 	sf_handling = isSpeechFilterHandlingInlineImages()
+	sf_att_handling = isSpeechFilterHandlingAttachments()
 	lines.append(f"Dodatek Outlook Speech Filter zainstalowany / aktywny: {'TAK' if sf_installed else 'NIE'}")
-	lines.append(f"Speech Filter obsługuje dźwięki grafik na liście: {'TAK (Pomocnik obrazów wycisza duplikaty na liście)' if sf_handling else 'NIE (Pomocnik obrazów obsługuje listę samodzielnie)'}")
+	lines.append(f"Speech Filter obsługuje dźwięki załączników: {'TAK' if sf_att_handling else 'NIE'}")
+	lines.append(f"Speech Filter obsługuje dźwięki grafik na liście: {'TAK' if sf_handling else 'NIE'}")
 	lines.append("")
 
 	lines.append("--- AKTUALNA KONFIGURACJA DODATKU ---")
 	SAFE_CONFIG_KEYS = {
 		"autoAnnounce", "playSound", "navSounds", "aiNaming", "showAdvancedSettings",
 		"minDimension", "geminiModel", "openaiModel", "aiProvider", "defaultOcrLang",
-		"soundTheme", "soundVolume", "soundTriggerMode", "updateSourceUrl",
+		"soundTheme", "soundVolume", "updateSourceUrl",
 		"autoCheckUpdates", "contextMenuEnabled", "uiLanguage"
 	}
 	for k, v in sorted(sec.items()):
@@ -4148,23 +4290,26 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 
 			cid = ""
 			sourceUrl = ""
-			try:
-				lf = getattr(ishape, "LinkFormat", None)
-				if lf and getattr(lf, "SourceFullName", None):
-					sfn = str(lf.SourceFullName).strip()
-					if sfn.startswith("http://") or sfn.startswith("https://"):
-						sourceUrl = sfn
-					else:
-						cid = sfn
-			except Exception:
-				pass
+			hlUrl = ""
+			hlTip = ""
+			if not fast:
+				try:
+					lf = getattr(ishape, "LinkFormat", None)
+					if lf and getattr(lf, "SourceFullName", None):
+						sfn = str(lf.SourceFullName).strip()
+						if sfn.startswith("http://") or sfn.startswith("https://"):
+							sourceUrl = sfn
+						else:
+							cid = sfn
+				except Exception:
+					pass
 
-			hlUrl, hlTip = extractHyperlinkFromShape(ishape, isInline=True)
+				hlUrl, hlTip = extractHyperlinkFromShape(ishape, isInline=True)
 
-			if not sourceUrl and hlUrl:
-				cleanHl = hlUrl.split("?")[0].lower()
-				if any(cleanHl.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")):
-					sourceUrl = hlUrl
+				if not sourceUrl and hlUrl:
+					cleanHl = hlUrl.split("?")[0].lower()
+					if any(cleanHl.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")):
+						sourceUrl = hlUrl
 
 			ctx = "" if fast else extractContextTextForShape(doc, ishape, isInline=True)
 
@@ -4230,23 +4375,26 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 
 			cid = ""
 			sourceUrl = ""
-			try:
-				lf = getattr(shape, "LinkFormat", None)
-				if lf and getattr(lf, "SourceFullName", None):
-					sfn = str(lf.SourceFullName).strip()
-					if sfn.startswith("http://") or sfn.startswith("https://"):
-						sourceUrl = sfn
-					else:
-						cid = sfn
-			except Exception:
-				pass
+			hlUrl = ""
+			hlTip = ""
+			if not fast:
+				try:
+					lf = getattr(shape, "LinkFormat", None)
+					if lf and getattr(lf, "SourceFullName", None):
+						sfn = str(lf.SourceFullName).strip()
+						if sfn.startswith("http://") or sfn.startswith("https://"):
+							sourceUrl = sfn
+						else:
+							cid = sfn
+				except Exception:
+					pass
 
-			hlUrl, hlTip = extractHyperlinkFromShape(shape, isInline=False)
+				hlUrl, hlTip = extractHyperlinkFromShape(shape, isInline=False)
 
-			if not sourceUrl and hlUrl:
-				cleanHl = hlUrl.split("?")[0].lower()
-				if any(cleanHl.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")):
-					sourceUrl = hlUrl
+				if not sourceUrl and hlUrl:
+					cleanHl = hlUrl.split("?")[0].lower()
+					if any(cleanHl.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")):
+						sourceUrl = hlUrl
 
 			ctx = "" if fast else extractContextTextForShape(doc, shape, isInline=False)
 
@@ -4343,9 +4491,17 @@ def getStrictGraphicUnderCaret(
 ) -> GraphicItem | None:
 	"""
 	Zwraca obiekt GraphicItem TYLKO I WYŁĄCZNIE wtedy, gdy kursor/fokus NVDA
-	znajduje się bezpośrednio i ściśle na grafice (a NIE na tekście).
-	Zwraca None, jeśli użytkownik czyta tekst lub kursor stoi na tekście wiadomości.
+	znajduje się bezpośrednio i ściśle na grafice (a NIE na tekście ani na innych kontrolkach).
+	Zwraca None, jeśli użytkownik czyta tekst, stoi na pasku informacyjnym lub poza grafiką.
 	"""
+	focus = api.getFocusObject()
+	if not focus:
+		return None
+
+	# Jeśli fokus nie znajduje się bezpośrednio w treści wiadomości WordMail -> brak grafiki pod kursorem
+	if not isMessageBodyFocused(focus):
+		return None
+
 	if not doc:
 		doc = _getDocFromTreeInterceptorOrFocus(treeInterceptor)
 	if not doc:
@@ -4359,50 +4515,27 @@ def getStrictGraphicUnderCaret(
 	if not items:
 		return None
 
-	# Pobierz bieżącą pozycję kursora w dokumencie
-	curPos = targetPos
-	tiInstance = treeInterceptor
-	if not tiInstance:
-		focus = api.getFocusObject()
-		tiInstance = getattr(focus, "treeInterceptor", None)
+	tiInstance = treeInterceptor or getattr(focus, "treeInterceptor", None)
 
-	if curPos is None and tiInstance and getattr(tiInstance, "isAlive", False):
-		try:
-			ti = getattr(tiInstance, "selection", None)
-			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj:
-				try:
+	# Tryb 1: Bufor przeglądania NVDA (browse mode) — jedyne wiarygodne źródło pozycji wirtualnego kursora
+	if tiInstance and getattr(tiInstance, "isAlive", False):
+		curPos = targetPos
+		if curPos is None:
+			try:
+				ti = getattr(tiInstance, "selection", None)
+				if ti and hasattr(ti, "_rangeObj") and ti._rangeObj:
 					curPos = int(ti._rangeObj.Start)
-				except Exception:
-					pass
-		except Exception:
-			pass
+			except Exception:
+				curPos = None
 
-	if curPos is None:
-		try:
-			sel = getattr(doc.Application, "Selection", None)
-			if sel:
-				selStart = getattr(sel, "Start", None)
-				if selStart is not None:
-					curPos = int(selStart() if callable(selStart) else selStart)
-		except Exception:
-			pass
+		if curPos is not None:
+			for it in items:
+				if (it.rangeStart <= curPos <= it.rangeEnd) or abs(it.rangeStart - curPos) <= 1:
+					return it
+			# Kursor w buforze przeglądania stoi na tekście, nie na grafice
+			return None
 
-	# 1. Jeśli użytkownik nawigował po grafikach klawiszem G / Shift+G:
-	# upewnij się, że aktualny kursor wciąż stoi na tej grafice, a nie przesunął się na tekst
-	if GlobalPlugin.instance and getattr(GlobalPlugin.instance, "_currentGraphicItem", None):
-		cand = GlobalPlugin.instance._currentGraphicItem
-		matched = next((it for it in items if it.index == cand.index), None)
-		if matched:
-			if curPos is not None:
-				if (matched.rangeStart - 2) <= curPos <= (matched.rangeEnd + 2):
-					return matched
-				else:
-					GlobalPlugin.instance._currentGraphicItem = None
-			else:
-				# Jeśli nie można potwierdzić pozycji, nie polegaj na starym cache
-				pass
-
-	# 2. Sprawdź, czy w edytorze Word obiekt graficzny jest zaznaczony lub kursor Worda stoi na grafice
+	# Tryb 2: Tryb edycji / bezpośredni Word (bez bufora przeglądania)
 	try:
 		sel = getattr(doc.Application, "Selection", None)
 		if sel:
@@ -4410,46 +4543,30 @@ def getStrictGraphicUnderCaret(
 			selStart = getattr(sel, "Start", None)
 			selStartVal = int(selStart() if callable(selStart) else selStart) if selStart is not None else None
 			# 7: wdSelectionInlineShape, 8: wdSelectionShape
-			if selType in (7, 8):
-				if selStartVal is not None:
-					for it in items:
-						if abs(it.rangeStart - selStartVal) <= 5 or (it.rangeStart <= selStartVal <= it.rangeEnd):
-							return it
-				return items[0]
-			if selStartVal is not None:
+			if selType in (7, 8) and selStartVal is not None:
 				for it in items:
-					if (it.rangeStart <= selStartVal <= it.rangeEnd) or abs(it.rangeStart - selStartVal) <= 1:
+					if abs(it.rangeStart - selStartVal) <= 5 or (it.rangeStart <= selStartVal <= it.rangeEnd):
+						return it
+			elif selStartVal is not None:
+				for it in items:
+					if it.rangeStart <= selStartVal <= it.rangeEnd:
 						return it
 	except Exception as ex:
 		log.debug(f"outlookImageHelper: getStrictGraphicUnderCaret selection check error: {ex}")
 
-	# 3. Sprawdź pozycję w buforze przeglądania / dokumencie
-	if curPos is not None:
-		for it in items:
-			if (it.rangeStart <= curPos <= it.rangeEnd) or abs(it.rangeStart - curPos) <= 1:
-				return it
-
-	# 4. Jeśli podano targetPos bez bufora przeglądania
-	if targetPos is not None:
-		for it in items:
-			if (it.rangeStart <= targetPos < it.rangeEnd) or (targetPos == it.rangeStart):
-				return it
-
-	# 5. Sprawdź, czy obiekt fokusu NVDA to bezpośrednio grafika (poza buforem przeglądania)
-	focus = api.getFocusObject()
-	if focus:
-		role = getattr(focus, "role", None)
-		if role in (
-			controlTypes.Role.GRAPHIC,
-			getattr(controlTypes.Role, "IMAGE", -1),
-			getattr(controlTypes.Role, "PICTURE", -1),
-		):
-			if len(items) == 1:
-				return items[0]
-			if GlobalPlugin.instance and getattr(GlobalPlugin.instance, "_currentGraphicItem", None):
-				cand = GlobalPlugin.instance._currentGraphicItem
-				if any(it.index == cand.index for it in items):
-					return cand
+	# Tryb 3: Obiekt fokusu NVDA to bezpośrednio grafika (rola GRAPHIC)
+	role = getattr(focus, "role", None)
+	if role in (
+		controlTypes.Role.GRAPHIC,
+		getattr(controlTypes.Role, "IMAGE", -1),
+		getattr(controlTypes.Role, "PICTURE", -1),
+	):
+		if len(items) == 1:
+			return items[0]
+		if GlobalPlugin.instance and getattr(GlobalPlugin.instance, "_currentGraphicItem", None):
+			cand = GlobalPlugin.instance._currentGraphicItem
+			if any(it.index == cand.index for it in items):
+				return cand
 
 	return None
 
@@ -4614,12 +4731,16 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 	lastNav = getattr(GlobalPlugin.instance, "_lastNavigatedIndex", -1) if GlobalPlugin.instance else -1
 	lastCaretPos = getattr(GlobalPlugin.instance, "_lastNavigatedCaretPos", -9999) if GlobalPlugin.instance else -9999
 
-	if 1 <= lastNav <= total:
+	# Sprawdź, czy użytkownik ręcznie przesunął kursor strzałkami z dala od ostatniej grafiki
+	userMovedCaretManually = False
+	if 1 <= lastNav <= total and lastCaretPos != -9999:
 		lastItem = items[lastNav - 1]
-		if abs(curPos - lastCaretPos) <= 5 or abs(curPos - lastItem.rangeStart) <= 10:
-			curIdx = lastNav
+		if abs(curPos - lastCaretPos) > 30 and not (lastItem.rangeStart <= curPos <= lastItem.rangeEnd):
+			userMovedCaretManually = True
 
-	if curIdx == -1 and not (lastNav == -1 and curPos == 0):
+	if 1 <= lastNav <= total and not userMovedCaretManually:
+		curIdx = lastNav
+	else:
 		for it in items:
 			if it.rangeStart <= curPos <= it.rangeEnd or abs(curPos - it.rangeStart) <= 2:
 				curIdx = it.index
@@ -9761,45 +9882,166 @@ def playItemTypeSound(item: GraphicItem | AttachmentItem | None, debounce_ms: in
 # ==============================================================================
 
 
+class PreviewImageCanvas(wx.Panel):
+	"""
+	Dostępny, responsywny panel renderujący podgląd obrazu ze skalowaniem wysokiej jakości,
+	ciemnym tłem o wysokim kontraście oraz obsługą zmiany rozmiaru i podwójnego kliknięcia.
+	"""
+
+	def __init__(self, parent, onDClickCallback=None):
+		super().__init__(parent, style=wx.FULL_REPAINT_ON_RESIZE | wx.BORDER_SUNKEN)
+		self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+		self.SetBackgroundColour(wx.Colour(30, 30, 30))
+		self.currentImage = None
+		self._cachedBitmap = None
+		self._lastSize = (0, 0)
+		self.placeholderText = ""
+		self.onDClickCallback = onDClickCallback
+
+		self.Bind(wx.EVT_PAINT, self.onPaint)
+		self.Bind(wx.EVT_SIZE, self.onSize)
+		self.Bind(wx.EVT_LEFT_DCLICK, self.onDClick)
+		self.Bind(wx.EVT_LEFT_DOWN, self.onDClick)
+
+	def setImage(self, img: wx.Image | None):
+		self.currentImage = img
+		self.placeholderText = ""
+		self._updateCachedBitmap()
+		self.Refresh()
+
+	def setPlaceholder(self, text: str):
+		self.currentImage = None
+		self._cachedBitmap = None
+		self.placeholderText = text
+		self.Refresh()
+
+	def clear(self):
+		self.currentImage = None
+		self._cachedBitmap = None
+		self.placeholderText = ""
+		self.Refresh()
+
+	def onDClick(self, evt):
+		if self.onDClickCallback:
+			self.onDClickCallback()
+		evt.Skip()
+
+	def onSize(self, evt):
+		self._updateCachedBitmap()
+		self.Refresh()
+		evt.Skip()
+
+	def _updateCachedBitmap(self):
+		if not self.currentImage or not self.currentImage.IsOk():
+			self._cachedBitmap = None
+			return
+		cw, ch = self.GetClientSize()
+		if cw <= 10 or ch <= 10:
+			self._cachedBitmap = None
+			return
+		iw = self.currentImage.GetWidth()
+		ih = self.currentImage.GetHeight()
+		if iw <= 0 or ih <= 0:
+			self._cachedBitmap = None
+			return
+
+		scale = min(max(1, cw - 12) / iw, max(1, ch - 12) / ih)
+		tw = max(1, int(round(iw * scale)))
+		th = max(1, int(round(ih * scale)))
+
+		scaled = self.currentImage.Scale(tw, th, wx.IMAGE_QUALITY_HIGH)
+		self._cachedBitmap = wx.Bitmap(scaled)
+		self._lastSize = (cw, ch)
+
+	def onPaint(self, evt):
+		dc = wx.AutoBufferedPaintDC(self)
+		w, h = self.GetClientSize()
+		if w <= 0 or h <= 0:
+			return
+		dc.SetBackground(wx.Brush(wx.Colour(30, 30, 30)))
+		dc.Clear()
+
+		if self._cachedBitmap and self._cachedBitmap.IsOk():
+			bw = self._cachedBitmap.GetWidth()
+			bh = self._cachedBitmap.GetHeight()
+			posX = max(0, (w - bw) // 2)
+			posY = max(0, (h - bh) // 2)
+			dc.DrawBitmap(self._cachedBitmap, posX, posY, True)
+		elif self.placeholderText:
+			dc.SetTextForeground(wx.Colour(210, 210, 210))
+			font = self.GetFont()
+			font.SetPointSize(9)
+			dc.SetFont(font)
+			lines = self.placeholderText.split("\n")
+			lineH = dc.GetCharHeight() + 4
+			totalH = len(lines) * lineH
+			startY = max(10, (h - totalH) // 2)
+			for i, line in enumerate(lines):
+				tw, th = dc.GetTextExtent(line)
+				startX = max(10, (w - tw) // 2)
+				dc.DrawText(line, startX, startY + i * lineH)
+
+
 class ImagePreviewDialog(wx.Dialog):
 	"""
 	Dostępne okno powiększonego podglądu obrazu dla osób słabowidzących.
 	Umożliwia płynne skalowanie obrazu (+/-), dopasowanie do okna (0), 100% (1),
-	otwarcie w domyślnej przeglądarce Windows (O) oraz nawigację suwakami.
+	inwersję kolorów / negatyw (I), przewijanie powiększonego obrazu strzałkami,
+	przechodzenie do kolejnej/poprzedniej grafiki (Ctrl+Prawo/Lewo, Ctrl+Shift+Prawo/Lewo, PgDn/PgUp),
+	oraz pełny dostęp do menu czynności kontekstowych (Alt+C / Shift+F10 / Menu / F2 / Enter).
 	"""
 
-	def __init__(self, parent, item: GraphicItem | AttachmentItem, tempImagePath: str, startInverted: bool | None = None):
+	def __init__(
+		self,
+		parent,
+		item: GraphicItem | AttachmentItem,
+		tempImagePath: str,
+		startInverted: bool | None = None,
+		itemsList: list[GraphicItem | AttachmentItem] | None = None,
+		currentIndex: int | None = None,
+	):
+		self.parentDialog = parent
 		self.item = item
 		self.imagePath = tempImagePath
 		self.zoomFactor = 1.0
 		self.normalImage = None
 		self.invertedImage = None
 
+		# Ustalenie listy grafik do nawigacji Ctrl+Prawo / Ctrl+Lewo
+		if itemsList is not None:
+			self.itemsList = list(itemsList)
+		elif isinstance(parent, GraphicElementsDialog):
+			active = parent._getActiveItems()
+			self.itemsList = [it for it in active if getattr(it, "isImage", True) or isinstance(it, GraphicItem)]
+		else:
+			self.itemsList = [item] if item else []
+
+		if currentIndex is not None and 0 <= currentIndex < len(self.itemsList):
+			self.currentIndex = currentIndex
+		else:
+			try:
+				self.currentIndex = self.itemsList.index(item)
+			except (ValueError, IndexError):
+				self.currentIndex = 0
+
 		if startInverted is not None:
 			self.isInverted = bool(startInverted)
 		else:
 			self.isInverted = bool(getattr(item, "isInverted", False)) or isImageInverted(getattr(item, "msgKey", ""), getattr(item, "index", 0))
 
-		try:
-			if self.imagePath and os.path.isfile(self.imagePath):
-				self.normalImage = wx.Image(self.imagePath, wx.BITMAP_TYPE_ANY)
-				if self.normalImage.IsOk():
-					self.invertedImage = invertWxImage(self.normalImage)
-		except Exception as e:
-			log.error(f"outlookImageHelper: Błąd ładowania obrazu do podglądu: {e}")
-
-		self.originalImage = self.normalImage
+		self._loadImageFiles()
 
 		name = getattr(item, "customName", "") or getattr(item, "fileName", "") or f"Grafika {item.index}"
-		title = _T("preview_title", name=name)
+		counterStr = f" ({self.currentIndex + 1} z {len(self.itemsList)})" if len(self.itemsList) > 1 else ""
+		title = _T("preview_title", name=f"{name}{counterStr}")
 
 		super().__init__(
 			parent,
 			title=title,
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX,
-			size=(920, 700),
+			size=(960, 720),
 		)
-		self.SetMinSize((520, 420))
+		self.SetMinSize((550, 420))
 
 		mainSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -9824,6 +10066,15 @@ class ImagePreviewDialog(wx.Dialog):
 
 		# Pasek przycisków
 		btnSizer = wx.WrapSizer(wx.HORIZONTAL)
+
+		self.btnPrevImage = wx.Button(self, label=_T("preview_btn_prev"))
+		btnSizer.Add(self.btnPrevImage, 0, wx.ALL, 4)
+
+		self.btnNextImage = wx.Button(self, label=_T("preview_btn_next"))
+		btnSizer.Add(self.btnNextImage, 0, wx.ALL, 4)
+
+		self.btnActions = wx.Button(self, label=_T("preview_btn_actions"))
+		btnSizer.Add(self.btnActions, 0, wx.ALL, 4)
 
 		self.btnZoomIn = wx.Button(self, label=_T("preview_btn_in"))
 		btnSizer.Add(self.btnZoomIn, 0, wx.ALL, 4)
@@ -9856,6 +10107,9 @@ class ImagePreviewDialog(wx.Dialog):
 		self.Maximize(True)
 
 		# Zdarzenia
+		self.btnPrevImage.Bind(wx.EVT_BUTTON, lambda evt: self.prevImage())
+		self.btnNextImage.Bind(wx.EVT_BUTTON, lambda evt: self.nextImage())
+		self.btnActions.Bind(wx.EVT_BUTTON, lambda evt: self.showContextMenu())
 		self.btnZoomIn.Bind(wx.EVT_BUTTON, lambda evt: self.zoomStep(1.3))
 		self.btnZoomOut.Bind(wx.EVT_BUTTON, lambda evt: self.zoomStep(1.0 / 1.3))
 		self.btnFit.Bind(wx.EVT_BUTTON, lambda evt: self.fitToWindow())
@@ -9865,7 +10119,177 @@ class ImagePreviewDialog(wx.Dialog):
 		self.btnHelp.Bind(wx.EVT_BUTTON, lambda evt: showContextHelp("preview", parent=self))
 		self.Bind(wx.EVT_CHAR_HOOK, self.onCharHook)
 
+		self.scroller.Bind(wx.EVT_CONTEXT_MENU, lambda evt: self.showContextMenu())
+		self.imageStatic.Bind(wx.EVT_CONTEXT_MENU, lambda evt: self.showContextMenu())
+
+		self._updateNavButtons()
 		wx.CallAfter(self.fitToWindow)
+
+	def _loadImageFiles(self):
+		try:
+			if self.imagePath and os.path.isfile(self.imagePath):
+				self.normalImage = wx.Image(self.imagePath, wx.BITMAP_TYPE_ANY)
+				if self.normalImage.IsOk():
+					self.invertedImage = invertWxImage(self.normalImage)
+				else:
+					self.invertedImage = None
+		except Exception as e:
+			log.error(f"outlookImageHelper: Błąd ładowania obrazu do podglądu: {e}")
+		self.originalImage = self.normalImage
+
+	def _updateNavButtons(self):
+		total = len(self.itemsList)
+		if total <= 1:
+			self.btnPrevImage.Disable()
+			self.btnNextImage.Disable()
+		else:
+			self.btnPrevImage.Enable(self.currentIndex > 0)
+			self.btnNextImage.Enable(self.currentIndex < total - 1)
+
+	def nextImage(self):
+		total = len(self.itemsList)
+		if total <= 1:
+			ui.message("W tej wiadomości nie ma więcej grafik do przeglądania.")
+			return
+		if self.currentIndex >= total - 1:
+			ui.message(f"To jest ostatnia grafika ({total} z {total}).")
+			return
+		self.switchToImageIndex(self.currentIndex + 1)
+
+	def prevImage(self):
+		total = len(self.itemsList)
+		if total <= 1:
+			ui.message("W tej wiadomości nie ma więcej grafik do przeglądania.")
+			return
+		if self.currentIndex <= 0:
+			ui.message(f"To jest pierwsza grafika (1 z {total}).")
+			return
+		self.switchToImageIndex(self.currentIndex - 1)
+
+	def switchToImageIndex(self, newIndex: int):
+		if not (0 <= newIndex < len(self.itemsList)):
+			return
+		newItem = self.itemsList[newIndex]
+
+		if isinstance(newItem, AttachmentItem):
+			if not getattr(newItem, "isImage", False):
+				ui.message("Wybrany załącznik nie jest plikiem graficznym.")
+				return
+			newPath = saveAttachmentToTempFile(newItem)
+		else:
+			newPath = getattr(newItem, "_extractedTempPath", None) or getattr(newItem, "_downloadedTempPath", None)
+			if not newPath or not os.path.isfile(newPath):
+				ui.message(_T("msg_extracting_preview"))
+				newPath = extractGraphicToPngFile(newItem)
+
+		if not newPath or not os.path.isfile(newPath):
+			ui.message(_T("err_extract_img"))
+			return
+
+		self.item = newItem
+		self.currentIndex = newIndex
+		self.imagePath = newPath
+		self._loadImageFiles()
+
+		msgKey = getattr(newItem, "msgKey", "")
+		idx = getattr(newItem, "index", 0)
+		if msgKey and idx:
+			setImageInverted(msgKey, idx, self.isInverted)
+		setattr(newItem, "isInverted", self.isInverted)
+
+		name = getattr(newItem, "customName", "") or getattr(newItem, "fileName", "") or f"Grafika {newItem.index}"
+		total = len(self.itemsList)
+		counterStr = f" ({self.currentIndex + 1} z {total})" if total > 1 else ""
+		self.SetTitle(_T("preview_title", name=f"{name}{counterStr}"))
+		self.lblInfo.SetLabel(self._getInfoText())
+
+		self.fitToWindow(announce=False)
+		self._updateNavButtons()
+
+		if self.parentDialog and hasattr(self.parentDialog, "selectItem"):
+			self.parentDialog.selectItem(newItem)
+
+		w = getattr(newItem, "widthPx", 0)
+		h = getattr(newItem, "heightPx", 0)
+		dimStr = f", {w} na {h} pikseli" if w and h else ""
+		invStr = ", tryb negatywu" if self.isInverted else ""
+		zoomStr = f", powiększenie {round(self.zoomFactor * 100)}%"
+		ui.message(f"Grafika {self.currentIndex + 1} z {total}: {name}{dimStr}{invStr}{zoomStr}")
+
+	def showContextMenu(self):
+		if not self.item:
+			return
+		showGraphicActionsMenu(
+			self.item,
+			parent=self,
+			callbackRefresh=self.onItemActionsRefresh,
+		)
+
+	def onItemActionsRefresh(self):
+		self.isInverted = bool(getattr(self.item, "isInverted", False))
+		self.btnInvert.SetLabel(self._getInvertBtnLabel())
+		self.updateBitmap(announce=False)
+		name = getattr(self.item, "customName", "") or getattr(self.item, "fileName", "") or f"Grafika {self.item.index}"
+		total = len(self.itemsList)
+		counterStr = f" ({self.currentIndex + 1} z {total})" if total > 1 else ""
+		self.SetTitle(_T("preview_title", name=f"{name}{counterStr}"))
+		self.lblInfo.SetLabel(self._getInfoText())
+		if self.parentDialog and hasattr(self.parentDialog, "refreshListLabels"):
+			self.parentDialog.refreshListLabels()
+
+	refreshListLabels = onItemActionsRefresh
+
+	def onRenameItem(self):
+		if not isinstance(self.item, GraphicItem):
+			ui.message("Zmień nazwę jest dostępne tylko dla grafik w treści wiadomości.")
+			return
+		curName = getattr(self.item, "customName", "")
+		with wx.TextEntryDialog(
+			self,
+			"Wprowadź własną, czytelną nazwę lub opis dla tej grafiki:\n(Zostanie ona zapamiętana przy każdym kolejnym otwarciu tej wiadomości)",
+			caption="Zmień nazwę / nadaj własny opis grafice",
+			value=curName,
+		) as dlg:
+			if dlg.ShowModal() == wx.ID_OK:
+				val = dlg.GetValue().strip()
+				if val:
+					self.item.customName = val
+					try:
+						if hasattr(self.item.rawObject, "AlternativeText"):
+							self.item.rawObject.AlternativeText = val
+					except Exception:
+						pass
+					msgKey = getattr(self.item, "msgKey", "") or getMessageKey()
+					setCustomNameForGraphic(msgKey, self.item.index, val)
+					ui.message(f"Zapisano nową nazwę grafiki: {val}")
+				else:
+					self.item.customName = ""
+					try:
+						if hasattr(self.item.rawObject, "AlternativeText"):
+							self.item.rawObject.AlternativeText = ""
+					except Exception:
+						pass
+					msgKey = getattr(self.item, "msgKey", "") or getMessageKey()
+					setCustomNameForGraphic(msgKey, self.item.index, "")
+					ui.message("Przywrócono domyślną nazwę grafiki.")
+				self.onItemActionsRefresh()
+
+	def onOcrItem(self):
+		if not ensureGraphicReady(self.item, parent=self, actionName="rozpoznania tekstu (OCR)"):
+			return
+		if GlobalPlugin.instance:
+			GlobalPlugin.instance.triggerOcrForItem(self.item, parentDialog=self)
+
+	def onAiQuickItem(self):
+		if not ensureGraphicReady(self.item, parent=self, actionName="analizy i opisu przez AI"):
+			return
+		def doAi():
+			if GlobalPlugin.instance:
+				GlobalPlugin.instance.triggerAiDescriptionForItem(self.item, parentDialog=self, customPrompt="")
+		if not getActiveAiApiKey():
+			checkAndPromptAiApiKey(parentWin=self, onKeyReadyCallback=doAi)
+			return
+		doAi()
 
 	def _getInvertBtnLabel(self) -> str:
 		return _T("preview_btn_invert_on") if self.isInverted else _T("preview_btn_invert_off")
@@ -9898,11 +10322,10 @@ class ImagePreviewDialog(wx.Dialog):
 		self.zoomFactor = max(0.1, min(20.0, factor))
 		self.updateBitmap(announce=announce)
 
-
 	def zoomStep(self, multiplier: float):
 		self.setZoom(self.zoomFactor * multiplier, announce=True)
 
-	def fitToWindow(self):
+	def fitToWindow(self, announce: bool = True):
 		activeImg = self.invertedImage if self.isInverted else self.normalImage
 		if not activeImg or not activeImg.IsOk():
 			return
@@ -9914,10 +10337,9 @@ class ImagePreviewDialog(wx.Dialog):
 		if iw > 0 and ih > 0:
 			scaleW = cw / iw
 			scaleH = ch / ih
-			self.setZoom(min(scaleW, scaleH, 3.0), announce=True)
+			self.setZoom(min(scaleW, scaleH, 3.0), announce=announce)
 
 	def toggleInvert(self):
-		"""Przełącza tryb inwersji kolorów (negatyw) w podglądzie oraz zapisuje stan dla tej grafiki."""
 		self.isInverted = not self.isInverted
 		msgKey = getattr(self.item, "msgKey", "")
 		idx = getattr(self.item, "index", 0)
@@ -9951,11 +10373,39 @@ class ImagePreviewDialog(wx.Dialog):
 			event.Skip()
 			return
 
+		if event.ControlDown() and key in (wx.WXK_RIGHT, wx.WXK_NUMPAD_RIGHT):
+			self.nextImage()
+			return
+		elif event.ControlDown() and key in (wx.WXK_LEFT, wx.WXK_NUMPAD_LEFT):
+			self.prevImage()
+			return
+		elif key in (wx.WXK_PAGEDOWN, ord('N'), ord('n')) and not event.ControlDown() and not event.AltDown():
+			if len(self.itemsList) > 1:
+				self.nextImage()
+				return
+		elif key in (wx.WXK_PAGEUP, ord('B'), ord('b')) and not event.ControlDown() and not event.AltDown():
+			if len(self.itemsList) > 1:
+				self.prevImage()
+				return
+
+		if key == wx.WXK_WINDOWS_MENU or (key == wx.WXK_F10 and event.ShiftDown()) or (event.AltDown() and key in (ord('C'), ord('c'))):
+			self.showContextMenu()
+			return
+
 		if key == wx.WXK_ESCAPE:
 			self.Close()
 			return
 		elif key == wx.WXK_F1:
 			showContextHelp("preview", parent=self)
+			return
+		elif key == wx.WXK_F2 and not event.ControlDown() and not event.AltDown():
+			self.onRenameItem()
+			return
+		elif key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER) and not event.ControlDown() and not event.AltDown():
+			self.onOcrItem()
+			return
+		elif event.AltDown() and key in (ord('O'), ord('o')) and not event.ControlDown():
+			self.onAiQuickItem()
 			return
 		elif key in (ord('+'), ord('='), wx.WXK_NUMPAD_ADD):
 			self.zoomStep(1.3)
@@ -9963,10 +10413,10 @@ class ImagePreviewDialog(wx.Dialog):
 		elif key in (ord('-'), wx.WXK_NUMPAD_SUBTRACT):
 			self.zoomStep(1.0 / 1.3)
 			return
-		elif key in (ord('0'), ord('D'), ord('d')):
+		elif key in (ord('0'), ord('D'), ord('d')) and not event.ControlDown() and not event.AltDown():
 			self.fitToWindow()
 			return
-		elif key in (ord('1'),):
+		elif key in (ord('1'),) and not event.ControlDown() and not event.AltDown():
 			self.setZoom(1.0)
 			return
 		elif key in (ord('I'), ord('i')) and not event.ControlDown() and not event.AltDown():
@@ -10073,7 +10523,8 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		menu.Append(idAiChat, _T("menu_ai_chat"))
 		menu.AppendSeparator()
 
-		menu.Append(idPreview, _T("menu_preview"))
+		if not isinstance(parent, ImagePreviewDialog):
+			menu.Append(idPreview, _T("menu_preview"))
 		invLabel = "Wyłącz inwersję kolorów (standardowe barwy)\tI" if getattr(item, "isInverted", False) else _T("menu_invert_toggle")
 		menu.Append(idInvertToggle, invLabel)
 		menu.AppendSeparator()
@@ -10114,7 +10565,8 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 			menu.Append(idOcr, _T("btn_read_doc") + "\tAlt+R")
 		elif isImage:
 			menu.Append(idOcr, _T("menu_ocr"))
-			menu.Append(idPreview, _T("menu_preview"))
+			if not isinstance(parent, ImagePreviewDialog):
+				menu.Append(idPreview, _T("menu_preview"))
 			menu.Append(idInvertToggle, _T("menu_invert_toggle"))
 			menu.Append(idAiQuick, _T("menu_ai_quick"))
 			menu.Append(idAiChat, _T("menu_ai_chat"))
@@ -10194,9 +10646,14 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		if not tempPath or not os.path.isfile(tempPath):
 			showAccessibleMessageBox(_T("err_extract_img"), title="Błąd podglądu", parent=parentWin)
 			return
+		imageItems = None
+		currIdx = None
+		if isinstance(parentWin, GraphicElementsDialog):
+			imageItems = parentWin._getActiveImageItems()
+			currIdx = imageItems.index(item) if item in imageItems else 0
 		gui.mainFrame.prePopup()
 		try:
-			d = ImagePreviewDialog(parentWin, item, tempPath)
+			d = ImagePreviewDialog(parentWin, item, tempPath, itemsList=imageItems, currentIndex=currIdx)
 			d.ShowModal()
 			d.Destroy()
 		finally:
@@ -10209,6 +10666,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		if not ensureGraphicReady(item, parent=parentWin, actionName="inwersji kolorów"):
 			return
 		newState = not getattr(item, "isInverted", False)
+		item.isInverted = newState
 		msgKey = getattr(item, "msgKey", "") or getMessageKey()
 		idx = getattr(item, "index", 0)
 		if msgKey and idx:
@@ -10762,7 +11220,7 @@ class GraphicElementsDialog(wx.Dialog):
 		super().__init__(
 			parent,
 			title=_T("dlg_elements_title"),
-			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
+			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER | wx.MAXIMIZE_BOX,
 		)
 		self.allGraphics = graphics or []
 		# Rozdzielenie grafik na właściwe oraz linie podziału/separatory
@@ -10786,6 +11244,10 @@ class GraphicElementsDialog(wx.Dialog):
 			self.currentMode = 0
 
 		mainSizer = wx.BoxSizer(wx.VERTICAL)
+		contentSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+		# Lewa kolumna: Zakładki kategorii, lista elementów, szczegóły i opcja grupowania
+		leftSizer = wx.BoxSizer(wx.VERTICAL)
 
 		# 0. Zakładki kategorii elementów (wx.Notebook: 1. Grafiki, 2. Załączniki, 3. Linie podziału i ozdobniki)
 		self.notebook = wx.Notebook(self, style=wx.NB_TOP)
@@ -10824,18 +11286,18 @@ class GraphicElementsDialog(wx.Dialog):
 		self.listLabels = [self.lblListReal, self.lblListAtt, self.lblListDiv]
 
 		self.notebook.SetSelection(self.currentMode)
-		mainSizer.Add(self.notebook, 1, wx.EXPAND | wx.ALL, 8)
+		leftSizer.Add(self.notebook, 1, wx.EXPAND | wx.BOTTOM, 6)
 
 		# 2. Pole szczegółów wybranego elementu
 		self.lblDetails = wx.StaticText(self, label=_T("lbl_details"))
-		mainSizer.Add(self.lblDetails, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+		leftSizer.Add(self.lblDetails, 0, wx.LEFT | wx.RIGHT | wx.TOP, 2)
 
 		self.detailsText = wx.TextCtrl(
 			self,
 			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_BESTWRAP,
-			size=(-1, 100),
+			size=(-1, 95),
 		)
-		mainSizer.Add(self.detailsText, 0, wx.EXPAND | wx.ALL, 8)
+		leftSizer.Add(self.detailsText, 0, wx.EXPAND | wx.ALL, 2)
 
 		# Checkbox grupowania powtarzających się grafik (umieszczony pod oknem ze szczegółami)
 		self.chkDeduplicate = wx.CheckBox(
@@ -10844,7 +11306,40 @@ class GraphicElementsDialog(wx.Dialog):
 		)
 		self.chkDeduplicate.SetValue(True)
 		self.chkDeduplicate.Bind(wx.EVT_CHECKBOX, self.onDeduplicateToggled)
-		mainSizer.Add(self.chkDeduplicate, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+		leftSizer.Add(self.chkDeduplicate, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 4)
+
+		contentSizer.Add(leftSizer, 1, wx.EXPAND | wx.RIGHT, 6)
+
+		# Prawa kolumna: Podgląd aktualnie zaznaczonej grafiki
+		previewBox = wx.StaticBox(self, label=_T("preview_side_box"))
+		previewSizer = wx.StaticBoxSizer(previewBox, wx.VERTICAL)
+
+		self.lblSidePreviewInfo = wx.StaticText(
+			self,
+			label=_T("preview_side_no_selection"),
+		)
+		previewSizer.Add(self.lblSidePreviewInfo, 0, wx.EXPAND | wx.ALL, 4)
+
+		self.sidePreviewCanvas = PreviewImageCanvas(
+			self,
+			onDClickCallback=lambda: self.onPreviewClicked(self.getSelectedItem()),
+		)
+		previewSizer.Add(self.sidePreviewCanvas, 1, wx.EXPAND | wx.ALL, 4)
+
+		sideBtnSizer = wx.BoxSizer(wx.HORIZONTAL)
+		self.btnSideExpand = wx.Button(self, label=_T("preview_side_expand"))
+		self.btnSideExpand.Bind(wx.EVT_BUTTON, lambda evt: self.onPreviewClicked(self.getSelectedItem()))
+		sideBtnSizer.Add(self.btnSideExpand, 0, wx.ALL, 2)
+
+		self.btnSideInvert = wx.Button(self, label=_T("btn_invert"))
+		self.btnSideInvert.Bind(wx.EVT_BUTTON, lambda evt: self.onInvertClicked())
+		sideBtnSizer.Add(self.btnSideInvert, 0, wx.ALL, 2)
+
+		previewSizer.Add(sideBtnSizer, 0, wx.ALIGN_RIGHT | wx.TOP, 2)
+
+		contentSizer.Add(previewSizer, 1, wx.EXPAND | wx.LEFT, 6)
+
+		mainSizer.Add(contentSizer, 1, wx.EXPAND | wx.ALL, 8)
 
 		# 3. Pasek przycisków głównych czynności
 		btnSizer = wx.WrapSizer(wx.HORIZONTAL)
@@ -10883,10 +11378,11 @@ class GraphicElementsDialog(wx.Dialog):
 		self.btnClose = wx.Button(self, wx.ID_CANCEL, label=_T("btn_close"))
 		btnSizer.Add(self.btnClose, 0, wx.ALL, 4)
 
-		mainSizer.Add(btnSizer, 0, wx.EXPAND | wx.ALL, 8)
+		mainSizer.Add(btnSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 		self.SetSizer(mainSizer)
 		self.Fit()
-		self.SetSize((780, 580))
+		self.SetMinSize((820, 520))
+		self.SetSize((1040, 700))
 		self.CenterOnScreen()
 
 		# Zdarzenia
@@ -11183,6 +11679,96 @@ class GraphicElementsDialog(wx.Dialog):
 		else:
 			ui.message(_T("list_invert_toggled_off", idx=idx))
 
+	def _getActiveImageItems(self) -> list[GraphicItem | AttachmentItem]:
+		items = self._getActiveItems()
+		return [it for it in items if getattr(it, "isImage", True) or isinstance(it, GraphicItem)]
+
+	def selectItem(self, item: GraphicItem | AttachmentItem):
+		"""Zaznacza wskazany element na aktywnej liście (wywoływane np. przy nawigacji z widoku podglądu)."""
+		try:
+			items = self._getActiveItems()
+			if item in items:
+				idx = items.index(item)
+				self.listBox.SetSelection(idx)
+				self.updateDetails()
+		except Exception as ex:
+			log.debug(f"outlookImageHelper.selectItem: {ex}")
+
+	def _cancelPreviewTimer(self):
+		if getattr(self, "_previewTimer", None):
+			try:
+				self._previewTimer.Stop()
+			except Exception:
+				pass
+			self._previewTimer = None
+
+	def _scheduleSidePreviewUpdate(self, item: GraphicItem | AttachmentItem):
+		self._cancelPreviewTimer()
+		if isinstance(item, AttachmentItem) and not getattr(item, "isImage", False):
+			self.sidePreviewCanvas.setPlaceholder(
+				f"Załącznik: {item.fileName}\n(Plik nie jest plikiem graficznym - brak podglądu)\n"
+				"Naciśnij Alt+O dla analizy AI lub Alt+R dla odczytu tekstu."
+			)
+			self.lblSidePreviewInfo.SetLabel(f"{item.fileName} ({item.formattedSize}) - plik niegraficzny")
+			self.btnSideExpand.Disable()
+			self.btnSideInvert.Disable()
+			return
+
+		if isinstance(item, AttachmentItem):
+			cachedPath = getattr(item, "tempSavedPath", None)
+		else:
+			cachedPath = getattr(item, "_extractedTempPath", None) or getattr(item, "_downloadedTempPath", None)
+
+		if cachedPath and os.path.isfile(cachedPath):
+			self._displaySidePreview(item, cachedPath)
+		else:
+			self.lblSidePreviewInfo.SetLabel(_T("preview_side_loading"))
+			self.btnSideExpand.Disable()
+			self.btnSideInvert.Disable()
+			self._pendingPreviewItem = item
+			self._previewTimer = wx.CallLater(60, self._onDelayedPreviewExtract, item)
+
+	def _onDelayedPreviewExtract(self, item: GraphicItem | AttachmentItem):
+		if getattr(self, "_pendingPreviewItem", None) != item:
+			return
+		if not winUser.isWindow(getattr(self, "Handle", 0)):
+			return
+		try:
+			if isinstance(item, AttachmentItem):
+				path = saveAttachmentToTempFile(item)
+			else:
+				path = extractGraphicToPngFile(item)
+			if path and os.path.isfile(path):
+				self._displaySidePreview(item, path)
+			else:
+				self.sidePreviewCanvas.setPlaceholder("Nie udało się pobrać podglądu dla tej grafiki.")
+				self.lblSidePreviewInfo.SetLabel("Błąd pobierania podglądu grafiki.")
+		except Exception as ex:
+			log.debug(f"outlookImageHelper._onDelayedPreviewExtract error: {ex}")
+			self.sidePreviewCanvas.setPlaceholder("Błąd wczytywania obrazu.")
+
+	def _displaySidePreview(self, item: GraphicItem | AttachmentItem, path: str):
+		try:
+			img = wx.Image(path, wx.BITMAP_TYPE_ANY)
+			if not img.IsOk():
+				self.sidePreviewCanvas.setPlaceholder("Nieprawidłowy format obrazu.")
+				self.lblSidePreviewInfo.SetLabel("Nieobsługiwany format podglądu.")
+				return
+			isInverted = bool(getattr(item, "isInverted", False)) or isImageInverted(getattr(item, "msgKey", ""), getattr(item, "index", 0))
+			if isInverted:
+				img = invertWxImage(img)
+			self.sidePreviewCanvas.setImage(img)
+
+			name = getattr(item, "customName", "") or getattr(item, "fileName", "") or f"Grafika {item.index}"
+			w = getattr(item, "widthPx", img.GetWidth())
+			h = getattr(item, "heightPx", img.GetHeight())
+			invTag = f" [{_T('tag_inverted').strip('[]')}]" if isInverted else ""
+			self.lblSidePreviewInfo.SetLabel(f"{name} ({w}×{h} px){invTag} — Enter: OCR, P: powiększ, I: inwersja")
+			self.btnSideExpand.Enable()
+			self.btnSideInvert.Enable()
+		except Exception as ex:
+			log.debug(f"outlookImageHelper._displaySidePreview error: {ex}")
+
 	def onPreviewClicked(self, item: GraphicItem | AttachmentItem | None):
 		"""Otwiera okno powiększonego podglądu dla wybranej grafiki lub załączonego obrazu."""
 		if not item:
@@ -11206,9 +11792,12 @@ class GraphicElementsDialog(wx.Dialog):
 					showAccessibleMessageBox(_T("err_extract_img"), title="Błąd podglądu", parent=self)
 					return
 
+		imageItems = self._getActiveImageItems()
+		currIdx = imageItems.index(item) if item in imageItems else 0
+
 		gui.mainFrame.prePopup()
 		try:
-			d = ImagePreviewDialog(self, item, tempPath)
+			d = ImagePreviewDialog(self, item, tempPath, itemsList=imageItems, currentIndex=currIdx)
 			d.ShowModal()
 			d.Destroy()
 		finally:
@@ -11304,6 +11893,16 @@ class GraphicElementsDialog(wx.Dialog):
 			self.btnInvert.Disable()
 			self.btnChat.Disable()
 			self.btnOpenLink.Disable()
+
+		# Aktualizacja podglądu w prawym panelu okna
+		if len(selected) == 1:
+			self._scheduleSidePreviewUpdate(selected[0])
+		else:
+			self._cancelPreviewTimer()
+			self.sidePreviewCanvas.clear()
+			self.lblSidePreviewInfo.SetLabel(_T("preview_side_no_selection"))
+			self.btnSideExpand.Disable()
+			self.btnSideInvert.Disable()
 
 	def refreshListLabels(self):
 		"""Aktualizuje etykiety w liście po zakończeniu OCR lub AI."""
@@ -12874,61 +13473,43 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 			sec = {}
 		effLang = getEffectiveLanguage()
 
-		# 1. Powiadomienia (PIERWSZY ELEMENT USTAWIEŃ DODATKU)
-		self.autoAnnounceChk = wx.CheckBox(self, label=_T("set_auto_announce"))
-		self.autoAnnounceChk.SetValue(_to_bool(sec.get("autoAnnounce", True), default=True))
-		sHelper.addItem(self.autoAnnounceChk)
-
+		# 1. Powiadomienia na liście wiadomości (PIERWSZY ELEMENT USTAWIEŃ DODATKU)
 		self.playSoundChk = wx.CheckBox(self, label=_T("set_play_sound"))
 		self.playSoundChk.SetValue(_to_bool(sec.get("playSound", True), default=True))
 		sHelper.addItem(self.playSoundChk)
 
+		# 2. Powiadomienia po otwarciu wiadomości (DRUGI ELEMENT USTAWIEŃ DODATKU)
+		self.autoAnnounceChk = wx.CheckBox(self, label=_T("set_auto_announce"))
+		self.autoAnnounceChk.SetValue(_to_bool(sec.get("autoAnnounce", True), default=True))
+		sHelper.addItem(self.autoAnnounceChk)
+
+		# 3. Menu czynności pod klawiszem kontekstowym
 		self.contextMenuChk = wx.CheckBox(self, label=_T("set_context_menu"))
 		self.contextMenuChk.SetValue(_to_bool(sec.get("contextMenuEnabled", True), default=True))
 		sHelper.addItem(self.contextMenuChk)
 
-		# Wybór miejsca odtwarzania dźwięków (otwarcie / lista / oba / wyłączone)
-		trigBox = wx.BoxSizer(wx.HORIZONTAL)
-		self.lblTriggerMode = wx.StaticText(self, label=_T("set_sound_trigger_mode"))
-		trigBox.Add(self.lblTriggerMode, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=10)
+		def onPlaySoundToggled(evt):
+			isPlay = self.playSoundChk.GetValue()
+			try:
+				config.conf[CONFIG_SECTION]["playSound"] = isPlay
+			except Exception:
+				pass
 
-		self.triggerKeys = ["open_only", "list_only", "both", "off"]
-		self.triggerChoicesPl = [
-			_T("sound_mode_open_only"),
-			_T("sound_mode_list_only"),
-			_T("sound_mode_both"),
-			_T("sound_mode_off"),
-		]
-		self.triggerChoicesEn = [
-			"Only when opening a message (default)",
-			"Only on the message list",
-			"Both on the list and when opening",
-			"Disabled",
-		]
-		currentTrigger = str(sec.get("soundTriggerMode", "open_only"))
-		if currentTrigger not in self.triggerKeys:
-			currentTrigger = "open_only"
-		selTrigIdx = self.triggerKeys.index(currentTrigger)
+		self.playSoundChk.Bind(wx.EVT_CHECKBOX, onPlaySoundToggled)
 
-		trigChoices = self.triggerChoicesEn if effLang == "en" else self.triggerChoicesPl
-		self.soundTriggerModeChoice = wx.Choice(self, choices=trigChoices)
-		self.soundTriggerModeChoice.SetName(_T("set_sound_trigger_mode"))
-		self.soundTriggerModeChoice.SetSelection(selTrigIdx)
-		trigBox.Add(self.soundTriggerModeChoice, flag=wx.ALIGN_CENTER_VERTICAL)
-		sHelper.addItem(trigBox)
-
-		# Informacja o koordynacji dźwięków z Outlook Speech Filter
-		is_sf_handling = isSpeechFilterHandlingInlineImages()
-		coord_lbl = _T("set_sound_coord_detected") if is_sf_handling else _T("set_sound_coord_standalone")
+		# 4. Informacja o koordynacji dźwięków z Outlook Speech Filter
+		is_sf = isSpeechFilterInstalled()
+		coord_lbl = _T("set_sound_coord_detected") if is_sf else _T("set_sound_coord_standalone")
 		self.soundCoordNote = wx.StaticText(self, label=coord_lbl)
 		self.soundCoordNote.Wrap(560)
 		sHelper.addItem(self.soundCoordNote)
 
+		# 6. Dźwięki typu grafik podczas nawigacji G/Shift+G w treści oraz na liście grafik
 		self.navSoundsChk = wx.CheckBox(self, label=_T("set_nav_sounds"))
 		self.navSoundsChk.SetValue(_to_bool(sec.get("navSounds", True), default=True))
 		sHelper.addItem(self.navSoundsChk)
 
-		# Wybór motywu dźwiękowego powiadomienia
+		# 7. Wybór zestawu powiadomień dźwiękowych
 		themeBox = wx.BoxSizer(wx.HORIZONTAL)
 		self.lblTheme = wx.StaticText(self, label=_T("set_sound_theme"))
 		themeBox.Add(self.lblTheme, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=10)
@@ -12953,10 +13534,23 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		self.themeChoice = wx.Choice(self, choices=tChoices)
 		self.themeChoice.SetName(_T("set_sound_theme"))
 		self.themeChoice.SetSelection(selThemeIdx)
+
+		def onThemeChoiceChanged(evt):
+			idx = self.themeChoice.GetSelection()
+			if 0 <= idx < len(self.themeKeys):
+				newTheme = self.themeKeys[idx]
+				try:
+					config.conf[CONFIG_SECTION]["soundTheme"] = newTheme
+				except Exception:
+					pass
+				val = self.soundVolumeSlider.GetValue() if hasattr(self, "soundVolumeSlider") and self.soundVolumeSlider else 80
+				playAlertSound("image_alert", volume=val, theme=newTheme, context=f"Wybór motywu dźwięków: {newTheme}", force=True)
+
+		self.themeChoice.Bind(wx.EVT_CHOICE, onThemeChoiceChanged)
 		themeBox.Add(self.themeChoice, flag=wx.ALIGN_CENTER_VERTICAL)
 		sHelper.addItem(themeBox)
 
-		# Suwak głośności dźwięków (0-100%) z pełną dostępnością klawiaturową
+		# 8. Suwak głośności powiadomień dźwiękowych (0-100%) z pełną dostępnością klawiaturową
 		volBox = wx.BoxSizer(wx.HORIZONTAL)
 		self.lblVolume = wx.StaticText(self, label=_T("set_sound_volume"))
 		volBox.Add(self.lblVolume, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=10)
@@ -12988,8 +13582,11 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		self.testSoundBtn = wx.Button(self, label=_T("set_test_volume"))
 		def onTestSound(evt):
 			val = self.soundVolumeSlider.GetValue()
+			themeIdx = self.themeChoice.GetSelection()
+			curTheme = self.themeKeys[themeIdx] if 0 <= themeIdx < len(self.themeKeys) else "associative"
 			sounds = [
 				("image_alert", "Powiadomienie o obecności obrazu"),
+				("attachment", "Załącznik do wiadomości"),
 				("link", "Obraz zawierający link"),
 				("divider", "Linia podziału / separator"),
 				("social_media", "Ikona mediów społecznościowych"),
@@ -12999,7 +13596,7 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 			import threading
 			def _worker():
 				for sName, desc in sounds:
-					playAlertSound(sName, volume=val, context=f"Test dźwięku: {desc}", force=True)
+					playAlertSound(sName, volume=val, theme=curTheme, context=f"Test dźwięku: {desc}", force=True)
 					time.sleep(0.48)
 			t = threading.Thread(target=_worker, daemon=True)
 			t.start()
@@ -13443,21 +14040,8 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 						pass
 				if 0 <= themeIdx < len(tChoices):
 					self.themeChoice.SetSelection(themeIdx)
-			if hasattr(self, "lblTriggerMode") and self.lblTriggerMode:
-				self.lblTriggerMode.SetLabel(_T("set_sound_trigger_mode"))
-			if hasattr(self, "soundTriggerModeChoice") and self.soundTriggerModeChoice:
-				self.soundTriggerModeChoice.SetName(_T("set_sound_trigger_mode"))
-				trigIdx = self.soundTriggerModeChoice.GetSelection()
-				choices = self.triggerChoicesEn if eff == "en" else self.triggerChoicesPl
-				for i, ch in enumerate(choices):
-					try:
-						self.soundTriggerModeChoice.SetString(i, ch)
-					except Exception:
-						pass
-				if 0 <= trigIdx < len(choices):
-					self.soundTriggerModeChoice.SetSelection(trigIdx)
 			if hasattr(self, "soundCoordNote") and self.soundCoordNote:
-				is_sf = isSpeechFilterHandlingInlineImages()
+				is_sf = isSpeechFilterInstalled()
 				self.soundCoordNote.SetLabel(_T("set_sound_coord_detected") if is_sf else _T("set_sound_coord_standalone"))
 			if hasattr(self, "lblVolume") and self.lblVolume:
 				self.lblVolume.SetLabel(_T("set_sound_volume"))
@@ -13821,10 +14405,6 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		sec["playSound"] = self.playSoundChk.GetValue()
 		if hasattr(self, "contextMenuChk") and self.contextMenuChk:
 			sec["contextMenuEnabled"] = self.contextMenuChk.GetValue()
-		if hasattr(self, "soundTriggerModeChoice") and self.soundTriggerModeChoice:
-			trigIdx = self.soundTriggerModeChoice.GetSelection()
-			if 0 <= trigIdx < len(self.triggerKeys):
-				sec["soundTriggerMode"] = self.triggerKeys[trigIdx]
 		if hasattr(self, "soundVolumeSlider") and self.soundVolumeSlider:
 			sec["soundVolume"] = int(self.soundVolumeSlider.GetValue())
 		sec["navSounds"] = self.navSoundsChk.GetValue()
@@ -14064,19 +14644,33 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def onToolsMenuOpen(self, evt):
 		self.script_openGraphicList(None)
 
-	def isOutlookActive(self) -> bool:
+	def isOutlookActive(self, obj=None) -> bool:
 		"""Sprawdza, czy bieżące aktywne okno lub obiekt fokusu należy do programu Outlook."""
+		if obj:
+			appMod = getattr(obj, "appModule", None)
+			if appMod and getattr(appMod, "appName", "").lower() == "outlook":
+				return True
+			hwnd = getattr(obj, "windowHandle", 0)
+			if hwnd:
+				try:
+					cls = winUser.getClassName(hwnd).lower()
+					if "renwnd32" in cls or "supergrid" in cls or "netui" in cls:
+						return True
+				except Exception:
+					pass
 		focus = api.getFocusObject()
-		if not focus:
-			return False
-		appMod = getattr(focus, "appModule", None)
-		if appMod and getattr(appMod, "appName", "").lower() == "outlook":
-			return True
+		if focus:
+			appMod = getattr(focus, "appModule", None)
+			if appMod and getattr(appMod, "appName", "").lower() == "outlook":
+				return True
 		fgHwnd = winUser.getForegroundWindow()
 		if fgHwnd:
-			cls = winUser.getClassName(fgHwnd)
-			if "renwnd32" in cls.lower():
-				return True
+			try:
+				cls = winUser.getClassName(fgHwnd).lower()
+				if "renwnd32" in cls or "outlook" in cls:
+					return True
+			except Exception:
+				pass
 		return False
 
 	def _checkOutlookOrPassGesture(self, gesture) -> bool:
@@ -14102,32 +14696,22 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def event_gainFocus(self, obj, nextHandler):
 		nextHandler()
-		if not self.isOutlookActive():
+		if not self.isOutlookActive(obj):
 			return
 
 		sec = config.conf[CONFIG_SECTION]
 		if not _to_bool(sec.get("autoAnnounce", True), default=True) and not _to_bool(sec.get("playSound", True), default=True):
 			return
 
-		triggerMode = sec.get("soundTriggerMode", "open_only")
-		if triggerMode == "off":
-			return
-
 		hwnd = getattr(obj, "windowHandle", 0)
-		if not hwnd:
-			return
-
-		cls = winUser.getClassName(hwnd)
+		cls = winUser.getClassName(hwnd) if hwnd else ""
 
 		# 1. Sprawdzenie, czy fokus wszedł do właściwej treści otwartej wiadomości (_WwG)
 		if cls == "_WwG":
-			if triggerMode not in ("open_only", "both"):
-				return
-
 			msgKey = getMessageKey()
 			currentTime = time.time()
-			# Unikaj wielokrotnego odtwarzania dla tej samej wiadomości (okno 8 sekund)
-			if msgKey and msgKey == getattr(self, "_lastAnnouncedMsgKey", "") and (currentTime - getattr(self, "_lastAnnouncedTime", 0)) < 8.0:
+			# Unikaj wielokrotnego odtwarzania dla tej samej wiadomości (okno 2.0 sekundy)
+			if msgKey and msgKey == getattr(self, "_lastAnnouncedMsgKey", "") and (currentTime - getattr(self, "_lastAnnouncedTime", 0)) < 2.0:
 				return
 
 			self._lastAnnouncedMsgKey = msgKey
@@ -14141,11 +14725,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					self._pendingInspectCall.Stop()
 				except Exception:
 					pass
-			self._pendingInspectCall = wx.CallLater(150, self._inspectAndAnnounceMessage, msgKey)
+			self._pendingInspectCall = wx.CallLater(100, self._inspectAndAnnounceMessage, msgKey)
 			return
 
 		# 2. Sprawdzenie, czy fokus wszedł na wiersz listy wiadomości w głównym oknie Outlooka (Explorer)
-		if triggerMode in ("list_only", "both"):
+		if _to_bool(sec.get("playSound", True), default=True):
 			if isGroupHeader(obj):
 				return
 
@@ -14154,35 +14738,44 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			dataRole = getattr(controlTypes.Role, "DATAITEM", controlTypes.Role.LISTITEM)
 			treeRole = getattr(controlTypes.Role, "TREEVIEWITEM", controlTypes.Role.LISTITEM)
 			isRow = cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "OutlookGridRow") or role in (ROLE_TABLEROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM, dataRole, treeRole)
-			if not isRow:
+			if not isRow and not isMessageListFocused(obj):
 				return
 
-			# Sprawdzenie obecności grafik w zaznaczonej wiadomości
-			mailItem = getCurrentMailItem()
-			hasImages = False
-			if mailItem and mailItemHasInlineImages(mailItem):
-				hasImages = True
-			elif not mailItem:
-				# Fallback: gdy aktywny jest panel podglądu (Reading Pane) z dokumentem Word
-				doc = getActiveWordDocument()
-				if doc:
-					try:
-						inlines = int(getattr(getattr(doc, "InlineShapes", None), "Count", 0) or 0)
-						shapes = int(getattr(getattr(doc, "Shapes", None), "Count", 0) or 0)
-						if inlines > 0 or shapes > 0:
-							hasImages = True
-					except Exception:
-						pass
+			# Sprawdzenie obecności załączników oraz grafik w zaznaczonej wiadomości po krótkiej chwili (35ms)
+			def _checkAndPlayListSound(targetObj):
+				if not self.isOutlookActive(targetObj):
+					return
+				mailItem = getMessageListItem(targetObj) or getCurrentMailItem(focus=targetObj)
+				if not mailItem:
+					return
 
-			if hasImages:
-				msgKey = getMessageKey(mailItem) if mailItem else "doc_reading_pane"
+				hasAtts, hasImages = getMailAttachmentsAndImagesInfo(mailItem)
+				if not hasAtts and not hasImages:
+					return
+
+				msgKey = getMessageKey(mailItem)
 				currentTime = time.time()
-				if msgKey and msgKey == getattr(self, "_lastListAnnouncedMsgKey", "") and (currentTime - getattr(self, "_lastListAnnouncedTime", 0)) < 1.5:
+				if msgKey and msgKey == getattr(self, "_lastListAnnouncedMsgKey", "") and (currentTime - getattr(self, "_lastListAnnouncedTime", 0)) < 0.6:
 					return
 				self._lastListAnnouncedMsgKey = msgKey
 				self._lastListAnnouncedTime = currentTime
 				vol = sec.get("soundVolume", 80)
-				playAlertSound(soundName="image_alert", volume=vol, context="Lista wiadomości Outlook (Explorer)")
+
+				# Koordynacja dźwięku załączników z dodatkiem Outlook Speech Filter:
+				# Gdy filtr mowy jest aktywny i obsługuje załączniki, on odtwarza dźwięk załączników.
+				# Gdy filtr nie jest aktywny, Pomocnik obrazów sam odtwarza dźwięk załącznika.
+				playAttHere = hasAtts and not isSpeechFilterHandlingAttachments()
+
+				if playAttHere and hasImages:
+					# Mail ma zarówno załączniki, jak i grafiki: odtwórz oba różne dźwięki
+					playAlertSound(soundName="attachment", volume=vol, context="Lista wiadomości Outlook: załącznik")
+					wx.CallLater(160, lambda: playAlertSound(soundName="image_alert", volume=vol, context="Lista wiadomości Outlook: grafika"))
+				elif playAttHere:
+					playAlertSound(soundName="attachment", volume=vol, context="Lista wiadomości Outlook: załącznik")
+				elif hasImages:
+					playAlertSound(soundName="image_alert", volume=vol, context="Lista wiadomości Outlook: grafika")
+
+			wx.CallLater(35, _checkAndPlayListSound, obj)
 
 	def _inspectAndAnnounceMessage(self, expectedMsgKey: str):
 		self._pendingInspectCall = None
@@ -14191,11 +14784,16 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		doc = getActiveWordDocument()
 		if not doc:
+			mailItem = getCurrentMailItem()
+			if mailItem:
+				doc = getActiveWordDocument(mailItem=mailItem)
+		if not doc:
 			return
 
 		curKey = getMessageKey()
 		if expectedMsgKey and curKey and expectedMsgKey != curKey:
-			return
+			if expectedMsgKey != "current_message" and curKey != "current_message":
+				return
 
 		items = getOrCollectGraphics(
 			doc,
@@ -14562,6 +15160,18 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		focus = api.getFocusObject()
+		if not focus or not isMessageBodyFocused(focus):
+			gesture.send()
+			return
+
+		# Dodatkowa ochrona pasków informacyjnych (InfoBar) i kontrolek NetUI przed przechwyceniem
+		cls = (getattr(focus, "windowClassName", "") or "").lower()
+		role = getattr(focus, "role", None)
+		if "netui" in cls or "infobar" in cls or role in (controlTypes.Role.BUTTON, controlTypes.Role.PANE, controlTypes.Role.TOOLBAR):
+			if getattr(focus, "WinwordDocumentObject", None) is None:
+				gesture.send()
+				return
+
 		ti = getattr(focus, "treeInterceptor", None)
 
 		doc = getActiveWordDocument()
