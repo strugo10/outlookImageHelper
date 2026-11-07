@@ -77,7 +77,7 @@ ADDON_BUILD_ID = "20261107.2"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.5"
+ADDON_VERSION = "1.6.6"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -401,7 +401,7 @@ STRINGS = {
 		"sound_mode_off": "Wyłączone",
 		"set_sound_volume": "&Głośność dźwięków alertów i nawigacji (%):",
 		"set_test_volume": "&Przetestuj dźwięk i głośność",
-		"set_sound_coord_detected": "Koordynacja dźwięków: Wykryto dodatek Outlook Speech Filter — dźwięki obecności grafik na liście są koordynowane, aby zapobiec duplikacji.",
+		"set_sound_coord_detected": "Koordynacja dźwięków: Wykryto dodatek Outlook Speech Filter — dźwięki obecności grafik są odtwarzane przez Pomocnika obrazów (z wybranym motywem i głośnością).",
 		"set_sound_coord_standalone": "Koordynacja dźwięków: Outlook Speech Filter nie jest aktywny — dźwięki są w pełni kontrolowane przez Pomocnika obrazów.",
 		"set_btn_diagnostics": "&Kontakt z twórcą i zgłaszanie uwag (GitHub)...",
 		"set_ai_provider": "&Dostawca sztucznej inteligencji (AI):",
@@ -623,7 +623,7 @@ STRINGS = {
 		"sound_mode_off": "Disabled",
 		"set_sound_volume": "&Alert and navigation sounds volume (%):",
 		"set_test_volume": "&Test sound and volume",
-		"set_sound_coord_detected": "Sound coordination: Outlook Speech Filter detected — list image sounds are coordinated to prevent duplicates.",
+		"set_sound_coord_detected": "Sound coordination: Outlook Speech Filter detected — image presence sounds are handled by Outlook Image Helper.",
 		"set_sound_coord_standalone": "Sound coordination: Outlook Speech Filter is not active — sounds are handled independently.",
 		"set_btn_diagnostics": "&Contact author & feedback (GitHub)...",
 		"set_ai_provider": "&AI Provider:",
@@ -3680,8 +3680,10 @@ def mailItemHasInlineImages(mailItem) -> bool:
 					att = attColl.Item(i)
 					attType = int(getattr(att, "Type", 1) or 1)
 					fn = (getattr(att, "FileName", "") or "").lower()
-					# Typ 5=olEmbeddeditem, 6=olOLE to grafiki osadzone w treści
-					if attType in (5, 6) or fn.startswith("image") or fn.startswith("oledata") or not fn:
+					ext = os.path.splitext(fn)[1] if fn else ""
+					# Typ 5=olEmbeddeditem, 6=olOLE to grafiki osadzone w treści.
+					# Rozpoznajemy także rozszerzenia plików graficznych oraz obiekty Outlook (image*, oledata*).
+					if attType in (5, 6) or ext in IMAGE_EXTENSIONS or fn.startswith("image") or fn.startswith("oledata") or not fn:
 						has_img = True
 						break
 				except Exception:
@@ -12994,7 +12996,6 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 				("email", "Ikona adresu e-mail"),
 				("phone", "Ikona numeru telefonu"),
 			]
-			ui.message(f"Odtwarzanie kolejno wszystkich dźwięków dodatku ({len(sounds)} dźwięków, głośność {val}%)...")
 			import threading
 			def _worker():
 				for sName, desc in sounds:
@@ -14150,20 +14151,31 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 			cachedCls = getattr(getattr(obj, "UIAElement", None), "cachedClassName", "") or getattr(obj, "windowClassName", "") or ""
 			role = getattr(obj, "role", None)
-			isRow = cachedCls in ("LeafRow", "ThreadItem", "TableItem", "UIAGridRow") or role in (ROLE_TABLEROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM)
+			dataRole = getattr(controlTypes.Role, "DATAITEM", controlTypes.Role.LISTITEM)
+			treeRole = getattr(controlTypes.Role, "TREEVIEWITEM", controlTypes.Role.LISTITEM)
+			isRow = cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "OutlookGridRow") or role in (ROLE_TABLEROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM, dataRole, treeRole)
 			if not isRow:
 				return
 
-			# Koordynacja i deduplikacja z Outlook Speech Filter dla kategorii "obrazy / grafiki wklejone"
-			if isSpeechFilterHandlingInlineImages():
-				vol = sec.get("soundVolume", 80)
-				_log_sound_event("image_alert", vol, "Lista wiadomości Outlook (Explorer)", "Pominięto (deduplikacja: obsługa przez Outlook Speech Filter)")
-				return
-
-			# Jeśli Speech Filter nie obsługuje grafik na liście, Pomocnik obrazów przejmuje obsługę
+			# Sprawdzenie obecności grafik w zaznaczonej wiadomości
 			mailItem = getCurrentMailItem()
+			hasImages = False
 			if mailItem and mailItemHasInlineImages(mailItem):
-				msgKey = getMessageKey(mailItem)
+				hasImages = True
+			elif not mailItem:
+				# Fallback: gdy aktywny jest panel podglądu (Reading Pane) z dokumentem Word
+				doc = getActiveWordDocument()
+				if doc:
+					try:
+						inlines = int(getattr(getattr(doc, "InlineShapes", None), "Count", 0) or 0)
+						shapes = int(getattr(getattr(doc, "Shapes", None), "Count", 0) or 0)
+						if inlines > 0 or shapes > 0:
+							hasImages = True
+					except Exception:
+						pass
+
+			if hasImages:
+				msgKey = getMessageKey(mailItem) if mailItem else "doc_reading_pane"
 				currentTime = time.time()
 				if msgKey and msgKey == getattr(self, "_lastListAnnouncedMsgKey", "") and (currentTime - getattr(self, "_lastListAnnouncedTime", 0)) < 1.5:
 					return
