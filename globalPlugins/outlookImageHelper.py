@@ -4426,10 +4426,6 @@ def getStrictGraphicUnderCaret(
 		for it in items:
 			if (it.rangeStart <= curPos <= it.rangeEnd) or abs(it.rangeStart - curPos) <= 1:
 				return it
-						if (it.rangeStart <= curPos < it.rangeEnd) or abs(curPos - it.rangeStart) <= 1:
-							return it
-		except Exception as ex:
-			log.debug(f"outlookImageHelper: getStrictGraphicUnderCaret treeInterceptor check error: {ex}")
 
 	# 4. Jeśli podano targetPos bez bufora przeglądania
 	if targetPos is not None:
