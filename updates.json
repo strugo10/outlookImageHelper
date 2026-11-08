@@ -1,20 +1,20 @@
 {
   "docListNavigator": {
-    "version": "1.0.4",
-    "downloadUrl": "G:\\Mój dysk\\Antigravity\\Nvda dodatki\\Pakiety_Instalacyjne\\docListNavigator.nvda-addon",
-    "changelog": "Wersja 1.0.4:\n• Wprowadzenie oficjalnego nazewnictwa Zasad Techniki Prawodawczej:\n  - Rozdział IV\n  - ustęp 1.\n  - pkt 1)\n  - litera a)\n  - tiret pierwszy, tiret drugie, tiret trzecie...\n• Automatyczne wyliczanie kolejności tiretów i podpunktów w ramach nadrzędnego elementu.\n• Pełna integracja ze ścieżką hierarchiczną (NVDA+Alt+L): np. Rozdział IV > ustęp 1. > pkt 1) > litera a) > tiret pierwszy.",
-    "minNVDAVersion": "2021.1.0"
+    "version": "1.0.7",
+    "downloadUrl": "https://github.com/strugo10/docListNavigator/releases/latest/download/docListNavigator.nvda-addon",
+    "changelog": "Wersja 1.0.7:\n• Pełne wdrożenie wszystkich 24 zaleceń z audytu GPT 6 Astra (R01–R24).",
+    "minNVDAVersion": "2024.1.0"
   },
   "outlookSpeechFilter": {
-    "version": "1.18.1",
+    "version": "1.20.3",
     "downloadUrl": "https://github.com/strugo10/outlookSpeechFilter/releases/latest/download/outlookSpeechFilter.nvda-addon",
-    "changelog": "Wersja 1.18.1:\n• Poprawka precyzji nawigacji: wyeliminowano przesunięcie (drift) kursora w długich wątkach mailowych dzięki wyszukiwaniu natywnemu Word.Range.Find.\n• Poprawka dostępności okna wątku (NVDA+F7): wyeliminowano blokadę wątku NVDA (wx.CallAfter), fokus natychmiast trafia na listę, a NVDA bezbłędnie wypowiada każdy zaznaczany element.\n• Dodano opcję włączania/wyłączania nawigatora wątków w ustawieniach dodatku oraz szybki skrót przełączający NVDA+Ctrl+Shift+T.\n• Zintegrowano oficjalne automatyczne aktualizacje bezpośrednio z serwisu GitHub.",
-    "minNVDAVersion": "2021.1.0"
+    "changelog": "Wersja 1.20.3:\n• Koordynacja dźwięków obecności grafik na liście wiadomości z dodatkiem Outlook Image Helper oraz poprawki stabilności.",
+    "minNVDAVersion": "2024.1.0"
   },
   "outlookImageHelper": {
-    "version": "1.6.12",
+    "version": "1.6.14",
     "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-    "changelog": "Wersja 1.6.12:\n• Naprawa menu kontekstowego na pasku zablokowanych grafik (InfoBar): klawisz menu kontekstowego (Aplikacje / Shift+F10) poprawnie otwiera natywne menu Outlooka z opcją pobierania obrazów, gdy fokus znajduje się na pasku informacyjnym lub nagłówku wiadomości.\n• Ścisła weryfikacja pozycji kursora: menu czynności dodatku aktywuje się wyłącznie wtedy, gdy kursor znajduje się bezpośrednio na grafice w treści wiadomości, bez przechwytywania menu kontekstowego w innych obszarach Outlooka.",
+    "changelog": "Wersja 1.6.14:\n• Pełna realizacja wszystkich 12 zaleceń z audytu bezpieczeństwa i stabilności (Review 03: N01–N09, U01–U03).",
     "minNVDAVersion": "2024.1.0"
   }
 }

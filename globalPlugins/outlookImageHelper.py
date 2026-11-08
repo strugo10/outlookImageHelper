@@ -8,7 +8,7 @@ from __future__ import annotations
 import array
 import base64
 import ctypes
-from ctypes import byref, POINTER, c_void_p, oledll
+from ctypes import byref, POINTER, oledll
 import hashlib
 import html
 import json
@@ -43,7 +43,6 @@ import gui.settingsDialogs
 from logHandler import log
 import nvwave
 from scriptHandler import script
-import ssl
 import tones
 import ui
 import winUser
@@ -73,11 +72,11 @@ ADDON_NAME = "Outlook Image Helper"
 ADDON_TITLE = "Outlook - Pomocnik obrazów i załączników"
 ADDON_AUTHOR = "Sławomir Strugarek z pomocą Antigravity (Google DeepMind)"
 ADDON_BUILD_DATE = "2026-11-08"
-ADDON_BUILD_ID = "20261108.2"
+ADDON_BUILD_ID = "20261108.4"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.12"
+ADDON_VERSION = "1.6.14"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -3265,40 +3264,67 @@ def getSelectedMessagesInfo() -> tuple[int, object | None, bool]:
 
 	if nativeOm:
 		try:
-			# Najpierw sprawdź, czy aktywne okno to Inspector (osobne okno wiadomości)
-			activeWin = None
-			for attr in ("ActiveInspector", "activeInspector", "ActiveWindow", "activeWindow"):
+			# 1. Sprawdź rzeczywiście aktywne okno na pierwszym planie (ActiveWindow):
+			# Jeśli użytkownik przełączył się z otwartego okna wiadomości (Inspector) z powrotem
+			# do głównego okna listy wiadomości (Explorer), ActiveInspector nadal zwraca okno w tle,
+			# ale ActiveWindow wskazuje na Explorer (Class == 34 lub obecność Selection).
+			exp = None
+			activeWindowObj = None
+			for attr in ("ActiveWindow", "activeWindow"):
 				fn = getattr(nativeOm, attr, None)
 				if fn:
 					try:
 						res = fn() if callable(fn) else fn
-						if res:
-							if "inspector" in attr.lower():
-								activeWin = res
-								break
-							clsVal = getattr(res, "Class", None)
-							clsNum = clsVal() if callable(clsVal) else clsVal
-							if clsNum == 35 or hasattr(res, "CurrentItem") or hasattr(res, "currentItem"):
-								activeWin = res
-								break
-					except Exception:
-						pass
-
-			if activeWin is not None:
-				curItem = getattr(activeWin, "CurrentItem", None) or getattr(activeWin, "currentItem", None)
-				itemObj = curItem() if callable(curItem) else curItem
-				return 1, itemObj, False
-
-			exp = None
-			for attr in ("activeExplorer", "ActiveExplorer"):
-				fn = getattr(nativeOm, attr, None)
-				if fn:
-					try:
-						exp = fn() if callable(fn) else fn
-						if exp:
+						if res is not None:
+							activeWindowObj = res
 							break
 					except Exception:
 						pass
+
+			if activeWindowObj is not None:
+				clsVal = getattr(activeWindowObj, "Class", None)
+				try:
+					clsNum = clsVal() if callable(clsVal) else clsVal
+				except Exception:
+					clsNum = None
+				isExplorerWin = (
+					clsNum == 34
+					or hasattr(activeWindowObj, "Selection")
+					or hasattr(activeWindowObj, "selection")
+				)
+				isInspectorWin = (
+					clsNum == 35
+					or hasattr(activeWindowObj, "CurrentItem")
+					or hasattr(activeWindowObj, "currentItem")
+				)
+				if isExplorerWin:
+					exp = activeWindowObj
+				elif isInspectorWin:
+					# Aktywne okno to Inspector — zwracamy (1, None, False) bez wywoływania CurrentItem()
+					return 1, None, False
+			else:
+				# Fallback tylko gdy ActiveWindow jest niedostępne i fokus nie jest na liście wiadomości
+				if not isMessageListFocused(focus):
+					for attr in ("ActiveInspector", "activeInspector"):
+						fn = getattr(nativeOm, attr, None)
+						if fn:
+							try:
+								res = fn() if callable(fn) else fn
+								if res is not None:
+									return 1, None, False
+							except Exception:
+								pass
+
+			if exp is None:
+				for attr in ("activeExplorer", "ActiveExplorer"):
+					fn = getattr(nativeOm, attr, None)
+					if fn:
+						try:
+							exp = fn() if callable(fn) else fn
+							if exp:
+								break
+						except Exception:
+							pass
 
 			if exp:
 				for attr in ("selection", "Selection"):
@@ -3624,55 +3650,6 @@ def isSpeechFilterInstalled() -> bool:
 	return False
 
 
-def isMessageBodyFocused(focus=None) -> bool:
-	"""Zwraca True, gdy kursor/fokus NVDA znajduje się bezpośrednio w edytorze lub treści otwartej wiadomości."""
-	if not focus:
-		focus = api.getFocusObject()
-	if not focus:
-		return False
-	try:
-		if getattr(focus, "WinwordDocumentObject", None) is not None:
-			return True
-		ti = getattr(focus, "treeInterceptor", None)
-		if ti and getattr(getattr(ti, "rootNVDAObject", None), "WinwordDocumentObject", None) is not None:
-			return True
-		hwnd = getattr(focus, "windowHandle", 0)
-		if hwnd and winUser.getClassName(hwnd) == "_WwG":
-			return True
-	except Exception:
-		pass
-	return False
-
-
-def isMessageListFocused(focus=None) -> bool:
-	"""Zwraca True, gdy fokus NVDA znajduje się na liście wiadomości (Explorer) w Outlooku, a nie w treści."""
-	if not focus:
-		focus = api.getFocusObject()
-	if not focus:
-		return False
-	if isMessageBodyFocused(focus):
-		return False
-	if isGroupHeader(focus):
-		return True
-	try:
-		cls = (getattr(focus, "windowClassName", "") or "").lower()
-		cachedCls = getattr(getattr(focus, "UIAElement", None), "cachedClassName", "") or ""
-		if any(k in cls for k in ("supergrid", "outlookgrid", "netui", "tableview")) or cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "GroupHeader"):
-			return True
-		role = getattr(focus, "role", None)
-		if role in (controlTypes.Role.LISTITEM, controlTypes.Role.TABLECELL, ROLE_TABLEROW, controlTypes.Role.LIST, controlTypes.Role.DATAITEM):
-			return True
-		app = getOutlookApp()
-		if app:
-			actWin = app.ActiveWindow()
-			actExp = getattr(app, "ActiveExplorer", lambda: None)()
-			if actWin and actExp and actWin == actExp:
-				return True
-	except Exception:
-		pass
-	return False
-
-
 def isSpeechFilterHandlingInlineImages() -> bool:
 	"""
 	Sprawdza, czy dodatek Outlook Speech Filter jest aktywny i obsługuje
@@ -3773,27 +3750,32 @@ def getMailAttachmentsAndImagesInfo(mailItem) -> tuple[bool, bool]:
 				try:
 					att = attColl.Item(i)
 					attType = int(getattr(att, "Type", 1) or 1)
-					fn = (getattr(att, "FileName", "") or "").lower()
+					fn = (getattr(att, "FileName", "") or "").strip().lower()
+					ext = os.path.splitext(fn)[1] if fn else ""
 
-					# Sprawdź, czy załącznik to grafika osadzona w treści (CID / OLE / typ 5 lub 6)
+					# Sprawdź, czy załącznik to grafika osadzona w treści (CID / OLE / typ 5 lub 6 / imageNNN.*)
 					is_inline = False
-					if attType in (5, 6) or fn.startswith("oledata"):
+					if attType == 6 or fn.startswith("oledata") or (attType in (5, 6) and (not fn or ext in IMAGE_EXTENSIONS)):
 						is_inline = True
 					else:
+						cid = ""
+						flags = 0
 						try:
 							pa = getattr(att, "PropertyAccessor", None)
 							if pa:
 								cid = str(pa.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F") or "")
 								flags = int(pa.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x37140003") or 0)
-								if cid or (flags & 4):
-									is_inline = True
 						except Exception:
 							pass
+						if (cid or (flags & 4)) and (ext in IMAGE_EXTENSIONS or not ext):
+							is_inline = True
+						elif ext in IMAGE_EXTENSIONS and re.match(r"^image\d{3,}\.", fn):
+							is_inline = True
 
 					if is_inline:
 						has_inline_images = True
 					else:
-						# Załącznik plikowy (PDF, DOCX, XLSX, archiwum, plik graficzny dodany jako plik)
+						# Załącznik plikowy (PDF, DOCX, XLSX, archiwum, zwykły plik graficzny dodany jako plik)
 						has_regular_attachments = True
 				except Exception:
 					pass
@@ -3893,12 +3875,36 @@ def save_report_to_diagnostics_folder(reportContent: str, addon_prefix: str = "O
 	return saved_path
 
 
+def _redact_sensitive_text(text: str, sec: dict | None = None) -> str:
+	"""
+	Redaguje i maskuje dane wrażliwe (RODO / klucze API / ścieżki z nazwą użytkownika /
+	nazwy plików załączników / parametry URL z tokenami / adresy e-mail) w całym tekście raportu.
+	"""
+	if not text:
+		return ""
+	redacted = str(text)
+	if sec:
+		for sec_k, sec_v in sec.items():
+			if any(w in sec_k.lower() for w in ("key", "password", "token", "secret", "cred", "hash")):
+				sv = str(sec_v).strip()
+				if len(sv) >= 4 and sv in redacted:
+					redacted = redacted.replace(sv, "[ZREDAGOWANO_SEKRET]")
+	redacted = re.sub(r'sk-[a-zA-Z0-9_\-]{16,}', '[ZREDAGOWANO_KLUCZ_OPENAI]', redacted)
+	redacted = re.sub(r'AIza[a-zA-Z0-9_\-]{25,}', '[ZREDAGOWANO_KLUCZ_GEMINI]', redacted)
+	redacted = re.sub(r'[A-Za-z]:\\[Uu]sers\\[^\\\r\n"\']+', r'C:\\Users\\[UZYTKOWNIK]', redacted)
+	redacted = re.sub(r'att_[a-fA-F0-9]{8,}', 'att_[ZREDAGOWANO_ID]', redacted)
+	redacted = re.sub(r'[^\s\\/:*?"<>|]+_unlocked\.pdf', '[ZREDAGOWANO_PLIK]_unlocked.pdf', redacted, flags=re.IGNORECASE)
+	redacted = re.sub(r'(https?://[^\s"\'<>?]+)\?[^\s"\'<>]+', r'\1?[ZREDAGOWANO_PARAMETRY_URL]', redacted)
+	redacted = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '[ZREDAGOWANO_EMAIL]', redacted)
+	return redacted
+
+
 def generate_diagnostic_report(level: str = "basic") -> str:
 	"""
 	Generuje szczegółowy raport diagnostyczny środowiska i stanu dodatku Outlook Image Helper.
 	Poziom 'basic': podstawowe informacje, konfiguracja, audio i koordynacja.
 	Poziom 'advanced': pełna telemetria audio (30 zdarzeń), diagnostyka COM/UIA, wyciąg z logu NVDA.
-	Klucze API są zawsze maskowane (np. AIzaSy...***) w celu ochrony prywatności.
+	Klucze API, ścieżki użytkownika, nazwy załączników i parametry URL są zawsze maskowane (RODO).
 	"""
 	is_adv = (level == "advanced")
 	lines = []
@@ -3916,7 +3922,7 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 	try:
 		lines.append(f"System operacyjny / OS: {platform.platform()} ({platform.architecture()[0]})")
 		lines.append(f"Wersja Windows / Windows build: {sys.getwindowsversion()}")
-		lines.append(f"Wersja Python: {sys.version.split()[0]} ({sys.executable})")
+		lines.append(f"Wersja Python: {sys.version.split()[0]}")
 	except Exception as e:
 		lines.append(f"Błąd odczytu środowiska: {e}")
 	try:
@@ -3924,10 +3930,6 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 		lines.append(f"NVDA Version: {versionInfo.version} ({versionInfo.version_year}.{versionInfo.version_major})")
 	except Exception as e:
 		lines.append(f"NVDA Version: {e}")
-	try:
-		lines.append(f"Katalog konfiguracji NVDA / Config Dir: {getConfigDir()}")
-	except Exception:
-		pass
 	lines.append("")
 
 	lines.append("--- STAN PROGRAMU MICROSOFT OUTLOOK I SKŁADNIKÓW ---")
@@ -3952,7 +3954,7 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 	except Exception as e:
 		lines.append(f"Błąd sprawdzania fokusu Outlooka: {e}")
 
-	lines.append(f"Skrypt OCR worker (PowerShell): {'ISTNIEJE' if os.path.isfile(OCR_SCRIPT_PATH) else 'BRAK'} ({OCR_SCRIPT_PATH})")
+	lines.append(f"Skrypt OCR worker (PowerShell): {'ISTNIEJE' if os.path.isfile(OCR_SCRIPT_PATH) else 'BRAK'}")
 	lines.append("")
 
 	lines.append("--- STAN PODSYSTEMU AUDIO I PLIKÓW DŹWIĘKOWYCH ---")
@@ -3988,10 +3990,11 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 
 	lines.append("--- AKTUALNA KONFIGURACJA DODATKU ---")
 	SAFE_CONFIG_KEYS = {
-		"autoAnnounce", "playSound", "navSounds", "aiNaming", "showAdvancedSettings",
+		"autoAnnounce", "playSound", "playSoundAttachments", "playSoundInlineImages",
+		"navSounds", "aiNaming", "showAdvancedSettings",
 		"minDimension", "geminiModel", "openaiModel", "aiProvider", "defaultOcrLang",
-		"soundTheme", "soundVolume", "updateSourceUrl",
-		"autoCheckUpdates", "contextMenuEnabled", "uiLanguage"
+		"soundTheme", "soundVolume",
+		"autoCheckUpdates", "contextMenuEnabled", "uiLanguage", "language"
 	}
 	for k, v in sorted(sec.items()):
 		k_lower = k.lower()
@@ -4008,10 +4011,26 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 				lines.append(f"  {k} = [UKRYTO_DLA_OCHRONY_PRYWATNOSCI_RODO: prompt użytkownika, długość: {len(p_val)} znaków]")
 			else:
 				lines.append(f"  {k} = (pusty)")
-		elif k in SAFE_CONFIG_KEYS or not isinstance(v, str) or len(str(v)) < 50:
+		elif "url" in k_lower:
+			u_val = str(v).strip()
+			if u_val:
+				try:
+					sp = urllib.parse.urlsplit(u_val)
+					clean_host = sp.hostname or ""
+					if sp.port:
+						clean_host = f"{clean_host}:{sp.port}"
+					safe_u = urllib.parse.urlunsplit((sp.scheme, clean_host, sp.path, "", ""))
+					if sp.query:
+						safe_u += "?[ZREDAGOWANO_PARAMETRY_URL]"
+				except Exception:
+					safe_u = "[ZREDAGOWANO_URL]"
+				lines.append(f"  {k} = {safe_u}")
+			else:
+				lines.append(f"  {k} = (pusty)")
+		elif k in SAFE_CONFIG_KEYS:
 			lines.append(f"  {k} = {v}")
 		else:
-			lines.append(f"  {k} = [wartość tekstowa: {len(str(v))} znaków]")
+			lines.append(f"  {k} = [UKRYTO_NIEZNANY_KLUCZ_KONFIGURACJI: typ={type(v).__name__}, długość={len(str(v))} znaków]")
 	lines.append("")
 
 	lines.append(f"--- DZIENNIK ZDARZEŃ AUDIO ({'OSTATNIE 30 ZDARZEŃ' if is_adv else 'OSTATNIE 5 ZDARZEŃ'}) ---")
@@ -4052,18 +4071,7 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 					and not any(s in l.lower() for s in ("speaking [", "io - speech", "speaktext"))
 				]
 				for fl in filtered[-60:]:
-					redacted_fl = fl
-					for sec_k, sec_v in sec.items():
-						if any(w in sec_k.lower() for w in ("key", "password", "token")):
-							sv = str(sec_v).strip()
-							if len(sv) >= 6 and sv in redacted_fl:
-								redacted_fl = redacted_fl.replace(sv, "[ZREDAGOWANO_SEKRET]")
-					redacted_fl = re.sub(r'sk-[a-zA-Z0-9_\-]{20,}', '[ZREDAGOWANO_KLUCZ_OPENAI]', redacted_fl)
-					redacted_fl = re.sub(r'AIza[a-zA-Z0-9_\-]{30,}', '[ZREDAGOWANO_KLUCZ_GEMINI]', redacted_fl)
-					redacted_fl = re.sub(r'[A-Za-z]:\\[Uu]sers\\[^\\]+', r'C:\\Users\\[UZYTKOWNIK]', redacted_fl)
-					redacted_fl = re.sub(r'att_[a-f0-9]{12}', 'att_[ZREDAGOWANO_ID]', redacted_fl)
-					redacted_fl = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '[ZREDAGOWANO_EMAIL]', redacted_fl)
-					lines.append(f"  {redacted_fl}")
+					lines.append(f"  {_redact_sensitive_text(fl, sec)}")
 			else:
 				lines.append("  Brak dostępu do pliku dziennika NVDA")
 		except Exception as ex:
@@ -4073,7 +4081,10 @@ def generate_diagnostic_report(level: str = "basic") -> str:
 	lines.append("=" * 65)
 	lines.append("KONIEC RAPORTU DIAGNOSTYCZNEGO")
 	lines.append("=" * 65)
-	return "\n".join(lines)
+	return _redact_sensitive_text("\n".join(lines), sec)
+
+
+generateDiagnosticReport = generate_diagnostic_report
 
 
 class DiagnosticReportDialog(wx.Dialog):
@@ -4306,11 +4317,6 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 
 				hlUrl, hlTip = extractHyperlinkFromShape(ishape, isInline=True)
 
-				if not sourceUrl and hlUrl:
-					cleanHl = hlUrl.split("?")[0].lower()
-					if any(cleanHl.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")):
-						sourceUrl = hlUrl
-
 			ctx = "" if fast else extractContextTextForShape(doc, ishape, isInline=True)
 
 			itemIdx = len(items) + 1
@@ -4390,11 +4396,6 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 					pass
 
 				hlUrl, hlTip = extractHyperlinkFromShape(shape, isInline=False)
-
-				if not sourceUrl and hlUrl:
-					cleanHl = hlUrl.split("?")[0].lower()
-					if any(cleanHl.endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")):
-						sourceUrl = hlUrl
 
 			ctx = "" if fast else extractContextTextForShape(doc, shape, isInline=False)
 
@@ -4517,40 +4518,48 @@ def getStrictGraphicUnderCaret(
 
 	tiInstance = treeInterceptor or getattr(focus, "treeInterceptor", None)
 
-	# Tryb 1: Bufor przeglądania NVDA (browse mode) — jedyne wiarygodne źródło pozycji wirtualnego kursora
-	if tiInstance and getattr(tiInstance, "isAlive", False):
-		curPos = targetPos
-		if curPos is None:
-			try:
-				ti = getattr(tiInstance, "selection", None)
-				if ti and hasattr(ti, "_rangeObj") and ti._rangeObj:
-					curPos = int(ti._rangeObj.Start)
-			except Exception:
-				curPos = None
+	# Tryb 1: Pozycja wirtualnego kursora (targetPos lub selection bufora przeglądania)
+	curPos = targetPos
+	if curPos is None and tiInstance is not None:
+		try:
+			ti = getattr(tiInstance, "selection", None)
+			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj is not None:
+				curPos = int(ti._rangeObj.Start)
+		except Exception:
+			curPos = None
 
-		if curPos is not None:
-			for it in items:
-				if (it.rangeStart <= curPos <= it.rangeEnd) or abs(it.rangeStart - curPos) <= 1:
-					return it
-			# Kursor w buforze przeglądania stoi na tekście, nie na grafice
-			return None
+	if curPos is not None:
+		for it in items:
+			if (it.rangeEnd > it.rangeStart and it.rangeStart <= curPos < it.rangeEnd) or (
+				it.rangeEnd == it.rangeStart and curPos == it.rangeStart
+			):
+				return it
+		# Kursor stoi na tekście poza zakresem grafiki — wyczyść pamięć ostatniej grafiki i zwróć None
+		if GlobalPlugin.instance:
+			GlobalPlugin.instance._currentGraphicItem = None
+		return None
 
-	# Tryb 2: Tryb edycji / bezpośredni Word (bez bufora przeglądania)
+	# Tryb 2: Tryb edycji / bezpośredni Word (tylko gdy brak bufora przeglądania i curPos jest None)
 	try:
 		sel = getattr(doc.Application, "Selection", None)
-		if sel:
+		if sel is not None:
 			selType = getattr(sel, "Type", 0)
 			selStart = getattr(sel, "Start", None)
 			selStartVal = int(selStart() if callable(selStart) else selStart) if selStart is not None else None
 			# 7: wdSelectionInlineShape, 8: wdSelectionShape
 			if selType in (7, 8) and selStartVal is not None:
 				for it in items:
-					if abs(it.rangeStart - selStartVal) <= 5 or (it.rangeStart <= selStartVal <= it.rangeEnd):
+					if (it.rangeEnd > it.rangeStart and it.rangeStart <= selStartVal < it.rangeEnd) or abs(it.rangeStart - selStartVal) <= 1:
 						return it
 			elif selStartVal is not None:
 				for it in items:
-					if it.rangeStart <= selStartVal <= it.rangeEnd:
+					if (it.rangeEnd > it.rangeStart and it.rangeStart <= selStartVal < it.rangeEnd) or (
+						it.rangeEnd == it.rangeStart and selStartVal == it.rangeStart
+					):
 						return it
+			if GlobalPlugin.instance:
+				GlobalPlugin.instance._currentGraphicItem = None
+			return None
 	except Exception as ex:
 		log.debug(f"outlookImageHelper: getStrictGraphicUnderCaret selection check error: {ex}")
 
@@ -5489,8 +5498,8 @@ def _is_attachment_inline_image(att):
 	Chroni zwykłe pliki (np. image_budget.pdf) i załączone maile .msg (Type == 5).
 	"""
 	try:
-		fn = (getattr(att, "FileName", "") or "").lower()
-		ext = os.path.splitext(fn)[1]
+		fn = (getattr(att, "FileName", "") or "").strip().lower()
+		ext = os.path.splitext(fn)[1] if fn else ""
 		cid = ""
 		flags = 0
 		try:
@@ -5501,15 +5510,16 @@ def _is_attachment_inline_image(att):
 		except Exception:
 			pass
 
-		img_exts = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".ico", ".svg"}
-		if (cid or (flags & 4)) and (ext in img_exts or not ext):
+		if (cid or (flags & 4)) and (ext in IMAGE_EXTENSIONS or not ext):
 			return True
 
 		attType = int(getattr(att, "Type", 1) or 1)
-		if attType == 6 and (fn.startswith("oledata") or not ext):
+		if attType == 6 and (fn.startswith("oledata") or not ext or ext in IMAGE_EXTENSIONS):
+			return True
+		if attType == 5 and (not fn or ext in IMAGE_EXTENSIONS):
 			return True
 
-		if ext in img_exts and re.match(r'^image\d{3,}\.(?:png|jpg|jpeg|gif|bmp)$', fn) and (cid or not fn):
+		if ext in IMAGE_EXTENSIONS and re.match(r'^image\d{3,}\.', fn):
 			return True
 
 		return False
@@ -5630,35 +5640,84 @@ def extractTextFromDocxFile(filePath: str) -> str:
 				return ""
 			xmlContent = z.read("word/document.xml")
 			tree = ET.fromstring(xmlContent)
-			paragraphs = []
+
+			def _local_tag(elem) -> str:
+				return elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+
+			def _extract_p_text(p_elem) -> str:
+				parts = []
+				for node in p_elem.iter():
+					lt = _local_tag(node)
+					if lt in ("t", "delText") and node.text:
+						parts.append(node.text)
+					elif lt == "tab":
+						parts.append("\t")
+					elif lt in ("br", "cr"):
+						parts.append("\n")
+				return "".join(parts).strip()
+
+			def _extract_tbl_rows(tbl_elem) -> list[str]:
+				rows_out = []
+				for child in tbl_elem:
+					lt = _local_tag(child)
+					if lt == "tr":
+						cells = []
+						for tc in child:
+							if _local_tag(tc) != "tc":
+								continue
+							cell_parts = _extract_blocks(tc)
+							cell_str = " ".join(part.strip() for part in cell_parts if part and part.strip())
+							cells.append(" ".join(cell_str.split()))
+						if any(cells):
+							rows_out.append(" | ".join(cells))
+					elif lt in ("sdt", "customXml"):
+						rows_out.extend(_extract_blocks_in_tr_container(child))
+				return rows_out
+
+			def _extract_blocks_in_tr_container(container) -> list[str]:
+				out = []
+				for ch in container:
+					lt = _local_tag(ch)
+					if lt == "tr":
+						cells = []
+						for tc in ch:
+							if _local_tag(tc) == "tc":
+								cell_parts = _extract_blocks(tc)
+								cell_str = " ".join(part.strip() for part in cell_parts if part and part.strip())
+								cells.append(" ".join(cell_str.split()))
+						if any(cells):
+							out.append(" | ".join(cells))
+					else:
+						out.extend(_extract_blocks_in_tr_container(ch))
+				return out
+
+			def _extract_blocks(container) -> list[str]:
+				blocks = []
+				for elem in container:
+					lt = _local_tag(elem)
+					if lt == "p":
+						p_txt = _extract_p_text(elem)
+						if p_txt:
+							blocks.append(p_txt)
+					elif lt == "tbl":
+						tbl_rows = _extract_tbl_rows(elem)
+						if tbl_rows:
+							blocks.extend(tbl_rows)
+					elif lt in ("sdt", "sdtContent", "customXml", "body", "document", "txbxContent"):
+						blocks.extend(_extract_blocks(elem))
+					else:
+						blocks.extend(_extract_blocks(elem))
+				return blocks
+
 			body = None
 			for child in tree.iter():
-				if child.tag.endswith("body"):
+				if _local_tag(child) == "body":
 					body = child
 					break
 			if body is None:
 				body = tree
 
-			for elem in body:
-				tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
-				if tag == "p":
-					pTexts = [child.text for child in elem.iter() if child.text and (child.tag.endswith("t") or child.tag.endswith("delText"))]
-					if pTexts:
-						paragraphs.append("".join(pTexts))
-				elif tag == "tbl":
-					for tr in elem.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tr"):
-						cells = []
-						for tc in tr.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tc"):
-							cTexts = [child.text for child in tc.iter() if child.text and (child.tag.endswith("t") or child.tag.endswith("delText"))]
-							cells.append(" ".join("".join(cTexts).split()))
-						if any(cells):
-							paragraphs.append(" | ".join(cells))
-				elif tag == "sdt":
-					for p in elem.findall(".//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p"):
-						pTexts = [child.text for child in p.iter() if child.text and (child.tag.endswith("t") or child.tag.endswith("delText"))]
-						if pTexts:
-							paragraphs.append("".join(pTexts))
-
+			paragraphs = _extract_blocks(body)
 			return "\n\n".join(paragraphs).strip()
 	except Exception as e:
 		log.debug(f"outlookImageHelper: extractTextFromDocxFile błąd: {e}")
@@ -5715,7 +5774,7 @@ def unlockPdfFile(pdfPath: str, password: str = "") -> tuple[bool, str]:
 		with open(unlockedPath, "wb") as f_out:
 			writer.write(f_out)
 
-		log.info(f"outlookImageHelper: Plik PDF pomyślnie odblokowany i zapisany do: {unlockedPath}")
+		log.info("outlookImageHelper: Plik PDF pomyślnie odblokowany do pliku tymczasowego.")
 		return True, unlockedPath
 	except Exception as ex:
 		log.error(f"outlookImageHelper: Błąd podczas odszyfrowywania PDF: {ex}", exc_info=True)
@@ -10787,31 +10846,34 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 			apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
 
 			def _doSaveWithPrompt(aiCandidate=""):
-				suggestedName = generateDescriptiveFilename(item, aiCandidate=aiCandidate)
-				with wx.FileDialog(
-					parentWin,
-					message="Zapisz grafikę jako plik PNG",
-					defaultFile=suggestedName,
-					wildcard="Pliki obrazów PNG (*.png)|*.png",
-					style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-				) as fileDialog:
-					if fileDialog.ShowModal() == wx.ID_CANCEL:
-						try:
-							os.remove(tempPng)
-						except Exception:
-							pass
-						return
-					destPath = fileDialog.GetPath()
-
 				try:
-					import shutil
-					shutil.copyfile(tempPng, destPath)
-					ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
-				except Exception as e:
-					showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=parentWin)
+					if parentWin is not None:
+						if getattr(parentWin, "IsBeingDeleted", lambda: False)():
+							return
+						h = getattr(parentWin, "Handle", None)
+						if h is not None and not winUser.isWindow(h):
+							return
+					suggestedName = generateDescriptiveFilename(item, aiCandidate=aiCandidate)
+					with wx.FileDialog(
+						parentWin,
+						message="Zapisz grafikę jako plik PNG",
+						defaultFile=suggestedName,
+						wildcard="Pliki obrazów PNG (*.png)|*.png",
+						style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+					) as fileDialog:
+						if fileDialog.ShowModal() == wx.ID_CANCEL:
+							return
+						destPath = fileDialog.GetPath()
+
+					try:
+						shutil.copyfile(tempPng, destPath)
+						ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
+					except Exception as e:
+						showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=parentWin)
 				finally:
 					try:
-						os.remove(tempPng)
+						if tempPng and os.path.isfile(tempPng):
+							os.remove(tempPng)
 					except Exception:
 						pass
 
@@ -11458,6 +11520,20 @@ class GraphicElementsDialog(wx.Dialog):
 			self.notebook.SetPageText(mode, _T(tag, count=cntStr))
 		self.updateDetails()
 
+	@staticmethod
+	def _normalizeSourceUrl(url: str) -> str:
+		"""Normalizuje URL obniżając wielkość liter wyłącznie w schemacie i nazwie hosta (zachowując ścieżkę i zapytanie)."""
+		raw = (url or "").strip()
+		if not raw:
+			return ""
+		try:
+			sp = urllib.parse.urlsplit(raw)
+			if sp.scheme and sp.netloc:
+				return urllib.parse.urlunsplit((sp.scheme.lower(), sp.netloc.lower(), sp.path, sp.query, sp.fragment))
+		except Exception:
+			pass
+		return raw
+
 	def _getDeduplicated(self, items: list[GraphicItem | AttachmentItem]) -> list[GraphicItem | AttachmentItem]:
 		"""Grupuje identyczne grafiki w jeden reprezentatywny element z licznikiem powtórzeń."""
 		if not items:
@@ -11469,12 +11545,19 @@ class GraphicElementsDialog(wx.Dialog):
 				hasCid = bool(item.cid and item.cid.strip())
 				isDivider = bool(getattr(item, "isDivider", False))
 				hasIdenticalSourceUrl = bool(getattr(item, "sourceUrl", "") and item.sourceUrl.strip())
+				metaSignature = (
+					(item.altText or "").strip(),
+					(item.title or "").strip(),
+					(item.hyperlinkUrl or "").strip(),
+					round(item.widthPt, 1),
+					round(item.heightPt, 1),
+				)
 				if hasCid:
-					key = ("cid", item.cid.strip().lower(), round(item.widthPt, 1), round(item.heightPt, 1))
+					key = ("cid", item.cid.strip().lower(), metaSignature)
 				elif hasIdenticalSourceUrl:
-					key = ("sourceUrl", item.sourceUrl.strip().lower(), round(item.widthPt, 1), round(item.heightPt, 1))
-				elif isDivider:
-					key = ("divider", round(item.widthPt, 1), round(item.heightPt, 1))
+					key = ("sourceUrl", self._normalizeSourceUrl(item.sourceUrl), metaSignature)
+				elif isDivider and getattr(item, "isBlankOrSolid", False) and not (item.altText or item.title or item.hyperlinkUrl):
+					key = ("divider", metaSignature)
 				else:
 					# Brak silnego identyfikatora tożsamości źródła - nie uznawaj różnych grafik za identyczne
 					key = ("unique", id(item), item.index)
@@ -12146,31 +12229,33 @@ class GraphicElementsDialog(wx.Dialog):
 			apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
 
 			def _doSaveWithPrompt(aiCandidate=""):
-				suggestedName = generateDescriptiveFilename(item, aiCandidate=aiCandidate)
-				with wx.FileDialog(
-					self,
-					message="Zapisz grafikę jako plik PNG",
-					defaultFile=suggestedName,
-					wildcard="Pliki obrazów PNG (*.png)|*.png",
-					style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-				) as fileDialog:
-					if fileDialog.ShowModal() == wx.ID_CANCEL:
-						try:
-							os.remove(tempPng)
-						except Exception:
-							pass
-						return
-					destPath = fileDialog.GetPath()
-
 				try:
-					import shutil
-					shutil.copyfile(tempPng, destPath)
-					ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
-				except Exception as e:
-					showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=self)
+					if getattr(self, "IsBeingDeleted", lambda: False)():
+						return
+					h = getattr(self, "Handle", None)
+					if h is not None and not winUser.isWindow(h):
+						return
+					suggestedName = generateDescriptiveFilename(item, aiCandidate=aiCandidate)
+					with wx.FileDialog(
+						self,
+						message="Zapisz grafikę jako plik PNG",
+						defaultFile=suggestedName,
+						wildcard="Pliki obrazów PNG (*.png)|*.png",
+						style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+					) as fileDialog:
+						if fileDialog.ShowModal() == wx.ID_CANCEL:
+							return
+						destPath = fileDialog.GetPath()
+
+					try:
+						shutil.copyfile(tempPng, destPath)
+						ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
+					except Exception as e:
+						showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=self)
 				finally:
 					try:
-						os.remove(tempPng)
+						if tempPng and os.path.isfile(tempPng):
+							os.remove(tempPng)
 					except Exception:
 						pass
 
@@ -12246,28 +12331,40 @@ class GraphicElementsDialog(wx.Dialog):
 		useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
 		apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
 
-		# Ekstrakcja grafik na wątku STA przed uruchomieniem wątku w tle
+		# Ekstrakcja grafik oraz metadanych na głównym wątku STA przed uruchomieniem wątku w tle
+		# (wątek roboczy nie ma prawa dotykać obiektów GraphicItem ani wskaźników COM rawObject!)
 		prepared = []
 		for item in items:
+			itemIdx = int(getattr(item, "index", 1))
 			try:
 				p = extractGraphicToPngFile(item)
-				prepared.append((item, p))
+				needsAi = bool(
+					useAi
+					and apiKey
+					and item.isScreenshotOrUnlabeled
+					and not item.ocrText
+					and not getattr(item, "customName", "")
+					and not item.altText
+					and not item.title
+				)
+				fallbackName = generateDescriptiveFilename(item)
+				prepared.append((itemIdx, p, needsAi, fallbackName))
 			except Exception as ex:
-				log.debug(f"outlookImageHelper: błąd ekstrakcji grafiki {item.index}: {ex}")
-				prepared.append((item, None))
+				log.debug(f"outlookImageHelper: błąd ekstrakcji grafiki {itemIdx}: {ex}")
+				prepared.append((itemIdx, None, False, f"{itemIdx:02d}_Grafika_{itemIdx}.png"))
 
 		def _worker():
 			savedCount = 0
 			errors = 0
 			usedNames = set()
 			with BusySoundTicker(startTone=True, interval=0.22, baseFreq=580, endTone=True):
-				for item, tempPng in prepared:
+				for itemIdx, tempPng, needsAi, fallbackName in prepared:
 					if not tempPng or not os.path.isfile(tempPng):
 						errors += 1
 						continue
 					try:
 						aiCand = ""
-						if useAi and apiKey and item.isScreenshotOrUnlabeled and not item.ocrText:
+						if needsAi:
 							try:
 								aiCand = describeWithGemini(
 									tempPng,
@@ -12276,7 +12373,11 @@ class GraphicElementsDialog(wx.Dialog):
 								)
 							except Exception:
 								pass
-						baseFilename = generateDescriptiveFilename(item, aiCandidate=aiCand)
+						if aiCand:
+							safeAi = sanitizeFilename(aiCand.strip().strip('"').strip("'"))
+							baseFilename = f"{itemIdx:02d}_{safeAi}.png" if safeAi else fallbackName
+						else:
+							baseFilename = fallbackName
 						candidatePath = os.path.join(targetDir, baseFilename)
 						root, ext = os.path.splitext(baseFilename)
 						counter = 1
@@ -12285,16 +12386,17 @@ class GraphicElementsDialog(wx.Dialog):
 							counter += 1
 
 						usedNames.add(candidatePath.lower())
-						import shutil
 						shutil.copyfile(tempPng, candidatePath)
 						savedCount += 1
+					except Exception as ex:
+						log.error(f"outlookImageHelper: Błąd seryjnego zapisu grafiki {itemIdx}: {ex}", exc_info=True)
+						errors += 1
+					finally:
 						try:
-							os.remove(tempPng)
+							if tempPng and os.path.isfile(tempPng):
+								os.remove(tempPng)
 						except Exception:
 							pass
-					except Exception as ex:
-						log.error(f"outlookImageHelper: Błąd seryjnego zapisu grafiki {item.index}: {ex}", exc_info=True)
-						errors += 1
 
 			def _onDone():
 				if errors == 0:
@@ -12594,8 +12696,9 @@ class AddonUpdaterEngine:
 	def _worker_download_install(self, download_url: str, remote_ver: str = ""):
 		import addonHandler
 
-		ui.message(f"Pobieranie aktualizacji dla {self.addon_title}...")
+		wx.CallAfter(ui.message, f"Pobieranie aktualizacji dla {self.addon_title}...")
 		target_pkg = None
+		is_temp_pkg = False
 
 		try:
 			if download_url.startswith("http://") or download_url.startswith("https://"):
@@ -12604,6 +12707,7 @@ class AddonUpdaterEngine:
 				with urllib.request.urlopen(req, timeout=30) as resp, open(tmp_file, "wb") as out:
 					shutil.copyfileobj(resp, out)
 				target_pkg = tmp_file
+				is_temp_pkg = True
 			else:
 				candidates = [download_url]
 				candidates.extend([
@@ -12618,51 +12722,108 @@ class AddonUpdaterEngine:
 			if not target_pkg or not os.path.isfile(target_pkg):
 				raise FileNotFoundError(f"Nie znaleziono pliku instalacyjnego dodatku:\n{download_url}")
 
+			# Walidacja pakietu .nvda-addon przed przekazaniem do wątku GUI
+			bundle = addonHandler.AddonBundle(target_pkg)
+			manifest_name = str(bundle.manifest.get("name") or "").strip()
+			manifest_ver = str(bundle.manifest.get("version") or "").strip()
+			if not manifest_name or not manifest_ver:
+				raise ValueError("Pobrany pakiet nie zawiera prawidłowego pliku manifest.ini.")
+			if manifest_name != self.addon_name:
+				raise ValueError(f"Niezgodna nazwa dodatku w pakiecie: oczekiwano '{self.addon_name}', otrzymano '{manifest_name}'.")
+
 			def _do_install():
 				installed_ok = False
+				install_err_msg = ""
 				try:
+					try:
+						import addonHandler.addonVersionCheck as avc
+						if hasattr(avc, "isAddonCompatible") and not avc.isAddonCompatible(bundle):
+							if getattr(bundle, "canOverrideCompatibility", False):
+								bundle.enableCompatibilityOverride()
+							else:
+								raise RuntimeError("Pobrana wersja dodatku nie jest kompatybilna z bieżącą wersją NVDA.")
+					except ImportError:
+						pass
+
+					prevAddon = None
+					try:
+						from addonStore.install import _getPreviouslyInstalledAddonById
+						prevAddon = _getPreviouslyInstalledAddonById(bundle)
+					except Exception:
+						try:
+							for a in addonHandler.getAvailableAddons():
+								if getattr(a, "name", None) == manifest_name:
+									prevAddon = a
+									break
+						except Exception:
+							prevAddon = None
+
+					addonObj = None
 					if hasattr(addonHandler, "installAddonBundle"):
-						try:
-							bundle = addonHandler.AddonBundle(target_pkg)
-							addonHandler.installAddonBundle(bundle)
-							installed_ok = True
-						except TypeError:
-							addonHandler.installAddonBundle(target_pkg)
-							installed_ok = True
+						addonObj = addonHandler.installAddonBundle(bundle)
 					elif hasattr(addonHandler, "installAddonPackage"):
-						try:
-							bundle = addonHandler.AddonBundle(target_pkg)
-							addonHandler.installAddonPackage(bundle)
-							installed_ok = True
-						except TypeError:
-							addonHandler.installAddonPackage(target_pkg)
-							installed_ok = True
+						addonObj = addonHandler.installAddonPackage(bundle)
 					elif hasattr(addonHandler, "installAddon"):
-						bundle = addonHandler.AddonBundle(target_pkg)
-						addonHandler.installAddon(bundle)
+						addonObj = addonHandler.installAddon(bundle)
+
+					install_exceptions = getattr(bundle, "_installExceptions", None)
+					if addonObj is not None and not install_exceptions:
+						if prevAddon is not None:
+							try:
+								from addonStore.dataManager import addonDataManager
+								if addonDataManager:
+									addonDataManager._deleteCacheInstalledAddon(prevAddon.name)
+							except Exception:
+								pass
+							try:
+								prevAddon.requestRemove()
+							except Exception as remEx:
+								log.warning(f"{self.addon_name} updater prevAddon.requestRemove warning: {remEx}")
+						if hasattr(addonObj, "_cleanupAddonImports"):
+							try:
+								addonObj._cleanupAddonImports()
+							except Exception:
+								pass
 						installed_ok = True
+					else:
+						if install_exceptions:
+							install_err_msg = "; ".join(str(e) for e in install_exceptions)
+						else:
+							install_err_msg = "Funkcja installAddonBundle zwróciła wartość None."
 				except Exception as ex:
-					log.debug(f"{self.addon_name} updater internal install error: {ex}")
+					install_err_msg = str(ex)
+					log.error(f"{self.addon_name} updater internal install error: {ex}", exc_info=True)
+				finally:
+					if is_temp_pkg and target_pkg and os.path.isfile(target_pkg):
+						try:
+							os.remove(target_pkg)
+						except Exception:
+							pass
 
 				if installed_ok:
-					ver_text = f" do wersji {remote_ver}" if remote_ver else ""
+					ver_text = f" do wersji {remote_ver or manifest_ver}" if (remote_ver or manifest_ver) else ""
 					if gui.messageBox(
 						f"Pomyślnie zaktualizowano dodatek {self.addon_title}{ver_text}.\n\nCzy chcesz teraz zrestartować NVDA, aby zastosować zmiany?",
 						"Aktualizacja zakończona sukcesem",
 						wx.YES_NO | wx.ICON_QUESTION
 					) == wx.YES:
-						import core
 						core.restart()
 					return
 
-				try:
-					os.startfile(target_pkg)
-				except Exception as ex2:
-					gui.messageBox(f"Nie udało się uruchomić instalatora:\n{ex2}", "Błąd instalacji", wx.OK | wx.ICON_ERROR)
+				gui.messageBox(
+					f"Nie udało się zainstalować aktualizacji dodatku {self.addon_title}.\n\nSzczegóły błędu:\n{install_err_msg or 'Nieznany błąd instalacji pakietu.'}",
+					f"Błąd instalacji: {self.addon_title}",
+					wx.OK | wx.ICON_ERROR
+				)
 
 			wx.CallAfter(_do_install)
 		except Exception as ex:
-			wx.CallAfter(gui.messageBox, f"Nie udało się pobrać aktualizacji:\n{ex}", f"Błąd aktualizacji: {self.addon_title}", wx.OK | wx.ICON_ERROR)
+			if is_temp_pkg and target_pkg and os.path.isfile(target_pkg):
+				try:
+					os.remove(target_pkg)
+				except Exception:
+					pass
+			wx.CallAfter(gui.messageBox, f"Nie udało się pobrać lub zweryfikować aktualizacji:\n{ex}", f"Błąd aktualizacji: {self.addon_title}", wx.OK | wx.ICON_ERROR)
 
 
 # ==============================================================================
@@ -15849,7 +16010,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						unlocked = ensurePdfUnlocked(it, parentWin=parentDialog)
 						if not unlocked:
 							ui.message(f"Pominięto zaszyfrowany plik PDF: {it.fileName}")
-							p = None
+							try:
+								if p and os.path.isfile(p):
+									os.remove(p)
+							except Exception:
+								pass
+							it.tempSavedPath = ""
+							prepared_items.append((it, "__SKIPPED_PDF__"))
+							continue
 						else:
 							p = unlocked
 					prepared_items.append((it, p))
@@ -15868,13 +16036,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				tempClean = None
 				try:
 					if isAtt:
+						if targetPath == "__SKIPPED_PDF__":
+							header = f"=== Opis AI — Załącznik {it.index}: {it.fileName} ({it.formattedSize}) ==="
+							results.append(f"{header}\n\n(Pominięto zaszyfrowany plik PDF — anulowano podawanie hasła)")
+							continue
+						if not targetPath or not os.path.isfile(targetPath):
+							header = f"=== Opis AI — Załącznik {it.index}: {it.fileName} ({it.formattedSize}) ==="
+							results.append(f"{header}\n\nNie udało się przygotować pliku załącznika do analizy AI.")
+							continue
+
 						mimeType = "image/png"
 						prefaceText = ""
 						sendPath = targetPath
-						b64Data = getattr(it, "base64Data", "")
+						b64Data = ""
 
 						if it.isPdf:
-							targetPath = getattr(it, 'unlockedPdfPath', '') or targetPath
 							sendPath = targetPath
 							mimeType = "application/pdf"
 							try:

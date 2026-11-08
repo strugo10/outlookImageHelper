@@ -1,7 +1,7 @@
 {
   "name": "outlookImageHelper",
-  "version": "1.6.12",
+  "version": "1.6.14",
   "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-  "changelog": "Wersja 1.6.12:\n• Naprawa menu kontekstowego na pasku zablokowanych grafik (InfoBar): klawisz menu kontekstowego (Aplikacje / Shift+F10) poprawnie otwiera natywne menu Outlooka z opcją pobierania obrazów, gdy fokus znajduje się na pasku informacyjnym lub nagłówku wiadomości.\n• Ścisła weryfikacja pozycji kursora: menu czynności dodatku aktywuje się wyłącznie wtedy, gdy kursor znajduje się bezpośrednio na grafice w treści wiadomości, bez przechwytywania menu kontekstowego w innych obszarach Outlooka.",
+  "changelog": "Wersja 1.6.14:\n• Pełna realizacja wszystkich 12 zaleceń z audytu bezpieczeństwa i stabilności (Review 03: N01–N09, U01–U03).\n• Pełny kontrakt instalatora aktualizacji NVDA (weryfikacja pakietu AddonBundle, oznaczanie poprzedniej wersji prevAddon.requestRemove() oraz kontrola _installExceptions).\n• Precyzyjne odróżnianie zwykłych załączników graficznych od obrazów wklejonych w treść (IMAGE_EXTENSIONS) na liście wiadomości.\n• Poprawna obsługa okna Explorer na pierwszym planie przy otwartym oknie wiadomości w tle (ActiveWindow przed ActiveInspector).\n• Zachowanie wielkości liter ścieżki URL, metadanych alt/title/href przy deduplikacji oraz bezpieczna ekstrakcja na wątku STA.\n• Pełna redakcja danych wrażliwych (RODO) w raportach diagnostycznych i logach oraz rekurencyjny odczyt tabel i akapitów DOCX.",
   "minNVDAVersion": "2024.1.0"
 }
