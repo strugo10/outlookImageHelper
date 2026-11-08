@@ -72,11 +72,11 @@ ADDON_NAME = "Outlook Image Helper"
 ADDON_TITLE = "Outlook - Pomocnik obrazów i załączników"
 ADDON_AUTHOR = "Sławomir Strugarek z pomocą Antigravity (Google DeepMind)"
 ADDON_BUILD_DATE = "2026-11-08"
-ADDON_BUILD_ID = "20261108.4"
-ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.1+ | Microsoft Outlook 2013-365 Classic"
+ADDON_BUILD_ID = "20261108.5"
+ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.3+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.14"
+ADDON_VERSION = "1.6.15"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -1185,7 +1185,7 @@ def showContextHelp(context: str, parent=None):
 				"- Przycisk 'Skróty klawiszowe (Zdarzenia wejścia)': Konfiguracja globalnych gestów NVDA\n"
 				"- Przycisk 'Instrukcja obsługi': Otwiera pełną dokumentację HTML w przeglądarce\n"
 			)
-	ui.browseableMessage(text, title=title)
+	showAccessibleMessageBox(text, title=title, parent=parent)
 
 
 class AccessibleMessageDialog(wx.Dialog):
@@ -1343,26 +1343,73 @@ def showAccessibleMessageBox(message: str, title: str = "Informacja", parent=Non
 	if not wx.IsMainThread():
 		wx.CallAfter(showAccessibleMessageBox, message, title, parent, buttonLabel, actionBtnLabel, actionCallback)
 		return
-	gui.mainFrame.prePopup()
+	hasValidParent = bool(parent and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
+	if not hasValidParent:
+		gui.mainFrame.prePopup()
 	try:
-		dlg = AccessibleMessageDialog(parent, message, title=title, buttonLabel=buttonLabel, actionBtnLabel=actionBtnLabel, actionCallback=actionCallback)
+		dlg = AccessibleMessageDialog(parent if hasValidParent else gui.mainFrame, message, title=title, buttonLabel=buttonLabel, actionBtnLabel=actionBtnLabel, actionCallback=actionCallback)
 		dlg.ShowModal()
 		dlg.Destroy()
 	finally:
-		gui.mainFrame.postPopup()
+		if GlobalPlugin.instance:
+			GlobalPlugin.instance._suppressCaretSpeechUntil = time.time() + 0.50
+		if not hasValidParent:
+			_ensureWordSelectionCollapsed()
+			gui.mainFrame.postPopup()
+		else:
+			try:
+				parent.Raise()
+				parent.SetFocus()
+			except Exception:
+				pass
 
+
+def showOcrResultDialog(text: str, title: str = "Rozpoznany tekst (OCR)", parent=None):
+	"""
+	Wyświetla wynik rozpoznawania tekstu (OCR) w natywnym, w pełni dostępnym oknie dialogowym
+	z wielowierszowym polem tekstowym tylko do odczytu (wx.TextCtrl) oraz przyciskiem kopiowania.
+	Otwiera się błyskawicznie (< 5 ms), bez uruchamiania WebView2 i bez zamrażania fokusu UIA w Outlooku.
+	"""
+	isPl = (getEffectiveLanguage() == "pl")
+	copyLabel = "&Kopiuj cały tekst" if isPl else "&Copy all text"
+	closeLabel = "&Zamknij (Esc)" if isPl else "&Close (Esc)"
+
+	def _onCopy(evt):
+		if text and copyHtmlAndTextToClipboard(text):
+			ui.message("Skopiowano cały rozpoznany tekst do schowka." if isPl else "Copied all recognized text to clipboard.")
+
+	showAccessibleMessageBox(
+		text,
+		title=title,
+		parent=parent,
+		buttonLabel=closeLabel,
+		actionBtnLabel=copyLabel,
+		actionCallback=_onCopy,
+	)
 
 
 def showAccessibleConfirmBox(message: str, title: str = "Potwierdzenie", parent=None, defaultYes: bool = False) -> bool:
 	"""Wyświetla w pełni dostępne okno pytania Tak/Nie z fokusem na tekście pytania."""
-	gui.mainFrame.prePopup()
+	hasValidParent = bool(parent and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
+	if not hasValidParent:
+		gui.mainFrame.prePopup()
 	try:
-		dlg = AccessibleConfirmDialog(parent, message, title=title, defaultYes=defaultYes)
+		dlg = AccessibleConfirmDialog(parent if hasValidParent else gui.mainFrame, message, title=title, defaultYes=defaultYes)
 		res = dlg.ShowModal()
 		dlg.Destroy()
 		return (res == wx.ID_YES)
 	finally:
-		gui.mainFrame.postPopup()
+		if GlobalPlugin.instance:
+			GlobalPlugin.instance._suppressCaretSpeechUntil = time.time() + 0.50
+		if not hasValidParent:
+			_ensureWordSelectionCollapsed()
+			gui.mainFrame.postPopup()
+		else:
+			try:
+				parent.Raise()
+				parent.SetFocus()
+			except Exception:
+				pass
 
 
 DEFAULT_PROMPT_PRESETS = [
@@ -2014,13 +2061,25 @@ def showBlockedImageInstructionsDialog(parent, item=None, actionName: str = ""):
 	if not wx.IsMainThread():
 		wx.CallAfter(showBlockedImageInstructionsDialog, parent, item, actionName)
 		return
-	gui.mainFrame.prePopup()
+	hasValidParent = bool(parent and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
+	if not hasValidParent:
+		gui.mainFrame.prePopup()
 	try:
-		dlg = BlockedImageInstructionsDialog(parent, item=item, actionName=actionName)
+		dlg = BlockedImageInstructionsDialog(parent if hasValidParent else gui.mainFrame, item=item, actionName=actionName)
 		dlg.ShowModal()
 		dlg.Destroy()
 	finally:
-		gui.mainFrame.postPopup()
+		if GlobalPlugin.instance:
+			GlobalPlugin.instance._suppressCaretSpeechUntil = time.time() + 0.50
+		if not hasValidParent:
+			_ensureWordSelectionCollapsed()
+			gui.mainFrame.postPopup()
+		else:
+			try:
+				parent.Raise()
+				parent.SetFocus()
+			except Exception:
+				pass
 
 
 DownloadWebImageDialog = BlockedImageInstructionsDialog
@@ -4485,6 +4544,26 @@ def getOrCollectGraphics(
 	return items
 
 
+def _ensureWordSelectionCollapsed(doc=None):
+	"""
+	Upewnia się, że zaznaczenie w edytorze WordMail nie jest zaznaczeniem obiektu graficznego
+	(wdSelectionInlineShape=7 lub wdSelectionShape=8), które w NVDA 2026+ (UIA) powoduje
+	wyjątek UIAutomationTextRangeArray is empty oraz błąd 0xe06d7363 przy powrocie fokusu.
+	"""
+	try:
+		if not doc:
+			doc = getActiveWordDocument()
+		if not doc:
+			return
+		sel = getattr(doc.Application, "Selection", None)
+		if sel is not None:
+			selType = getattr(sel, "Type", 0)
+			if selType in (7, 8):
+				sel.Collapse(1)  # wdCollapseStart = 1
+	except Exception:
+		pass
+
+
 def getStrictGraphicUnderCaret(
 	doc=None,
 	treeInterceptor=None,
@@ -4517,18 +4596,27 @@ def getStrictGraphicUnderCaret(
 		return None
 
 	tiInstance = treeInterceptor or getattr(focus, "treeInterceptor", None)
+	candItem = getattr(GlobalPlugin.instance, "_currentGraphicItem", None) if GlobalPlugin.instance else None
+	lastCaretPos = getattr(GlobalPlugin.instance, "_lastNavigatedCaretPos", -9999) if GlobalPlugin.instance else -9999
 
-	# Tryb 1: Pozycja wirtualnego kursora (targetPos lub selection bufora przeglądania)
+	# Tryb 1: Pozycja wirtualnego kursora (targetPos lub selection bufora przeglądania COM)
 	curPos = targetPos
 	if curPos is None and tiInstance is not None:
 		try:
 			ti = getattr(tiInstance, "selection", None)
-			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj is not None:
+			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj is not None and hasattr(ti._rangeObj, "Start"):
 				curPos = int(ti._rangeObj.Start)
 		except Exception:
 			curPos = None
 
 	if curPos is not None:
+		if candItem and (
+			(candItem.rangeStart <= curPos <= candItem.rangeEnd) or
+			(lastCaretPos != -9999 and abs(curPos - lastCaretPos) <= 2)
+		):
+			for it in items:
+				if it.index == candItem.index:
+					return it
 		for it in items:
 			if (it.rangeEnd > it.rangeStart and it.rangeStart <= curPos < it.rangeEnd) or (
 				it.rangeEnd == it.rangeStart and curPos == it.rangeStart
@@ -4539,24 +4627,32 @@ def getStrictGraphicUnderCaret(
 			GlobalPlugin.instance._currentGraphicItem = None
 		return None
 
-	# Tryb 2: Tryb edycji / bezpośredni Word (tylko gdy brak bufora przeglądania i curPos jest None)
+	# Tryb 2: Tryb UIA / bezpośredni Word (odczyt pozycji z Selection dokumentu)
 	try:
 		sel = getattr(doc.Application, "Selection", None)
 		if sel is not None:
 			selType = getattr(sel, "Type", 0)
 			selStart = getattr(sel, "Start", None)
 			selStartVal = int(selStart() if callable(selStart) else selStart) if selStart is not None else None
-			# 7: wdSelectionInlineShape, 8: wdSelectionShape
-			if selType in (7, 8) and selStartVal is not None:
-				for it in items:
-					if (it.rangeEnd > it.rangeStart and it.rangeStart <= selStartVal < it.rangeEnd) or abs(it.rangeStart - selStartVal) <= 1:
-						return it
-			elif selStartVal is not None:
-				for it in items:
-					if (it.rangeEnd > it.rangeStart and it.rangeStart <= selStartVal < it.rangeEnd) or (
-						it.rangeEnd == it.rangeStart and selStartVal == it.rangeStart
-					):
-						return it
+			if selStartVal is not None:
+				if candItem and (
+					(candItem.rangeStart <= selStartVal <= candItem.rangeEnd) or
+					(lastCaretPos != -9999 and abs(selStartVal - lastCaretPos) <= 2)
+				):
+					for it in items:
+						if it.index == candItem.index:
+							return it
+				# 7: wdSelectionInlineShape, 8: wdSelectionShape
+				if selType in (7, 8):
+					for it in items:
+						if (it.rangeEnd > it.rangeStart and it.rangeStart <= selStartVal < it.rangeEnd) or abs(it.rangeStart - selStartVal) <= 1:
+							return it
+				else:
+					for it in items:
+						if (it.rangeEnd > it.rangeStart and it.rangeStart <= selStartVal < it.rangeEnd) or (
+							it.rangeEnd == it.rangeStart and selStartVal == it.rangeStart
+						):
+							return it
 			if GlobalPlugin.instance:
 				GlobalPlugin.instance._currentGraphicItem = None
 			return None
@@ -4572,10 +4668,10 @@ def getStrictGraphicUnderCaret(
 	):
 		if len(items) == 1:
 			return items[0]
-		if GlobalPlugin.instance and getattr(GlobalPlugin.instance, "_currentGraphicItem", None):
-			cand = GlobalPlugin.instance._currentGraphicItem
-			if any(it.index == cand.index for it in items):
-				return cand
+		if candItem:
+			for it in items:
+				if it.index == candItem.index:
+					return it
 
 	return None
 
@@ -4622,7 +4718,7 @@ def getGraphicAtCaret(
 	if curPos == 0 and treeInterceptor:
 		try:
 			ti = getattr(treeInterceptor, "selection", None)
-			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj:
+			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj and hasattr(ti._rangeObj, "Start"):
 				curPos = int(ti._rangeObj.Start)
 		except Exception:
 			pass
@@ -4681,8 +4777,9 @@ def _getDocFromTreeInterceptorOrFocus(treeInterceptorInstance=None):
 def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None) -> bool:
 	"""
 	Nawiguje do następnej lub poprzedniej grafiki bezpośrednio w treści wiadomości programu Outlook.
-	Wybiera grafikę w dokumencie Word, aktualizuje kursor bufora przeglądania NVDA,
-	odtwarza motyw dźwiękowy i wypowiada wyczerpujący, bezbłędny opis grafiki (zamiast 'pusta').
+	Ustawia zwinięty kursor tekstowy na pozycji grafiki (bez aktywowania uchwytów obiektu graficznego,
+	co zapobiega przeskakiwaniu widoku maila i błędom UIA 0xe06d7363 w NVDA 2026+),
+	odtwarza motyw dźwiękowy i wypowiada wyczerpujący, bezbłędny opis grafiki.
 	"""
 	if not doc:
 		doc = _getDocFromTreeInterceptorOrFocus(treeInterceptor)
@@ -4723,7 +4820,7 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 	if treeInterceptor:
 		try:
 			ti = getattr(treeInterceptor, "selection", None)
-			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj:
+			if ti and hasattr(ti, "_rangeObj") and ti._rangeObj and hasattr(ti._rangeObj, "Start"):
 				curPos = int(ti._rangeObj.Start)
 		except Exception:
 			pass
@@ -4798,21 +4895,25 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 		GlobalPlugin.instance._lastNavigatedIndex = targetItem.index
 		GlobalPlugin.instance._suppressCaretSpeechUntil = time.time() + 0.85
 
-	# Ustaw kursor w dokumencie Word na wybranej grafice jako poprawny zakres tekstowy
+	# Ustaw zwinięty kursor tekstowy (wdSelectionIP) na początku zakresu grafiki.
+	# NIGDY nie wywołujemy rawObject.Select(), ponieważ przełącza to Worda w tryb zaznaczenia
+	# obiektu (wdSelectionInlineShape=7 / wdSelectionShape=8), co powoduje przeskakiwanie widoku
+	# oraz błędy UIAutomationTextRangeArray is empty i 0xe06d7363 w NVDA 2026+!
 	newCaretPos = targetItem.rangeStart
 	try:
-		if getattr(targetItem, "isInline", True):
-			rng = doc.Range(targetItem.rangeStart, max(targetItem.rangeStart + 1, targetItem.rangeEnd))
-			rng.Select()
+		if sel:
+			if getattr(sel, "Type", 0) in (7, 8):
+				sel.Collapse(1)
+			sel.SetRange(targetItem.rangeStart, targetItem.rangeStart)
+			newCaretPos = int(getattr(sel, "Start", targetItem.rangeStart))
 		else:
 			rng = doc.Range(targetItem.rangeStart, targetItem.rangeStart)
 			rng.Select()
-		if sel:
-			newCaretPos = int(getattr(sel, "Start", targetItem.rangeStart))
 	except Exception:
 		try:
+			rng = doc.Range(targetItem.rangeStart, targetItem.rangeStart)
+			rng.Select()
 			if sel:
-				sel.SetRange(targetItem.rangeStart, targetItem.rangeStart)
 				newCaretPos = int(getattr(sel, "Start", targetItem.rangeStart))
 		except Exception as ex:
 			log.debug(f"outlookImageHelper: navigateGraphic select error: {ex}")
@@ -4820,22 +4921,17 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 	if GlobalPlugin.instance:
 		GlobalPlugin.instance._lastNavigatedCaretPos = newCaretPos
 
-	# Spróbuj zaznaczyć bezpośrednio obiekt graficzny, jeśli Word to umożliwia
-	try:
-		if getattr(targetItem, "rawObject", None) and hasattr(targetItem.rawObject, "Select"):
-			targetItem.rawObject.Select()
-	except Exception:
-		pass
-
-	# Zsynchronizuj pozycję wirtualnego bufora przeglądania NVDA z pozycją grafiki
+	# Zsynchronizuj pozycję wirtualnego bufora przeglądania NVDA wyłącznie dla klasycznego trybu COM Word
+	# (w trybie UIA OutlookUIAWordDocument odczytuje pozycję bezpośrednio z kursora Worda,
+	# a nadpisywanie tiInfo._rangeObj obiektem COM lub wywołanie selection=tiInfo na grafice psuje stan UIA).
 	if treeInterceptor and getattr(treeInterceptor, "isAlive", False):
 		try:
 			root = getattr(treeInterceptor, "rootNVDAObject", None)
-			if root and hasattr(root, "makeTextInfo"):
+			if root and hasattr(root, "makeTextInfo") and not hasattr(root, "UIATextPattern"):
 				import textInfos
 				tiInfo = root.makeTextInfo(textInfos.POSITION_CARET)
-				if hasattr(tiInfo, "_rangeObj"):
-					tiInfo._rangeObj = doc.Range(targetItem.rangeStart, max(targetItem.rangeStart + 1, targetItem.rangeEnd))
+				if hasattr(tiInfo, "_rangeObj") and hasattr(tiInfo._rangeObj, "Start"):
+					tiInfo._rangeObj = doc.Range(targetItem.rangeStart, targetItem.rangeStart)
 					treeInterceptor.selection = tiInfo
 		except Exception as ex:
 			log.debug(f"outlookImageHelper: navigateGraphic treeInterceptor sync error: {ex}")
@@ -5030,7 +5126,7 @@ def _treeInterceptor_speakTextInfo(treeInterceptorInstance, info, *args, **kwarg
 			if doc:
 				targetPos = None
 				try:
-					if hasattr(info, "_rangeObj") and info._rangeObj:
+					if hasattr(info, "_rangeObj") and info._rangeObj and hasattr(info._rangeObj, "Start"):
 						targetPos = int(info._rangeObj.Start)
 				except Exception:
 					pass
@@ -5146,11 +5242,120 @@ def _treeInterceptor_handleCaretMove(treeInterceptorInstance):
 		orig()
 
 
+def _treeInterceptor_event_gainFocus(treeInterceptorInstance):
+	"""
+	Chroni powrót fokusu do okna wiadomości Outlook (_WwG) przed zawieszeniem UIA (błąd 0xe06d7363)
+	w browseMode.event_treeInterceptor_gainFocus, gdy kursor stoi na grafice w tabeli HTML.
+	"""
+	if not _isOutlookTreeInterceptor(treeInterceptorInstance):
+		orig = getattr(treeInterceptorInstance, "_orig_event_treeInterceptor_gainFocus", None)
+		if orig:
+			orig()
+		return
+
+	_ensureWordSelectionCollapsed()
+
+	if getattr(treeInterceptorInstance, "_hadFirstGainFocus", False):
+		if GlobalPlugin.instance and time.time() < getattr(GlobalPlugin.instance, "_suppressCaretSpeechUntil", 0):
+			return
+		cand = getattr(GlobalPlugin.instance, "_currentGraphicItem", None) if GlobalPlugin.instance else None
+		if cand is not None:
+			try:
+				import speech
+				root = getattr(treeInterceptorInstance, "rootNVDAObject", None)
+				if root:
+					speech.speakObject(root, controlTypes.OutputReason.ONLYCACHE)
+			except Exception:
+				pass
+			lbl = getattr(cand, "customName", "") or getattr(cand, "altText", "")
+			msg = f"Grafika {cand.index}: {lbl}" if lbl else f"Grafika {cand.index}"
+			ui.message(msg)
+			return
+
+	orig = getattr(treeInterceptorInstance, "_orig_event_treeInterceptor_gainFocus", None)
+	if orig:
+		try:
+			orig()
+		except Exception as ex:
+			log.debug(f"outlookImageHelper: _treeInterceptor_event_gainFocus suppressed error: {ex}")
+
+
+def _treeInterceptor_shouldSetFocusToObj(treeInterceptorInstance, obj):
+	"""
+	Zapobiega wywoływaniu obj.setFocus() (UIAElement.SetFocus) na obiektach graficznych
+	w wiadomościach Outlooka, co przełączałoby Worda w tryb zaznaczenia kształtu (Typ 7/8)
+	i powodowało przeskakiwanie widoku oraz zawieszenia UIA.
+	"""
+	try:
+		if _isOutlookTreeInterceptor(treeInterceptorInstance):
+			role = getattr(obj, "role", None)
+			if role in (
+				controlTypes.Role.GRAPHIC,
+				getattr(controlTypes.Role, "IMAGE", -1),
+				getattr(controlTypes.Role, "PICTURE", -1),
+			):
+				return False
+	except Exception:
+		pass
+	orig = getattr(treeInterceptorInstance, "_orig_shouldSetFocusToObj", None)
+	if orig:
+		return orig(obj)
+	return False
+
+
+def _wordDocTextInfo_init(self, obj, position, _rangeObj=None):
+	"""
+	Zabezpiecza inicjalizację WordDocumentTextInfo w NVDA 2026+ (UIA) przed wyjątkiem
+	NotImplementedError ('UIAutomationTextRangeArray is empty'), gdy w WordMail zaznaczony
+	jest obiekt graficzny zamiast kursora tekstowego.
+	"""
+	orig = getattr(self.__class__, "_orig_init", None)
+	try:
+		if _rangeObj is not None:
+			orig(self, obj, position, _rangeObj=_rangeObj)
+		else:
+			orig(self, obj, position)
+	except NotImplementedError:
+		_ensureWordSelectionCollapsed(getattr(obj, "WinwordDocumentObject", None))
+		try:
+			orig(self, obj, position)
+		except Exception:
+			import textInfos
+			orig(self, obj, textInfos.POSITION_FIRST)
+
+
+def _wordDocTextInfo_getTextWithFields(self, formatConfig=None):
+	"""
+	Omija błąd w NVDA 2026+ (NVDAObjects/UIA/wordDocument.py linia 466-467: r.end = r.start
+	nie zwija zakresu UIATextInfo i wywołuje getChildrenWithCacheFromUIATextRange na pustym
+	wierszu z grafiką w tabeli HTML, co powoduje wyjątek C++ 0xe06d7363 w OUTLOOK.EXE
+	i 2.5-sekundowe zamrożenie wątku głównego w pętli watchdog).
+	"""
+	try:
+		obj = getattr(self, "obj", None)
+		appMod = getattr(obj, "appModule", None) if obj else None
+		if appMod and getattr(appMod, "appName", "").lower() == "outlook":
+			if not self.isCollapsed and getattr(self, "_rangeObj", None) is not None:
+				rawText = self._rangeObj.GetText(2)
+				if not rawText or rawText == "\x07":
+					return []
+	except Exception:
+		pass
+	orig = getattr(self.__class__, "_orig_getTextWithFields", None)
+	if orig:
+		try:
+			return orig(self, formatConfig=formatConfig)
+		except Exception as ex:
+			log.debug(f"outlookImageHelper: _wordDocTextInfo_getTextWithFields caught error: {ex}")
+			return []
+	return []
+
+
 def _patchOutlookTreeInterceptors():
 	"""
 	Podłącza usprawnioną nawigację po grafikach (G oraz Shift+G),
-	obsługę menu kontekstowego (Shift+F10 / Apps) oraz odczyt linii ze zrzutami/obrazami
-	do klas przeglądania wiadomości WordMail i Outlook.
+	obsługę menu kontekstowego (Shift+F10 / Apps), odczyt linii ze zrzutami/obrazami
+	oraz ochronę przed błędem UIA 0xe06d7363 do klas przeglądania wiadomości WordMail i Outlook.
 	"""
 	classesToPatch = []
 	try:
@@ -5171,6 +5376,14 @@ def _patchOutlookTreeInterceptors():
 		import NVDAObjects.UIA.wordDocument
 		if hasattr(NVDAObjects.UIA.wordDocument, "WordBrowseModeDocument"):
 			classesToPatch.append(NVDAObjects.UIA.wordDocument.WordBrowseModeDocument)
+		if hasattr(NVDAObjects.UIA.wordDocument, "WordDocumentTextInfo"):
+			tiCls = NVDAObjects.UIA.wordDocument.WordDocumentTextInfo
+			if not hasattr(tiCls, "_orig_init"):
+				tiCls._orig_init = tiCls.__init__
+				tiCls.__init__ = _wordDocTextInfo_init
+			if not hasattr(tiCls, "_orig_getTextWithFields"):
+				tiCls._orig_getTextWithFields = tiCls.getTextWithFields
+				tiCls.getTextWithFields = _wordDocTextInfo_getTextWithFields
 	except Exception as ex:
 		log.debug(f"outlookImageHelper: import NVDAObjects.UIA.wordDocument error: {ex}")
 
@@ -5185,6 +5398,10 @@ def _patchOutlookTreeInterceptors():
 			cls._orig_handleCaretMove = getattr(cls, "handleCaretMove", None)
 		if not hasattr(cls, "_orig_speakTextInfo"):
 			cls._orig_speakTextInfo = getattr(cls, "speakTextInfo", None)
+		if not hasattr(cls, "_orig_event_treeInterceptor_gainFocus"):
+			cls._orig_event_treeInterceptor_gainFocus = getattr(cls, "event_treeInterceptor_gainFocus", None)
+		if not hasattr(cls, "_orig_shouldSetFocusToObj"):
+			cls._orig_shouldSetFocusToObj = getattr(cls, "_shouldSetFocusToObj", None)
 
 		cls.script_nextGraphic = _treeInterceptor_script_nextGraphic
 		cls.script_previousGraphic = _treeInterceptor_script_previousGraphic
@@ -5193,8 +5410,12 @@ def _patchOutlookTreeInterceptors():
 			cls.handleCaretMove = _treeInterceptor_handleCaretMove
 		if hasattr(cls, "speakTextInfo"):
 			cls.speakTextInfo = _treeInterceptor_speakTextInfo
+		if hasattr(cls, "event_treeInterceptor_gainFocus"):
+			cls.event_treeInterceptor_gainFocus = _treeInterceptor_event_gainFocus
+		if hasattr(cls, "_shouldSetFocusToObj"):
+			cls._shouldSetFocusToObj = _treeInterceptor_shouldSetFocusToObj
 
-	log.info(f"outlookImageHelper: Podłączono obsługę G, Shift+G i nawigacji dla {len(classesToPatch)} klas bufora przeglądania.")
+	log.info(f"outlookImageHelper: Podłączono obsługę G, Shift+G i ochronę UIA dla {len(classesToPatch)} klas bufora przeglądania.")
 
 
 def _unpatchOutlookTreeInterceptors():
@@ -5216,6 +5437,12 @@ def _unpatchOutlookTreeInterceptors():
 		import NVDAObjects.UIA.wordDocument
 		if hasattr(NVDAObjects.UIA.wordDocument, "WordBrowseModeDocument"):
 			classesToRestore.append(NVDAObjects.UIA.wordDocument.WordBrowseModeDocument)
+		if hasattr(NVDAObjects.UIA.wordDocument, "WordDocumentTextInfo"):
+			tiCls = NVDAObjects.UIA.wordDocument.WordDocumentTextInfo
+			if hasattr(tiCls, "_orig_init") and tiCls._orig_init:
+				tiCls.__init__ = tiCls._orig_init
+			if hasattr(tiCls, "_orig_getTextWithFields") and tiCls._orig_getTextWithFields:
+				tiCls.getTextWithFields = tiCls._orig_getTextWithFields
 	except Exception:
 		pass
 
@@ -5229,6 +5456,10 @@ def _unpatchOutlookTreeInterceptors():
 				cls.handleCaretMove = cls._orig_handleCaretMove
 			if hasattr(cls, "_orig_speakTextInfo") and cls._orig_speakTextInfo:
 				cls.speakTextInfo = cls._orig_speakTextInfo
+			if hasattr(cls, "_orig_event_treeInterceptor_gainFocus") and cls._orig_event_treeInterceptor_gainFocus:
+				cls.event_treeInterceptor_gainFocus = cls._orig_event_treeInterceptor_gainFocus
+			if hasattr(cls, "_orig_shouldSetFocusToObj") and cls._orig_shouldSetFocusToObj:
+				cls._shouldSetFocusToObj = cls._orig_shouldSetFocusToObj
 			if hasattr(cls, "script_oih_contextMenu"):
 				try:
 					delattr(cls, "script_oih_contextMenu")
@@ -5490,6 +5721,8 @@ def extractGraphicToPngFile(item: GraphicItem) -> str | None:
 					item._extractedTempPath = fallbackPath
 				return fallbackPath
 		return None
+	finally:
+		_ensureWordSelectionCollapsed()
 
 
 def _is_attachment_inline_image(att):
@@ -5931,22 +6164,157 @@ def _getOcrScriptContent() -> str:
 	return _cached_ocr_script
 
 
+def _runNativeNvdaUwpOcr(imagePath: str, lang: str = "pl-PL") -> str | None:
+	"""
+	Wykonuje błyskawiczne rozpoznawanie tekstu (Windows OneCore / UWP OCR) bezpośrednio
+	w procesie NVDA przez bibliotekę C++ NVDAHelper.localWin10 (~30–60 ms),
+	omijając uruchamianie zewnętrznego procesu PowerShell.exe i skanowanie AMSI.
+	Zwraca rozpoznany tekst (lub pusty ciąg znaków, gdy brak tekstu) albo None w razie niedostępności.
+	"""
+	try:
+		import NVDAHelper
+		localLib = getattr(NVDAHelper, "localLib", None) or getattr(NVDAHelper, "localWin10", None)
+		if localLib is None or not hasattr(localLib, "uwpOcr_initialize"):
+			localLib = getattr(NVDAHelper, "localWin10", None)
+		if localLib is None or not hasattr(localLib, "uwpOcr_initialize"):
+			return None
+
+		try:
+			from winBindings.gdi32 import RGBQUAD
+		except Exception:
+			class RGBQUAD(ctypes.Structure):
+				_fields_ = [
+					("rgbBlue", ctypes.c_byte),
+					("rgbGreen", ctypes.c_byte),
+					("rgbRed", ctypes.c_byte),
+					("rgbReserved", ctypes.c_byte),
+				]
+
+		if not os.path.isfile(imagePath):
+			return None
+		try:
+			from PIL import Image
+		except Exception:
+			return None
+
+		with Image.open(imagePath) as srcImg:
+			img = srcImg.convert("RGBA")
+			w, h = img.size
+			if w <= 0 or h <= 0:
+				return ""
+			# UWP OCR wymaga co najmniej 40x40 px i lepiej radzi sobie z powiększonymi małymi grafikami
+			maxDim = max(w, h)
+			scale = 1
+			if w < 40 or h < 40:
+				scale = max(2, int(48 / max(1, min(w, h))) + 1)
+			elif maxDim < 320:
+				scale = 2
+			if scale > 1 and (w * scale) <= 4096 and (h * scale) <= 4096:
+				resampleFilter = getattr(getattr(Image, "Resampling", Image), "BICUBIC", getattr(Image, "BICUBIC", 3))
+				img = img.resize((w * scale, h * scale), resampleFilter)
+				w, h = img.size
+
+			# Kompozycja na białym tle dla obrazów z przezroczystością
+			bg = Image.new("RGBA", (w, h), (255, 255, 255, 255))
+			bg.alpha_composite(img)
+			r, g, b, a = bg.split()
+			bgraImg = Image.merge("RGBA", (b, g, r, a))
+			rawBytes = bgraImg.tobytes()
+
+		numPixels = w * h
+		pixelBuf = (RGBQUAD * numPixels).from_buffer_copy(rawBytes)
+
+		doneEvent = threading.Event()
+		resultHolder = [None]
+
+		@NVDAHelper.uwpOcr_Callback
+		def _onOcrDone(resPtr):
+			try:
+				if resPtr:
+					resultHolder[0] = ctypes.wstring_at(resPtr)
+				else:
+					resultHolder[0] = ""
+			except Exception as cbEx:
+				log.debug(f"outlookImageHelper: _onOcrDone błąd: {cbEx}")
+				resultHolder[0] = None
+			finally:
+				doneEvent.set()
+
+		langCandidates = []
+		for cand in (lang or "pl-PL", "pl", "en-US"):
+			if cand and cand not in langCandidates:
+				langCandidates.append(cand)
+
+		engine = None
+		for cand in langCandidates:
+			try:
+				engine = localLib.uwpOcr_initialize(cand, _onOcrDone)
+				if engine:
+					break
+			except Exception:
+				engine = None
+
+		if not engine:
+			return None
+
+		try:
+			localLib.uwpOcr_recognize(
+				engine,
+				ctypes.cast(pixelBuf, ctypes.POINTER(RGBQUAD)),
+				w,
+				h,
+			)
+			if not doneEvent.wait(timeout=10.0):
+				log.warning("outlookImageHelper: Przekroczono limit czasu natywnego uwpOcr_recognize (10 s).")
+				return None
+		finally:
+			try:
+				localLib.uwpOcr_terminate(engine)
+			except Exception:
+				pass
+
+		rawJson = resultHolder[0]
+		if rawJson is None:
+			return None
+		if not rawJson.strip():
+			return ""
+
+		data = json.loads(rawJson)
+		if not isinstance(data, list):
+			return ""
+		linesOut = []
+		for lineWords in data:
+			if isinstance(lineWords, list):
+				words = [str(wObj.get("text", "")).strip() for wObj in lineWords if isinstance(wObj, dict) and wObj.get("text")]
+				lineStr = " ".join(w for w in words if w)
+				if lineStr:
+					linesOut.append(lineStr)
+		return "\n".join(linesOut).strip()
+	except Exception as ex:
+		log.debug(f"outlookImageHelper: _runNativeNvdaUwpOcr fallback do PowerShell ({ex})")
+		return None
+
+
 def runWindowsOcr(imagePath: str, lang: str = "pl-PL") -> str:
 	"""
-	Uruchamia systemowy Windows Media OCR w skrypcie ocr_worker.ps1 wykonywanym
-	bezpośrednio w pamięci procesora PowerShell (-EncodedCommand).
-	Dzięki temu skrypt działa niezawodnie na każdym komputerze, nawet przy restrykcyjnych
-	zasadach ExecutionPolicy (Restricted, AllSigned, RemoteSigned) i braku podpisu cyfrowego.
+	Uruchamia rozpoznawanie tekstu Windows OneCore / Media OCR:
+	1. Najpierw bezpośrednio w procesie NVDA przez natywny silnik C++ NVDAHelper.localWin10 (~30–60 ms).
+	2. W razie niedostępności natywnego silnika — awaryjnie w skrypcie PowerShell ze stałym
+	   skrótem -EncodedCommand i ścieżką przekazaną przez zmienne środowiskowe (brak narzutu AMSI).
 	"""
+	# 1. Szybka ścieżka natywna C++ w procesie NVDA (bez uruchamiania powershell.exe)
+	nativeText = _runNativeNvdaUwpOcr(imagePath, lang=lang)
+	if nativeText is not None:
+		return nativeText
+
+	# 2. Ścieżka awaryjna PowerShell (ze stałym poleceniem -EncodedCommand przyjaznym dla cache'u AMSI)
 	with BusySoundTicker(startTone=True, interval=0.28, baseFreq=620, endTone=True):
 		script_content = _getOcrScriptContent()
 
-		escaped_path = imagePath.replace("'", "''")
-		escaped_lang = (lang or "pl-PL").replace("'", "''")
 		cmd_text = f"""$ProgressPreference = 'SilentlyContinue'
 & {{
 {script_content}
-}} -ImagePath '{escaped_path}' -Lang '{escaped_lang}'
+}} -ImagePath $env:OIH_OCR_IMG_PATH -Lang $env:OIH_OCR_LANG
 """
 		encoded_cmd = base64.b64encode(cmd_text.encode("utf-16le")).decode("ascii")
 
@@ -5964,6 +6332,10 @@ def runWindowsOcr(imagePath: str, lang: str = "pl-PL") -> str:
 			encoded_cmd,
 		]
 
+		env = os.environ.copy()
+		env["OIH_OCR_IMG_PATH"] = str(imagePath or "")
+		env["OIH_OCR_LANG"] = str(lang or "pl-PL")
+
 		startupinfo = subprocess.STARTUPINFO()
 		startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 		startupinfo.wShowWindow = 0
@@ -5974,6 +6346,7 @@ def runWindowsOcr(imagePath: str, lang: str = "pl-PL") -> str:
 			stderr=subprocess.PIPE,
 			startupinfo=startupinfo,
 			creationflags=0x08000000,
+			env=env,
 		)
 
 		try:
@@ -10643,15 +11016,15 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 	menu.Append(idSettings, "&Przejdź do ustawień dodatku...")
 	menu.Append(idHelp, _T("menu_help"))
 
-	# Powiązania zdarzeń
-	def onOcr(evt):
+	# Powiązania zdarzeń (wykonywane przez wx.CallAfter po czystym zamknięciu PopupMenu i postPopup)
+	def _runOcr():
 		if not ensureGraphicReady(item, parent=parentWin, actionName="rozpoznania tekstu (OCR)"):
 			return
 		if GlobalPlugin.instance:
 			GlobalPlugin.instance.triggerOcrForItem(item, parentDialog=parent if isinstance(parent, wx.Dialog) else None)
-	parentWin.Bind(wx.EVT_MENU, onOcr, id=idOcr)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runOcr), id=idOcr)
 
-	def onAiQuick(evt):
+	def _runAiQuick():
 		if not ensureGraphicReady(item, parent=parentWin, actionName="analizy i opisu przez AI"):
 			return
 		def doAi():
@@ -10661,9 +11034,9 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doAi)
 			return
 		doAi()
-	parentWin.Bind(wx.EVT_MENU, onAiQuick, id=idAiQuick)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runAiQuick), id=idAiQuick)
 
-	def onAiPrompt(evt):
+	def _runAiPrompt():
 		if not ensureGraphicReady(item, parent=parentWin, actionName="analizy i opisu przez AI"):
 			return
 		def doPrompt():
@@ -10675,9 +11048,9 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doPrompt)
 			return
 		doPrompt()
-	parentWin.Bind(wx.EVT_MENU, onAiPrompt, id=idAiPrompt)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runAiPrompt), id=idAiPrompt)
 
-	def onAiChat(evt):
+	def _runAiChat():
 		if not ensureGraphicReady(item, parent=parentWin, actionName="rozmowy z AI"):
 			return
 		if isinstance(item, AttachmentItem) and item.isPdf:
@@ -10693,9 +11066,9 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doChat)
 			return
 		doChat()
-	parentWin.Bind(wx.EVT_MENU, onAiChat, id=idAiChat)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runAiChat), id=idAiChat)
 
-	def onPreview(evt):
+	def _runPreview():
 		if not ensureGraphicReady(item, parent=parentWin, actionName="wyświetlenia powiększonego podglądu"):
 			return
 		if isAtt:
@@ -10716,12 +11089,15 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 			d.ShowModal()
 			d.Destroy()
 		finally:
+			if GlobalPlugin.instance:
+				GlobalPlugin.instance._suppressCaretSpeechUntil = time.time() + 0.50
+			_ensureWordSelectionCollapsed()
 			gui.mainFrame.postPopup()
 		if callbackRefresh:
 			callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, onPreview, id=idPreview)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runPreview), id=idPreview)
 
-	def onInvertToggle(evt):
+	def _runInvertToggle():
 		if not ensureGraphicReady(item, parent=parentWin, actionName="inwersji kolorów"):
 			return
 		newState = not getattr(item, "isInverted", False)
@@ -10734,13 +11110,13 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		ui.message(msg)
 		if callbackRefresh:
 			callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, onInvertToggle, id=idInvertToggle)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runInvertToggle), id=idInvertToggle)
 
-	def onInstructions(evt):
+	def _runInstructions():
 		showBlockedImageInstructionsDialog(parentWin, item)
-	parentWin.Bind(wx.EVT_MENU, onInstructions, id=idInstructions)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runInstructions), id=idInstructions)
 
-	def onRename(evt):
+	def _runRename():
 		if not isinstance(item, GraphicItem):
 			ui.message("Zmień nazwę jest dostępne tylko dla grafik w treści wiadomości.")
 			return
@@ -10775,9 +11151,9 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 					ui.message("Przywrócono domyślną nazwę grafiki.")
 				if callbackRefresh:
 					callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, onRename, id=idRename)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runRename), id=idRename)
 
-	def onClearName(evt):
+	def _runClearName():
 		item.customName = ""
 		try:
 			if hasattr(item.rawObject, "AlternativeText"):
@@ -10789,22 +11165,29 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		ui.message("Przywrócono domyślną nazwę grafiki.")
 		if callbackRefresh:
 			callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, onClearName, id=idClearName)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runClearName), id=idClearName)
 
-	def onOpen(evt):
+	def _runOpen():
 		safeOpenItem(item, parent=parentWin)
-	parentWin.Bind(wx.EVT_MENU, onOpen, id=idOpen)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runOpen), id=idOpen)
 
-	def onSelect(evt):
+	def _runSelect():
 		if isinstance(item, GraphicItem):
 			try:
-				item.rawObject.Select()
-				ui.message(f"Zaznaczono grafikę {item.index}. Naciśnij klawisz Aplikacje (Shift+F10) dla menu czynności.")
+				doc = getActiveWordDocument()
+				if doc is not None:
+					sel = doc.Application.Selection
+					sel.SetRange(item.rangeStart, item.rangeStart)
+				if GlobalPlugin.instance:
+					GlobalPlugin.instance._currentGraphicItem = item
+					GlobalPlugin.instance._lastNavigatedCaretPos = item.rangeStart
+					GlobalPlugin.instance._lastNavigatedIndex = max(0, item.index - 1)
+				ui.message(f"Ustawiono kursor na grafice {item.index}. Naciśnij klawisz Aplikacje (Shift+F10) dla menu czynności.")
 			except Exception as e:
-				ui.message(f"Nie udało się zaznaczyć grafiki: {e}")
-	parentWin.Bind(wx.EVT_MENU, onSelect, id=idSelect)
+				ui.message(f"Nie udało się ustawić kursora na grafice: {e}")
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runSelect), id=idSelect)
 
-	def onCopy(evt):
+	def _runCopy():
 		if isinstance(item, GraphicItem):
 			if not ensureGraphicReady(item, parent=parentWin, actionName="skopiowania do schowka"):
 				return
@@ -10813,12 +11196,13 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 					item.rawObject.Range.Copy()
 				else:
 					item.rawObject.Copy()
+				_ensureWordSelectionCollapsed()
 				ui.message(f"Skopiowano grafikę {item.index} do schowka systemowego.")
 			except Exception as e:
 				showAccessibleMessageBox(f"Błąd kopiowania do schowka:\n{e}", title="Błąd schowka", parent=parentWin)
-	parentWin.Bind(wx.EVT_MENU, onCopy, id=idCopy)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runCopy), id=idCopy)
 
-	def onSave(evt):
+	def _runSave():
 		if isAtt:
 			with wx.FileDialog(
 				parentWin,
@@ -10872,7 +11256,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 						showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=parentWin)
 				finally:
 					try:
-						if tempPng and os.path.isfile(tempPng):
+						if tempPng and os.path.isfile(tempPng) and tempPng not in (getattr(item, "_extractedTempPath", ""), getattr(item, "_downloadedTempPath", "")):
 							os.remove(tempPng)
 					except Exception:
 						pass
@@ -10892,7 +11276,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 				threading.Thread(target=_aiNamingWorker, daemon=True).start()
 			else:
 				_doSaveWithPrompt()
-	parentWin.Bind(wx.EVT_MENU, onSave, id=idSave)
+	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runSave), id=idSave)
 
 	def onOpenList(evt):
 		wx.CallAfter(openGraphicListDialog)
@@ -10903,7 +11287,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 	parentWin.Bind(wx.EVT_MENU, onSettings, id=idSettings)
 
 	def onHelp(evt):
-		showContextHelp("list" if isinstance(parent, wx.Dialog) else "message", parent=parentWin)
+		wx.CallAfter(showContextHelp, "list" if isinstance(parent, wx.Dialog) else "message", parentWin)
 	parentWin.Bind(wx.EVT_MENU, onHelp, id=idHelp)
 
 	if not isinstance(parent, wx.Dialog):
@@ -10925,9 +11309,14 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		parentWin.Bind(wx.EVT_MENU, onOutlookMenu, id=idOutlookMenu)
 
 	gui.mainFrame.prePopup()
-	parentWin.PopupMenu(menu)
-	gui.mainFrame.postPopup()
-	menu.Destroy()
+	try:
+		parentWin.PopupMenu(menu)
+	finally:
+		if GlobalPlugin.instance:
+			GlobalPlugin.instance._suppressCaretSpeechUntil = time.time() + 0.50
+		_ensureWordSelectionCollapsed()
+		gui.mainFrame.postPopup()
+		menu.Destroy()
 
 
 def _setRadioBoxFocus(radioBox, selection=0):
@@ -12184,10 +12573,17 @@ class GraphicElementsDialog(wx.Dialog):
 			return
 		self.Close()
 		try:
-			item.rawObject.Select()
-			ui.message(f"Zaznaczono grafikę {item.index}. Naciśnij klawisz Aplikacje (Shift+F10) dla menu obrazu.")
+			doc = getActiveWordDocument()
+			if doc is not None:
+				sel = doc.Application.Selection
+				sel.SetRange(item.rangeStart, item.rangeStart)
+			if GlobalPlugin.instance:
+				GlobalPlugin.instance._currentGraphicItem = item
+				GlobalPlugin.instance._lastNavigatedCaretPos = item.rangeStart
+				GlobalPlugin.instance._lastNavigatedIndex = max(0, item.index - 1)
+			ui.message(f"Ustawiono kursor na grafice {item.index}. Naciśnij klawisz Aplikacje (Shift+F10) dla menu obrazu.")
 		except Exception as e:
-			ui.message(f"Nie udało się zaznaczyć grafiki: {e}")
+			ui.message(f"Nie udało się ustawić kursora na grafice: {e}")
 
 	def onCopyClicked(self, event):
 		item = self.getSelectedItem()
@@ -12200,6 +12596,7 @@ class GraphicElementsDialog(wx.Dialog):
 				item.rawObject.Range.Copy()
 			else:
 				item.rawObject.Copy()
+			_ensureWordSelectionCollapsed()
 			ui.message(f"Skopiowano grafikę {item.index} do schowka systemowego.")
 		except Exception as e:
 			showAccessibleMessageBox(f"Błąd kopiowania do schowka:\n{e}", title="Błąd schowka", parent=self)
@@ -12254,7 +12651,7 @@ class GraphicElementsDialog(wx.Dialog):
 						showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=self)
 				finally:
 					try:
-						if tempPng and os.path.isfile(tempPng):
+						if tempPng and os.path.isfile(tempPng) and tempPng not in (getattr(item, "_extractedTempPath", ""), getattr(item, "_downloadedTempPath", "")):
 							os.remove(tempPng)
 					except Exception:
 						pass
@@ -14869,24 +15266,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		# 1. Sprawdzenie, czy fokus wszedł do właściwej treści otwartej wiadomości (_WwG)
 		if cls == "_WwG":
-			msgKey = getMessageKey()
-			currentTime = time.time()
-			# Unikaj wielokrotnego odtwarzania dla tej samej wiadomości (okno 2.0 sekundy)
-			if msgKey and msgKey == getattr(self, "_lastAnnouncedMsgKey", "") and (currentTime - getattr(self, "_lastAnnouncedTime", 0)) < 2.0:
+			if time.time() < getattr(self, "_suppressCaretSpeechUntil", 0.0):
 				return
-
-			self._lastAnnouncedMsgKey = msgKey
-			self._lastAnnouncedTime = currentTime
-			self._lastNavigatedDocKey = None
-			self._lastNavigatedIndex = -1
-			self._lastNavigatedCaretPos = -9999
-			self._currentGraphicItem = None
 			if hasattr(self, "_pendingInspectCall") and self._pendingInspectCall:
 				try:
 					self._pendingInspectCall.Stop()
 				except Exception:
 					pass
-			self._pendingInspectCall = wx.CallLater(100, self._inspectAndAnnounceMessage, msgKey)
+			self._pendingInspectCall = wx.CallLater(100, self._inspectAndAnnounceMessage, hwnd)
 			return
 
 		# 2. Sprawdzenie, czy fokus wszedł na wiersz listy wiadomości w głównym oknie Outlooka (Explorer)
@@ -14901,6 +15288,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			isRow = cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "OutlookGridRow") or role in (ROLE_TABLEROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM, dataRole, treeRole)
 			if not isRow and not isMessageListFocused(obj):
 				return
+
+			self._lastAnnouncedBodyHwnd = 0
 
 			# Sprawdzenie obecności załączników oraz grafik w zaznaczonej wiadomości po krótkiej chwili (35ms)
 			def _checkAndPlayListSound(targetObj):
@@ -14938,9 +15327,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 			wx.CallLater(35, _checkAndPlayListSound, obj)
 
-	def _inspectAndAnnounceMessage(self, expectedMsgKey: str):
+	def _inspectAndAnnounceMessage(self, bodyHwnd: int = 0):
 		self._pendingInspectCall = None
 		if not self.isOutlookActive():
+			return
+		if time.time() < getattr(self, "_suppressCaretSpeechUntil", 0.0):
 			return
 
 		doc = getActiveWordDocument()
@@ -14952,9 +15343,30 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		curKey = getMessageKey()
-		if expectedMsgKey and curKey and expectedMsgKey != curKey:
-			if expectedMsgKey != "current_message" and curKey != "current_message":
-				return
+		if not bodyHwnd:
+			try:
+				focus = api.getFocusObject()
+				bodyHwnd = getattr(focus, "windowHandle", 0) or 0
+			except Exception:
+				bodyHwnd = 0
+
+		# Jeśli fokus wrócił do tej samej otwartej wiadomości (np. po zamknięciu okna OCR, AI lub menu),
+		# nie resetuj bieżącej pozycji nawigacji klawiszem G i nie powtarzaj komunikatu.
+		if (
+			curKey
+			and curKey == getattr(self, "_lastAnnouncedMsgKey", "")
+			and bodyHwnd
+			and bodyHwnd == getattr(self, "_lastAnnouncedBodyHwnd", 0)
+		):
+			return
+
+		self._lastAnnouncedMsgKey = curKey
+		self._lastAnnouncedBodyHwnd = bodyHwnd
+		self._lastAnnouncedTime = time.time()
+		self._lastNavigatedDocKey = None
+		self._lastNavigatedIndex = -1
+		self._lastNavigatedCaretPos = -9999
+		self._currentGraphicItem = None
 
 		items = getOrCollectGraphics(
 			doc,
@@ -15255,9 +15667,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			d.ShowModal()
 			d.Destroy()
 		finally:
+			self._suppressCaretSpeechUntil = time.time() + 0.50
+			_ensureWordSelectionCollapsed()
 			gui.mainFrame.postPopup()
 		try:
-			if tempPath and os.path.isfile(tempPath):
+			if tempPath and os.path.isfile(tempPath) and tempPath not in (getattr(targetItem, "_extractedTempPath", ""), getattr(targetItem, "_downloadedTempPath", ""), getattr(targetItem, "tempSavedPath", "")):
 				os.remove(tempPath)
 		except Exception:
 			pass
@@ -15369,13 +15783,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						targetLabel = f"grafika {item.index}"
 						body = _T("ocr_no_text_body", index=item.index, width=item.widthPx, height=item.heightPx)
 					ui.message(_T("ocr_no_text_msg", target=targetLabel))
-					ui.browseableMessage(body, title=_T("ocr_no_text_title", target=targetLabel))
+					showAccessibleMessageBox(body, title=_T("ocr_no_text_title", target=targetLabel), parent=parentDialog)
 				else:
 					lineCount = len([l for l in item.ocrText.splitlines() if l.strip()])
 					label = f"Załącznik {item.index}: {item.fileName}" if isinstance(item, AttachmentItem) else f"Grafika {item.index}"
 					ui.message(f"Rozpoznany tekst z {label} ({lineCount} wierszy).")
 					title = f"Rozpoznany tekst — {item.fileName}" if isinstance(item, AttachmentItem) else f"Rozpoznany tekst — Grafika {item.index} ({item.widthPx}×{item.heightPx} px)"
-					ui.browseableMessage(item.ocrText, title=title)
+					showOcrResultDialog(item.ocrText, title=title, parent=parentDialog)
 			wx.CallAfter(showCached)
 			return
 
@@ -15427,9 +15841,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 							width=item.widthPx,
 							height=item.heightPx,
 						)
-						ui.browseableMessage(
+						showAccessibleMessageBox(
 							msg,
 							title=_T("ocr_no_text_title", target=targetLabel),
+							parent=parentDialog,
 						)
 					wx.CallAfter(showEmpty)
 					return
@@ -15442,9 +15857,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 						parentDialog.refreshListLabels()
 					ui.message(summaryMsg)
-					ui.browseableMessage(
+					showOcrResultDialog(
 						text,
 						title=f"Rozpoznany tekst — Grafika {item.index} ({item.widthPx}×{item.heightPx} px)",
+						parent=parentDialog,
 					)
 
 				wx.CallAfter(showResult)
@@ -15453,7 +15869,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				wx.CallAfter(ui.message, f"Błąd podczas rozpoznawania OCR: {ex}")
 			finally:
 				try:
-					if tempPng and os.path.isfile(tempPng):
+					if tempPng and os.path.isfile(tempPng) and tempPng not in (getattr(item, "_extractedTempPath", ""), getattr(item, "_downloadedTempPath", "")):
 						os.remove(tempPng)
 				except Exception:
 					pass
@@ -15485,7 +15901,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 							parentDialog.refreshListLabels()
 						ui.message(f"Odczytano zawartość dokumentu {item.fileName}.")
-						ui.browseableMessage(txt, title=f"Zawartość dokumentu: {item.fileName}")
+						showOcrResultDialog(txt, title=f"Zawartość dokumentu: {item.fileName}", parent=parentDialog)
 					wx.CallAfter(showDocx)
 				except Exception as ex:
 					log.error(f"outlookImageHelper: Błąd odczytu DOCX: {ex}", exc_info=True)
@@ -15504,7 +15920,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 							parentDialog.refreshListLabels()
 						ui.message(f"Odczytano plik {item.fileName}.")
-						ui.browseableMessage(item.ocrText, title=f"Zawartość pliku: {item.fileName}")
+						showOcrResultDialog(item.ocrText, title=f"Zawartość pliku: {item.fileName}", parent=parentDialog)
 					wx.CallAfter(showTxt)
 				except Exception as ex:
 					wx.CallAfter(ui.message, f"Błąd odczytu pliku: {ex}")
@@ -15572,7 +15988,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 								parentDialog.refreshListLabels()
 							ui.message(_T("ocr_no_text_msg", target=item.fileName))
 							msg = _T("ocr_no_text_att_body", filename=item.fileName, size=item.formattedSize)
-							ui.browseableMessage(msg, title=_T("ocr_no_text_title", target=item.fileName))
+							showAccessibleMessageBox(msg, title=_T("ocr_no_text_title", target=item.fileName), parent=parentDialog)
 						wx.CallAfter(showPdfEmpty)
 					else:
 						item.ocrText = txt
@@ -15580,7 +15996,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 							if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 								parentDialog.refreshListLabels()
 							ui.message(f"Ukończono rozpoznawanie tekstu z PDF: {item.fileName}.")
-							ui.browseableMessage(item.ocrText, title=f"Rozpoznany tekst z PDF: {item.fileName}")
+							showOcrResultDialog(item.ocrText, title=f"Rozpoznany tekst z PDF: {item.fileName}", parent=parentDialog)
 						wx.CallAfter(showPdf)
 				except Exception as ex:
 					log.error(f"outlookImageHelper: Błąd OCR PDF: {ex}", exc_info=True)
@@ -15601,7 +16017,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 								parentDialog.refreshListLabels()
 							ui.message(_T("ocr_no_text_msg", target=item.fileName))
 							msg = _T("ocr_no_text_att_body", filename=item.fileName, size=item.formattedSize)
-							ui.browseableMessage(msg, title=_T("ocr_no_text_title", target=item.fileName))
+							showAccessibleMessageBox(msg, title=_T("ocr_no_text_title", target=item.fileName), parent=parentDialog)
 						wx.CallAfter(showImgEmpty)
 					else:
 						item.ocrText = txt
@@ -15609,7 +16025,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 							if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 								parentDialog.refreshListLabels()
 							ui.message(f"Zakończono OCR dla: {item.fileName}.")
-							ui.browseableMessage(item.ocrText, title=f"Rozpoznany tekst — {item.fileName}")
+							showOcrResultDialog(item.ocrText, title=f"Rozpoznany tekst — {item.fileName}", parent=parentDialog)
 						wx.CallAfter(showImg)
 				except Exception as ex:
 					log.error(f"outlookImageHelper: Błąd OCR załącznika obrazu: {ex}", exc_info=True)
@@ -15733,7 +16149,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 							results.append(f"{header}\nBłąd OCR: {ex}")
 						finally:
 							try:
-								os.remove(tempPng)
+								if tempPng not in (getattr(it, "_extractedTempPath", ""), getattr(it, "_downloadedTempPath", "")):
+									os.remove(tempPng)
 							except Exception:
 								pass
 					else:
@@ -15745,7 +16162,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 					parentDialog.refreshListLabels()
 				ui.message(f"Zakończono OCR dla {len(items)} elementów.")
-				ui.browseableMessage(combined, title=f"Zbiorczy wynik OCR ({len(items)} elementów)")
+				showOcrResultDialog(combined, title=f"Zbiorczy wynik OCR ({len(items)} elementów)", parent=parentDialog)
 
 			wx.CallAfter(showDone)
 
@@ -15782,9 +16199,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if item.chatHistory and not customPrompt:
 			def showChat():
 				actualParent = parentDialog if (parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0))) else gui.mainFrame
-				d = AiConversationDialog(actualParent, item)
-				d.ShowModal()
-				d.Destroy()
+				gui.mainFrame.prePopup()
+				try:
+					d = AiConversationDialog(actualParent, item)
+					d.ShowModal()
+					d.Destroy()
+				finally:
+					self._suppressCaretSpeechUntil = time.time() + 0.50
+					_ensureWordSelectionCollapsed()
+					gui.mainFrame.postPopup()
 				if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 					parentDialog.refreshListLabels()
 			wx.CallAfter(showChat)
@@ -15920,9 +16343,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 						parentDialog.refreshListLabels()
 					ui.message(f"Analiza AI dla {itemLabel} zakończona sukcesem. Otwieram okno rozmowy...")
 					actualParent = parentDialog if (parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0))) else gui.mainFrame
-					d = AiConversationDialog(actualParent, item)
-					d.ShowModal()
-					d.Destroy()
+					gui.mainFrame.prePopup()
+					try:
+						d = AiConversationDialog(actualParent, item)
+						d.ShowModal()
+						d.Destroy()
+					finally:
+						self._suppressCaretSpeechUntil = time.time() + 0.50
+						_ensureWordSelectionCollapsed()
+						gui.mainFrame.postPopup()
 					if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 						parentDialog.refreshListLabels()
 
@@ -15973,7 +16402,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 				wx.CallAfter(onFail)
 			finally:
-				if tempPng and os.path.isfile(tempPng):
+				if tempPng and os.path.isfile(tempPng) and tempPng not in (getattr(item, "_extractedTempPath", ""), getattr(item, "_downloadedTempPath", "")):
 					try:
 						os.remove(tempPng)
 					except Exception:
@@ -16141,7 +16570,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					lbl = f"Załącznik {it.fileName}" if isAtt else f"Grafika {it.index}"
 					results.append(f"=== {lbl} ===\nBłąd AI: {ex}")
 				finally:
-					if tempClean and os.path.isfile(tempClean):
+					if tempClean and os.path.isfile(tempClean) and tempClean not in (getattr(it, "_extractedTempPath", ""), getattr(it, "_downloadedTempPath", "")):
 						try:
 							os.remove(tempClean)
 						except Exception:
@@ -16153,7 +16582,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				if parentDialog and winUser.isWindow(getattr(parentDialog, "Handle", 0)):
 					parentDialog.refreshListLabels()
 				ui.message(f"Zakończono analizę AI dla {len(items)} elementów.")
-				ui.browseableMessage(combined, title=f"Zbiorcze opisy AI ({len(items)} elementów)")
+				showOcrResultDialog(combined, title=f"Zbiorcze opisy AI ({len(items)} elementów)", parent=parentDialog)
 
 			wx.CallAfter(showDone)
 

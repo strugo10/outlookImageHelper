@@ -12,9 +12,9 @@
     "minNVDAVersion": "2024.1.0"
   },
   "outlookImageHelper": {
-    "version": "1.6.14",
+    "version": "1.6.15",
     "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-    "changelog": "Wersja 1.6.14:\n• Pełna realizacja wszystkich 12 zaleceń z audytu bezpieczeństwa i stabilności (Review 03: N01–N09, U01–U03).",
+    "changelog": "Wersja 1.6.15:\n• Naprawa zawieszania się programu Outlook, przeskakiwania widoku oraz przyspieszenie OCR (natywny silnik OneCore C++ w procesie NVDA i lekkie okno wyniku wx.Dialog) w złożonych mailach HTML.",
     "minNVDAVersion": "2024.1.0"
   }
 }
