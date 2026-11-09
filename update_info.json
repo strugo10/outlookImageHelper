@@ -1,7 +1,7 @@
 {
   "name": "outlookImageHelper",
-  "version": "1.6.15",
+  "version": "1.7.2",
   "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-  "changelog": "Wersja 1.6.15:\n• Naprawa zawieszania się programu Outlook (wyjątek C++ 0xe06d7363 w GetChildren UIA na komórkach tabel z grafikami) podczas otwierania i zamykania okien oraz menu kontekstowego w złożonych mailach HTML (np. Polsat GO).\n• Wyeliminowanie przeskakiwania widoku wiadomości i wchodzenia edytora Word w tryb zaznaczenia obiektu graficznego (wdSelectionInlineShape) podczas nawigacji klawiszem G i operacji na obrazach.\n• Błyskawiczne rozpoznawanie tekstu (OCR) bezpośrednio w procesie NVDA przez natywny silnik C++ Windows OneCore (czas rozpoznawania poniżej 0,1 s zamiast ponad 6 sekund).\n• Zastąpienie wirtualnego okna WebView2 (ui.browseableMessage) natywnym, szybkim i dostępnym oknem dialogowym wx.Dialog z przyciskiem kopiowania tekstu, co zapobiega zawieszaniu Outlooka po zamknięciu wyniku OCR.\n• Zachowanie bieżącej pozycji nawigacji po grafikach (klawisz G) po zamknięciu menu kontekstowego lub okna z wynikiem OCR/AI.",
+  "changelog": "Wersja 1.7.2:\n• Całkowite wyciszenie dźwięków dodatku podczas poruszania się po menu kontekstowym (zarówno wywołanym na liście wiadomości, jak i wewnątrz otwartego maila).\n• Precyzyjna detekcja elementów menu oraz okien podręcznych (popups) eliminująca fałszywe wykrywanie listy i treści wiadomości podczas nawigacji klawiaturą lub myszą po pozycjach menu.",
   "minNVDAVersion": "2024.1.0"
 }

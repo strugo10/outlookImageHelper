@@ -71,12 +71,12 @@ CONFIG_SECTION = "outlookImageHelper"
 ADDON_NAME = "Outlook Image Helper"
 ADDON_TITLE = "Outlook - Pomocnik obrazów i załączników"
 ADDON_AUTHOR = "Sławomir Strugarek z pomocą Antigravity (Google DeepMind)"
-ADDON_BUILD_DATE = "2026-11-08"
-ADDON_BUILD_ID = "20261108.5"
+ADDON_BUILD_DATE = "2026-11-09"
+ADDON_BUILD_ID = "20261109.3"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.3+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.6.15"
+ADDON_VERSION = "1.7.2"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -204,11 +204,33 @@ confspec = {
 	"navSounds": "boolean(default=True)",
 	"defaultOcrLang": "string(default='pl-PL')",
 	"aiProvider": "string(default='gemini')",
+	"pollinationsApiKey": "string(default='')",
+	"pollinationsModel": "string(default='openai')",
+	"pollinationsPrompt": "string(default='')",
+	"pollinationsBaseUrl": "string(default='https://gen.pollinations.ai/v1')",
 	"geminiApiKey": "string(default='')",
-	"geminiModel": "string(default='gemini-3.8-flash')",
+	"geminiModel": "string(default='gemini-2.5-flash')",
+	"geminiPrompt": "string(default='')",
+	"geminiBaseUrl": "string(default='https://generativelanguage.googleapis.com')",
 	"openaiApiKey": "string(default='')",
 	"openaiModel": "string(default='gpt-4o-mini')",
+	"openaiPrompt": "string(default='')",
+	"openaiBaseUrl": "string(default='https://api.openai.com/v1')",
+	"grokApiKey": "string(default='')",
+	"grokModel": "string(default='grok-2-vision-1212')",
+	"grokPrompt": "string(default='')",
+	"grokBaseUrl": "string(default='https://api.x.ai/v1')",
+	"groqApiKey": "string(default='')",
+	"groqModel": "string(default='llama-3.2-11b-vision-preview')",
+	"groqPrompt": "string(default='')",
+	"groqBaseUrl": "string(default='https://api.groq.com/openai/v1')",
+	"openrouterApiKey": "string(default='')",
+	"openrouterModel": "string(default='google/gemini-2.0-flash-exp:free')",
+	"openrouterPrompt": "string(default='')",
+	"openrouterBaseUrl": "string(default='https://openrouter.ai/api/v1')",
 	"aiPrompt": "string(default='')",
+	"aiMaxTokens": "integer(default=1500, min=100, max=8192)",
+	"aiTimeout": "integer(default=35, min=5, max=120)",
 	"minDimension": "integer(default=15, min=1, max=500)",
 	"aiNaming": "boolean(default=False)",
 	"showAdvancedSettings": "boolean(default=False)",
@@ -406,8 +428,33 @@ STRINGS = {
 		"set_sound_coord_standalone": "Koordynacja dźwięków: Outlook Speech Filter nie jest aktywny — Pomocnik obrazów samodzielnie odtwarza powiadomienia o załącznikach oraz grafikach.",
 		"set_btn_diagnostics": "&Kontakt z twórcą i zgłaszanie uwag (GitHub)...",
 		"set_ai_provider": "&Dostawca sztucznej inteligencji (AI):",
-		"ai_prov_gemini": "Google Gemini (zalecany, darmowy)",
+		"ai_prov_pollinations": "Pollinations AI (Darmowy, bez klucza — domyślny)",
+		"ai_prov_gemini": "Google Gemini (Zalecany, bezpłatny klucz osobisty)",
 		"ai_prov_openai": "OpenAI / ChatGPT (GPT-4o, GPT-4o-mini)",
+		"ai_prov_grok": "xAI Grok (Grok 2 Vision)",
+		"ai_prov_groq": "Groq Cloud (Darmowy szybki klucz)",
+		"ai_prov_openrouter": "OpenRouter (Uniwersalny / darmowe modele :free)",
+		"set_btn_manage_ai_models": "&Zarządzaj modelami i dostawcami AI...",
+		"menu_manage_ai_models": "&Zarządzaj modelami AI (Outlook Image Helper)...",
+		"manage_models_title": "Zarządzaj modelami i dostawcami AI",
+		"manage_models_list_lbl": "&Dostawcy i modele AI:",
+		"manage_models_btn_set_active": "&Ustaw jako aktywny model w dodatku",
+		"manage_models_active_status": "Stan: Aktywny model w dodatku",
+		"manage_models_inactive_status": "Stan: Model skonfigurowany (nieaktywny)",
+		"manage_models_base_url": "&Bazowy adres URL (Base URL):",
+		"manage_models_api_key": "&Klucz API:",
+		"manage_models_show_key": "Pokaż klucz API",
+		"manage_models_btn_instructions": "&Jak uzyskać klucz (Instrukcja)...",
+		"manage_models_btn_list": "&Sprawdź listę modeli z serwera",
+		"manage_models_btn_test": "&Testuj połączenie",
+		"manage_models_model_name": "&Nazwa modelu AI:",
+		"manage_models_prompt_lbl": "&Dedykowana instrukcja (prompt) dla tego modelu:",
+		"manage_models_btn_reset_prompt": "&Przywróć prompt do wartości domyślnej",
+		"manage_models_max_tokens": "Maksymalna liczba &tokenów:",
+		"manage_models_timeout": "Czas &oczekiwania na odpowiedź (w sekundach):",
+		"manage_models_key_not_required": "Nie wymaga klucza (usługa bezpłatna)",
+		"manage_models_btn_save": "&Zapisz i zastosuj",
+		"manage_models_btn_cancel": "Anuluj",
 		"set_ai_naming": "&Używaj sztucznej inteligencji (AI) do generowania nazw plików (wymaga klucza, wysyła obrazy do chmury)",
 		"set_gemini_key": "&Klucz API Google Gemini:",
 		"set_gemini_model": "Model &Gemini (domyślnie: gemini-3.8-flash):",
@@ -630,8 +677,33 @@ STRINGS = {
 		"set_sound_coord_standalone": "Sound coordination: Outlook Speech Filter is not active — Image Helper plays both attachment and image notifications.",
 		"set_btn_diagnostics": "&Contact author & feedback (GitHub)...",
 		"set_ai_provider": "&AI Provider:",
-		"ai_prov_gemini": "Google Gemini (recommended, free tier)",
+		"ai_prov_pollinations": "Pollinations AI (Free, no key required — default)",
+		"ai_prov_gemini": "Google Gemini (Recommended, free personal key)",
 		"ai_prov_openai": "OpenAI / ChatGPT (GPT-4o, GPT-4o-mini)",
+		"ai_prov_grok": "xAI Grok (Grok 2 Vision)",
+		"ai_prov_groq": "Groq Cloud (Free fast API key)",
+		"ai_prov_openrouter": "OpenRouter (Universal / free :free models)",
+		"set_btn_manage_ai_models": "&Manage AI Models and Providers...",
+		"menu_manage_ai_models": "&Manage AI Models (Outlook Image Helper)...",
+		"manage_models_title": "Manage AI Models and Providers",
+		"manage_models_list_lbl": "&AI Providers and Models:",
+		"manage_models_btn_set_active": "&Set as Active Model in Add-on",
+		"manage_models_active_status": "Status: Active model in add-on",
+		"manage_models_inactive_status": "Status: Configured model (inactive)",
+		"manage_models_base_url": "&Base URL:",
+		"manage_models_api_key": "&API Key:",
+		"manage_models_show_key": "Show API key",
+		"manage_models_btn_instructions": "&How to Get Key (Instructions)...",
+		"manage_models_btn_list": "&Fetch Models List from Server",
+		"manage_models_btn_test": "&Test Connection",
+		"manage_models_model_name": "&AI Model Name:",
+		"manage_models_prompt_lbl": "&Dedicated Prompt for This Model:",
+		"manage_models_btn_reset_prompt": "&Reset Prompt to Default",
+		"manage_models_max_tokens": "Maximum &tokens:",
+		"manage_models_timeout": "Response &timeout (seconds):",
+		"manage_models_key_not_required": "No key required (free service)",
+		"manage_models_btn_save": "&Save and Apply",
+		"manage_models_btn_cancel": "Cancel",
 		"set_ai_naming": "&Use AI to generate filenames (requires API key, sends images to cloud)",
 		"set_gemini_key": "Google Gemini &API Key:",
 		"set_gemini_model": "Gemini &Model (default: gemini-3.8-flash):",
@@ -2930,17 +3002,99 @@ def _findWordGWindow(parentHwnd: int) -> int:
 	return found[0]
 
 
+def isMenuOrPopup(obj=None) -> bool:
+	"""
+	Sprawdza, czy obiekt NVDA (lub bieżący fokus) jest elementem menu kontekstowego,
+	paska menu, menu rozwijanego lub innego wyskakującego okna podręcznego w programie Outlook.
+	"""
+	if not obj:
+		obj = api.getFocusObject()
+	if not obj:
+		return False
+	try:
+		# 1. Sprawdzenie roli samego obiektu
+		role = getattr(obj, "role", None)
+		menu_roles = {
+			getattr(controlTypes.Role, "MENUITEM", None),
+			getattr(controlTypes.Role, "POPUPMENU", None),
+			getattr(controlTypes.Role, "MENU", None),
+			getattr(controlTypes.Role, "MENUBAR", None),
+			getattr(controlTypes.Role, "RADIO_MENU_ITEM", None),
+			getattr(controlTypes.Role, "CHECK_MENU_ITEM", None),
+		}
+		menu_roles.discard(None)
+		if role in menu_roles:
+			return True
+
+		# 2. Sprawdzenie klasy okna Win32 (#32768 to standardowe okno menu kontekstowego Windows)
+		hwnd = getattr(obj, "windowHandle", 0)
+		cls = (winUser.getClassName(hwnd) if hwnd else "") or getattr(obj, "windowClassName", "") or ""
+		clsLower = cls.lower()
+		if cls == "#32768" or clsLower in ("netuinhwndhost", "netuinativehwndhost"):
+			return True
+
+		# 3. Sprawdzenie klasy UIA i typu kontrolki
+		cachedCls = (getattr(getattr(obj, "UIAElement", None), "cachedClassName", "") or "").lower()
+		if any(m in cachedCls for m in ("menuitem", "contextmenu", "popupmenu", "netuimenuitem")):
+			return True
+
+		uiaElem = getattr(obj, "UIAElement", None)
+		if uiaElem:
+			try:
+				cType = getattr(uiaElem, "currentControlType", None)
+				# 50011 = UIA_MenuItemControlTypeId, 50010 = UIA_MenuControlTypeId
+				if cType in (50011, 50010):
+					return True
+			except Exception:
+				pass
+
+		# 4. Sprawdzenie przodków w hierarchii (do 5 poziomów w górę)
+		curr = obj
+		for _ in range(5):
+			p = getattr(curr, "parent", None)
+			if not p:
+				break
+			pRole = getattr(p, "role", None)
+			if pRole in menu_roles:
+				return True
+			pHwnd = getattr(p, "windowHandle", 0)
+			if pHwnd:
+				pCls = winUser.getClassName(pHwnd) or ""
+				if pCls == "#32768" or pCls.lower() in ("netuinhwndhost", "netuinativehwndhost"):
+					return True
+			pCachedCls = (getattr(getattr(p, "UIAElement", None), "cachedClassName", "") or "").lower()
+			if any(m in pCachedCls for m in ("menuitem", "contextmenu", "popupmenu", "netuimenu")):
+				return True
+			curr = p
+	except Exception:
+		pass
+	return False
+
+
 def isMessageListRow(obj) -> bool:
 	"""Sprawdza, czy obiekt NVDA reprezentuje wiersz/element wiadomości na liście w Outlooku."""
 	if not obj:
 		return False
+	if isMenuOrPopup(obj):
+		return False
 	try:
 		cachedCls = getattr(getattr(obj, "UIAElement", None), "cachedClassName", "") or getattr(obj, "windowClassName", "") or ""
-		if cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow"):
+		if cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "OutlookGridRow"):
 			return True
 		role = getattr(obj, "role", None)
-		if role in (controlTypes.Role.LISTITEM, controlTypes.Role.TABLECELL, controlTypes.Role.TABLEROW):
-			return True
+		dataRole = getattr(controlTypes.Role, "DATAITEM", controlTypes.Role.LISTITEM)
+		treeRole = getattr(controlTypes.Role, "TREEVIEWITEM", controlTypes.Role.LISTITEM)
+		if role in (ROLE_TABLEROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM, dataRole, treeRole):
+			hwnd = getattr(obj, "windowHandle", 0)
+			cls = (winUser.getClassName(hwnd) if hwnd else "") or getattr(obj, "windowClassName", "") or ""
+			clsLower = cls.lower()
+			if any(k in clsLower for k in ("supergrid", "outlookgrid", "tableview")):
+				return True
+			parentHwnd = winUser.getAncestor(hwnd, winUser.GA_PARENT) if hwnd else 0
+			if parentHwnd:
+				parentCls = (winUser.getClassName(parentHwnd) or "").lower()
+				if any(k in parentCls for k in ("supergrid", "outlookgrid", "tableview")):
+					return True
 	except Exception:
 		pass
 	return False
@@ -2949,6 +3103,8 @@ def isMessageListRow(obj) -> bool:
 def isGroupHeader(obj) -> bool:
 	"""Sprawdza, czy obiekt NVDA reprezentuje nagłówek grupy (np. 'Dzisiaj') na liście wiadomości w Outlooku."""
 	if not obj:
+		return False
+	if isMenuOrPopup(obj):
 		return False
 	try:
 		cachedCls = getattr(getattr(obj, "UIAElement", None), "cachedClassName", "") or getattr(obj, "windowClassName", "") or ""
@@ -2977,6 +3133,8 @@ def isMessageBodyFocused(focus=None) -> bool:
 		focus = api.getFocusObject()
 	if not focus:
 		return False
+	if isMenuOrPopup(focus):
+		return False
 	try:
 		if getattr(focus, "WinwordDocumentObject", None) is not None:
 			return True
@@ -2992,28 +3150,44 @@ def isMessageBodyFocused(focus=None) -> bool:
 
 
 def isMessageListFocused(focus=None) -> bool:
-	"""Zwraca True, gdy fokus NVDA znajduje się na liście wiadomości (Explorer) w Outlooku, a nie w treści."""
+	"""Zwraca True, tylko gdy fokus NVDA znajduje się bezpośrednio na liście wiadomości (Explorer) w Outlooku."""
 	if not focus:
 		focus = api.getFocusObject()
 	if not focus:
+		return False
+	if isMenuOrPopup(focus):
 		return False
 	if isMessageBodyFocused(focus):
 		return False
 	if isGroupHeader(focus):
 		return True
 	try:
-		cls = (getattr(focus, "windowClassName", "") or "").lower()
+		hwnd = getattr(focus, "windowHandle", 0)
+		winCls = (winUser.getClassName(hwnd) if hwnd else "") or getattr(focus, "windowClassName", "") or ""
+		winClsLower = winCls.lower()
+
+		# Okna menu podręcznego, wstążki Office czy paska stanu nigdy nie są listą wiadomości
+		if winClsLower in ("#32768", "netuinhwndhost", "netuinativehwndhost") or "netui" in winClsLower:
+			return False
+
 		cachedCls = getattr(getattr(focus, "UIAElement", None), "cachedClassName", "") or ""
-		if any(k in cls for k in ("supergrid", "outlookgrid", "netui", "tableview")) or cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "GroupHeader"):
+		if cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "GroupHeader", "OutlookGridRow"):
 			return True
+
 		role = getattr(focus, "role", None)
-		if role in (controlTypes.Role.LISTITEM, controlTypes.Role.TABLECELL, ROLE_TABLEROW, controlTypes.Role.LIST, controlTypes.Role.DATAITEM):
-			return True
-		app = getOutlookApp()
-		if app:
-			actWin = app.ActiveWindow()
-			actExp = getattr(app, "ActiveExplorer", lambda: None)()
-			if actWin and actExp and actWin == actExp:
+		dataRole = getattr(controlTypes.Role, "DATAITEM", controlTypes.Role.LISTITEM)
+		treeRole = getattr(controlTypes.Role, "TREEVIEWITEM", controlTypes.Role.LISTITEM)
+		isListRole = role in (ROLE_TABLEROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM, dataRole, treeRole, controlTypes.Role.LIST)
+
+		if any(k in winClsLower for k in ("supergrid", "outlookgrid", "tableview")):
+			if isListRole:
+				return True
+
+		# Sprawdź okno nadrzędne, jeśli element jest obiektem UIA osadzonym wewnątrz kontrolki SUPERGRID/OutlookGrid
+		parentHwnd = winUser.getAncestor(hwnd, winUser.GA_PARENT) if hwnd else 0
+		if parentHwnd:
+			parentCls = (winUser.getClassName(parentHwnd) or "").lower()
+			if any(k in parentCls for k in ("supergrid", "outlookgrid", "tableview")) and isListRole:
 				return True
 	except Exception:
 		pass
@@ -6641,57 +6815,248 @@ def askGeminiMultiTurn(
 
 
 # ==============================================================================
-# OBSŁUGA OPENAI (CHATGPT) ORAZ UNIFIKACJA DOSTAWCÓW AI
+# KATALOG I ZARZĄDZANIE MODELAMI I DOSTAWCAMI AI (WCAG 2.1 / 2.2 AA)
 # ==============================================================================
+
+AI_PROVIDERS = {
+	"gemini": {
+		"id": "gemini",
+		"name": "Google Gemini (Zalecany, bezpłatny klucz osobisty)",
+		"nameEn": "Google Gemini (Recommended, free personal key)",
+		"symbol": "♊",
+		"badge": "Google Gemini",
+		"requiresKey": True,
+		"defaultUrl": "https://generativelanguage.googleapis.com",
+		"defaultModel": "gemini-2.5-flash",
+		"models": [
+			("gemini-2.5-flash", "Gemini 2.5 Flash (Szybki i zwięzły — zalecany)"),
+			("gemini-2.5-pro", "Gemini 2.5 Pro (Dokładny i szczegółowy)"),
+			("gemini-3.8-flash", "Gemini 3.8 Flash"),
+			("gemini-1.5-flash", "Gemini 1.5 Flash"),
+		],
+		"description": (
+			"Bezpłatny klucz osobisty do 1500 zapytań dziennie ze strony Google AI Studio. "
+			"Znakomita jakość opisu w języku polskim, bezbłędne czytanie tekstu (OCR) i najwyższa stabilność."
+		),
+	},
+	"openai": {
+		"id": "openai",
+		"name": "OpenAI ChatGPT (GPT-4o, GPT-4o-mini)",
+		"nameEn": "OpenAI ChatGPT (GPT-4o, GPT-4o-mini)",
+		"symbol": "🤖",
+		"badge": "OpenAI ChatGPT",
+		"requiresKey": True,
+		"defaultUrl": "https://api.openai.com/v1",
+		"defaultModel": "gpt-4o-mini",
+		"models": [
+			("gpt-4o-mini", "GPT-4o-mini (Szybki i ekonomiczny — zalecany)"),
+			("gpt-4o", "GPT-4o (Zaawansowana analiza wizyjna)"),
+			("chatgpt-4o-latest", "ChatGPT-4o (Najnowsza wersja)"),
+		],
+		"description": (
+			"Oficjalne API firmy OpenAI. Wymaga konta deweloperskiego i klucza API (sk-...). "
+			"Oferuje precyzyjną analizę wielomodelową i konwersację na najwyższym poziomie."
+		),
+	},
+	"groq": {
+		"id": "groq",
+		"name": "Groq Cloud (Darmowy szybki klucz)",
+		"nameEn": "Groq Cloud (Free fast API key)",
+		"symbol": "⚡",
+		"badge": "Groq Cloud",
+		"requiresKey": True,
+		"defaultUrl": "https://api.groq.com/openai/v1",
+		"defaultModel": "llama-3.2-11b-vision-preview",
+		"models": [
+			("llama-3.2-11b-vision-preview", "Llama 3.2 Vision 11B (Błyskawiczny — zalecany)"),
+			("llama-3.2-90b-vision-preview", "Llama 3.2 Vision 90B (Wysoka dokładność)"),
+		],
+		"description": (
+			"Bezpłatny klucz API po szybkiej rejestracji na console.groq.com. "
+			"Charakteryzuje się ekstremalną szybkością generowania odpowiedzi (ułamki sekund)."
+		),
+	},
+	"grok": {
+		"id": "grok",
+		"name": "xAI Grok (Grok 2 Vision)",
+		"nameEn": "xAI Grok (Grok 2 Vision)",
+		"symbol": "𝕏",
+		"badge": "xAI Grok",
+		"requiresKey": True,
+		"defaultUrl": "https://api.x.ai/v1",
+		"defaultModel": "grok-2-vision-1212",
+		"models": [
+			("grok-2-vision-1212", "Grok 2 Vision (Zalecany model wizyjny)"),
+			("grok-vision-beta", "Grok Vision Beta"),
+		],
+		"description": (
+			"Oficjalne API firmy xAI (Elon Musk). Wymaga konta w konsoli xAI i klucza xai-.... "
+			"Nowoczesny model wizyjny z bezpośrednią analizą zrzutów ekranu i grafik."
+		),
+	},
+	"openrouter": {
+		"id": "openrouter",
+		"name": "OpenRouter (Uniwersalny / darmowe modele :free)",
+		"nameEn": "OpenRouter (Universal / free :free models)",
+		"symbol": "🔀",
+		"badge": "OpenRouter",
+		"requiresKey": True,
+		"defaultUrl": "https://openrouter.ai/api/v1",
+		"defaultModel": "google/gemini-2.0-flash-exp:free",
+		"models": [
+			("google/gemini-2.0-flash-exp:free", "Gemini 2.0 Flash (Darmowy :free)"),
+			("meta-llama/llama-3.2-11b-vision-instruct:free", "Llama 3.2 11B Vision (Darmowy :free)"),
+			("qwen/qwen-2-vl-72b-instruct:free", "Qwen 2 VL 72B (Darmowy :free)"),
+		],
+		"description": (
+			"Uniwersalna platforma łącząca setki modeli. Wiele modeli wizyjnych z dopiskiem :free "
+			"jest dostępnych całkowicie bezpłatnie po zarejestrowaniu konta na openrouter.ai."
+		),
+	},
+	"pollinations": {
+		"id": "pollinations",
+		"name": "Pollinations AI (Wymaga klucza dla obrazów)",
+		"nameEn": "Pollinations AI (Requires key for images)",
+		"symbol": "🌐",
+		"badge": "Pollinations AI",
+		"requiresKey": True,
+		"defaultUrl": "https://gen.pollinations.ai/v1",
+		"defaultModel": "openai",
+		"models": [
+			("openai", "OpenAI Vision (Z kluczem enter.pollinations.ai)"),
+			("openai-fast", "OpenAI Fast (Tylko zapytania tekstowe)"),
+			("mistral", "Mistral AI"),
+		],
+		"description": (
+			"Społecznościowa usługa AI. Wersja bezpłatna bez logowania została ograniczona wyłącznie do tekstu. "
+			"Do analizy obrazów wymagany jest darmowy klucz z enter.pollinations.ai. Dla grafik zalecamy Google Gemini."
+		),
+	},
+}
+
 
 def getActiveAiProvider() -> str:
 	try:
 		sec = config.conf.get(CONFIG_SECTION, {})
-		prov = str(sec.get("aiProvider", "gemini")).strip().lower()
-		return "openai" if prov == "openai" else "gemini"
+		prov = str(sec.get("aiProvider", "")).strip().lower()
+		if prov in AI_PROVIDERS:
+			return prov
+		# Domyślnie preferuj Google Gemini (zwłaszcza gdy klucz jest już zapisany)
+		return "gemini"
 	except Exception:
 		return "gemini"
 
 
-def getActiveAiModel() -> str:
-	try:
-		sec = config.conf.get(CONFIG_SECTION, {})
-		prov = getActiveAiProvider()
-		if prov == "openai":
-			return str(sec.get("openaiModel", "gpt-4o-mini") or "gpt-4o-mini").strip()
-		m = str(sec.get("geminiModel", _DEFAULT_GEMINI_MODEL) or _DEFAULT_GEMINI_MODEL).strip()
-		if m in _RETIRED_GEMINI_MODELS:
-			m = _DEFAULT_GEMINI_MODEL
-		return m
-	except Exception:
-		return _DEFAULT_GEMINI_MODEL
+def getAiProviderDisplayName(prov: str | None = None) -> str:
+	p = prov or getActiveAiProvider()
+	effLang = getEffectiveLanguage()
+	pData = AI_PROVIDERS.get(p)
+	if pData:
+		return pData["nameEn"] if effLang == "en" else pData["name"]
+	return p.capitalize()
 
 
-def getActiveAiApiKey() -> str:
+def getActiveAiApiKey(prov: str | None = None) -> str:
 	try:
+		p = prov or getActiveAiProvider()
 		sec = config.conf.get(CONFIG_SECTION, {})
-		prov = getActiveAiProvider()
-		if prov == "openai":
-			return str(sec.get("openaiApiKey", "") or "").strip()
-		return str(sec.get("geminiApiKey", "") or "").strip()
+		keyName = f"{p}ApiKey"
+		val = str(sec.get(keyName, "") or "").strip()
+		if not val:
+			if p == "gemini":
+				val = str(sec.get("geminiApiKey", "") or "").strip()
+			elif p == "openai":
+				val = str(sec.get("openaiApiKey", "") or "").strip()
+		return val
 	except Exception:
 		return ""
 
 
-def callOpenAiVisionApi(
+def getActiveAiModel(prov: str | None = None) -> str:
+	try:
+		p = prov or getActiveAiProvider()
+		sec = config.conf.get(CONFIG_SECTION, {})
+		pData = AI_PROVIDERS.get(p, {})
+		defM = pData.get("defaultModel", "gemini-2.5-flash")
+		keyName = f"{p}Model"
+		val = str(sec.get(keyName, "") or "").strip()
+		if not val:
+			if p == "gemini":
+				val = str(sec.get("geminiModel", _DEFAULT_GEMINI_MODEL) or _DEFAULT_GEMINI_MODEL).strip()
+			elif p == "openai":
+				val = str(sec.get("openaiModel", "gpt-4o-mini") or "gpt-4o-mini").strip()
+		if not val:
+			val = defM
+		if p == "gemini" and val in _RETIRED_GEMINI_MODELS:
+			val = _DEFAULT_GEMINI_MODEL
+		return val
+	except Exception:
+		return "gemini-2.5-flash"
+
+
+def getActiveAiBaseUrl(prov: str | None = None) -> str:
+	try:
+		p = prov or getActiveAiProvider()
+		sec = config.conf.get(CONFIG_SECTION, {})
+		pData = AI_PROVIDERS.get(p, {})
+		defUrl = pData.get("defaultUrl", "https://generativelanguage.googleapis.com")
+		keyName = f"{p}BaseUrl"
+		val = str(sec.get(keyName, "") or "").strip()
+		return val or defUrl
+	except Exception:
+		return "https://generativelanguage.googleapis.com"
+
+
+def getActiveAiPrompt(prov: str | None = None) -> str:
+	try:
+		p = prov or getActiveAiProvider()
+		sec = config.conf.get(CONFIG_SECTION, {})
+		keyName = f"{p}Prompt"
+		val = str(sec.get(keyName, "") or "").strip()
+		if not val:
+			val = str(sec.get("aiPrompt", "") or "").strip()
+		return val
+	except Exception:
+		return ""
+
+
+def isAiConfigured(prov: str | None = None) -> bool:
+	p = prov or getActiveAiProvider()
+	return bool(getActiveAiApiKey(p))
+
+
+def getProviderLogoBitmap(prov: str | None = None, size: tuple[int, int] = (24, 24)) -> wx.Bitmap:
+	"""Zwraca przeskalowany obiekt wx.Bitmap z logotypem danego dostawcy AI."""
+	try:
+		p = prov or getActiveAiProvider()
+		iconPath = os.path.join(ADDON_DIR, "icons", f"{p}.png")
+		if os.path.isfile(iconPath):
+			img = wx.Image(iconPath, wx.BITMAP_TYPE_PNG)
+			if img.IsOk():
+				return wx.Bitmap(img.Rescale(size[0], size[1], wx.IMAGE_QUALITY_HIGH))
+	except Exception as ex:
+		log.debug(f"outlookImageHelper: błąd ładowania ikony dla {prov}: {ex}")
+	# Pusty bitmap jako fallback
+	return wx.Bitmap(size[0], size[1])
+
+
+def callOpenAiCompatibleVisionApi(
+	prov: str,
 	prompt: str,
 	imagePath: str | None = None,
 	base64Data: str | None = None,
 	mimeType: str = "image/png",
 	apiKey: str | None = None,
-	model: str = "gpt-4o-mini",
+	model: str | None = None,
+	baseUrl: str | None = None,
 	timeout: int = 35,
 	maxTokens: int = 1500,
 ) -> str:
-	"""Wykonuje zapytanie do API OpenAI (ChatGPT) z dołączonym obrazem lub dokumentem."""
-	key = (apiKey or getActiveAiApiKey()).strip()
-	if not key:
-		raise ValueError("Brak klucza API OpenAI (ChatGPT). Skonfiguruj go w ustawieniach dodatku.")
+	"""Wykonuje zapytanie wizyjne do dowolnego dostawcy kompatybilnego z protokołem OpenAI Chat Completions."""
+	p = prov or getActiveAiProvider()
+	key = (apiKey or getActiveAiApiKey(p)).strip()
+	m = model or getActiveAiModel(p)
+	bUrl = (baseUrl or getActiveAiBaseUrl(p)).rstrip("/")
 
 	content = []
 	if prompt:
@@ -6722,33 +7087,70 @@ def callOpenAiVisionApi(
 			})
 
 	payload = {
-		"model": model or "gpt-4o-mini",
+		"model": m,
 		"messages": [{"role": "user", "content": content}],
 		"max_tokens": maxTokens,
 	}
 	payloadBytes = json.dumps(payload).encode("utf-8")
 
-	req = urllib.request.Request(
-		"https://api.openai.com/v1/chat/completions",
-		data=payloadBytes,
-		headers={
-			"Content-Type": "application/json",
-			"Authorization": f"Bearer {key}",
-		},
-	)
+	if p == "pollinations":
+		if not key:
+			if b64:
+				raise RuntimeError(
+					"Dostawca Pollinations AI wycofał bezpłatną analizę obrazów bez klucza (darmowy model openai-fast obsługuje wyłącznie tekst).\n\n"
+					"Wskazówka: W oknie 'Wybór instrukcji dla AI' zmień dostawcę na Google Gemini (Twój darmowy klucz z AI Studio jest już zapisany i gotowy) lub wprowadź klucz z enter.pollinations.ai."
+				)
+			endpoint = "https://text.pollinations.ai/"
+		else:
+			endpoint = f"{bUrl}/chat/completions" if not bUrl.endswith("/chat/completions") else bUrl
+	else:
+		endpoint = f"{bUrl}/chat/completions" if not bUrl.endswith("/chat/completions") else bUrl
+
+	headers = {"Content-Type": "application/json"}
+	if key:
+		headers["Authorization"] = f"Bearer {key}"
+	if p == "openrouter":
+		headers["HTTP-Referer"] = "https://github.com/strugo10/outlookImageHelper"
+		headers["X-Title"] = "Outlook Image Helper NVDA Addon"
+
+	req = urllib.request.Request(endpoint, data=payloadBytes, headers=headers)
 
 	lastErr = None
 	for attempt in range(3):
 		try:
 			with urllib.request.urlopen(req, timeout=timeout) as resp:
-				resData = json.loads(resp.read().decode("utf-8"))
-			choices = resData.get("choices", [])
-			if not choices:
-				raise RuntimeError("Model OpenAI nie zwrócił żadnej odpowiedzi.")
-			msgContent = choices[0].get("message", {}).get("content", "")
-			return (msgContent or "").strip()
+				rawText = resp.read().decode("utf-8")
+			try:
+				resData = json.loads(rawText)
+				if isinstance(resData, dict) and "choices" in resData:
+					choices = resData.get("choices", [])
+					if choices:
+						msgContent = choices[0].get("message", {}).get("content", "")
+						if msgContent:
+							return str(msgContent).strip()
+			except Exception:
+				pass
+			if rawText and not rawText.startswith("<!DOCTYPE"):
+				return rawText.strip()
+			raise RuntimeError(f"Model {getAiProviderDisplayName(p)} nie zwrócił treści odpowiedzi.")
 		except urllib.error.HTTPError as he:
 			lastErr = he
+			if p == "pollinations":
+				errBody = ""
+				try:
+					errBody = he.read().decode("utf-8", errors="replace")
+				except Exception:
+					pass
+				if he.code == 400 or "does not support image input" in errBody:
+					raise RuntimeError(
+						"Model Pollinations nie obsługuje przesyłania grafiki.\n\n"
+						"Wskazówka: Zmień dostawcę na Google Gemini (Twój darmowy klucz jest już zapisany i gotowy) lub wprowadź klucz z enter.pollinations.ai."
+					)
+				elif he.code == 402 or "FREE_LIMIT" in errBody or "Free limit reached" in errBody:
+					raise RuntimeError(
+						"Pollinations AI zgłasza limit darmowych zapytań (maksymalnie 1 zapytanie na 45 sekund na adres IP) lub wymaga klucza.\n\n"
+						"Wskazówka: Przełącz się na Google Gemini, który oferuje bezpłatnie do 1500 zapytań dziennie bez opóźnień."
+					)
 			if he.code in (429, 502, 503, 504) and attempt < 2:
 				time.sleep(1.8 * (attempt + 1))
 				continue
@@ -6762,7 +7164,7 @@ def callOpenAiVisionApi(
 
 	if lastErr:
 		raise lastErr
-	raise RuntimeError("Brak odpowiedzi od API OpenAI.")
+	raise RuntimeError(f"Brak odpowiedzi od {getAiProviderDisplayName(p)}.")
 
 
 def describeWithOpenAi(
@@ -6775,7 +7177,8 @@ def describeWithOpenAi(
 ) -> str:
 	"""Adapter wywołujący OpenAI Chat Completions dla pliku obrazu lub dokumentu PDF."""
 	prompt = customPrompt or "Dokładnie opisz ten plik."
-	return callOpenAiVisionApi(
+	return callOpenAiCompatibleVisionApi(
+		prov="openai",
 		prompt=prompt,
 		imagePath=filePath,
 		mimeType=mimeType,
@@ -6785,16 +7188,20 @@ def describeWithOpenAi(
 	)
 
 
-def askOpenAiMultiTurn(
+def askOpenAiCompatibleMultiTurn(
 	chatHistory: list[dict],
+	prov: str | None = None,
 	apiKey: str | None = None,
-	model: str = "gpt-4o-mini",
-	timeout: int = 40,
+	model: str | None = None,
+	baseUrl: str | None = None,
+	timeout: int = 35,
+	maxTokens: int = 1800,
 ) -> str:
-	"""Obsługuje wieloturowy czat konwersacyjny z modelami OpenAI (ChatGPT)."""
-	key = (apiKey or getActiveAiApiKey()).strip()
-	if not key:
-		raise ValueError("Brak klucza API OpenAI (ChatGPT).")
+	"""Obsługuje wieloturowy czat konwersacyjny dla dostawców kompatybilnych z formatem OpenAI."""
+	p = prov or getActiveAiProvider()
+	key = (apiKey or getActiveAiApiKey(p)).strip()
+	m = model or getActiveAiModel(p)
+	bUrl = (baseUrl or getActiveAiBaseUrl(p)).rstrip("/")
 
 	messages = []
 	for turn in chatHistory:
@@ -6828,31 +7235,44 @@ def askOpenAiMultiTurn(
 			messages.append({"role": role, "content": textVal})
 
 	payload = {
-		"model": model or "gpt-4o-mini",
+		"model": m,
 		"messages": messages,
-		"max_tokens": 1800,
+		"max_tokens": maxTokens,
 	}
 	payloadBytes = json.dumps(payload).encode("utf-8")
 
-	req = urllib.request.Request(
-		"https://api.openai.com/v1/chat/completions",
-		data=payloadBytes,
-		headers={
-			"Content-Type": "application/json",
-			"Authorization": f"Bearer {key}",
-		},
-	)
+	if p == "pollinations":
+		endpoint = f"{bUrl}/"
+	else:
+		endpoint = f"{bUrl}/chat/completions" if not bUrl.endswith("/chat/completions") else bUrl
+
+	headers = {"Content-Type": "application/json"}
+	if key and key != "nie_wymaga_klucza" and "nie wymaga" not in key.lower():
+		headers["Authorization"] = f"Bearer {key}"
+	if p == "openrouter":
+		headers["HTTP-Referer"] = "https://github.com/strugo10/outlookImageHelper"
+		headers["X-Title"] = "Outlook Image Helper NVDA Addon"
+
+	req = urllib.request.Request(endpoint, data=payloadBytes, headers=headers)
 
 	lastErr = None
 	for attempt in range(3):
 		try:
 			with urllib.request.urlopen(req, timeout=timeout) as resp:
-				resData = json.loads(resp.read().decode("utf-8"))
-			choices = resData.get("choices", [])
-			if not choices:
-				raise RuntimeError("Model OpenAI nie zwrócił żadnej odpowiedzi.")
-			msgContent = choices[0].get("message", {}).get("content", "")
-			return (msgContent or "").strip()
+				rawText = resp.read().decode("utf-8")
+			try:
+				resData = json.loads(rawText)
+				if isinstance(resData, dict) and "choices" in resData:
+					choices = resData.get("choices", [])
+					if choices:
+						msgContent = choices[0].get("message", {}).get("content", "")
+						if msgContent:
+							return str(msgContent).strip()
+			except Exception:
+				pass
+			if rawText and not rawText.startswith("<!DOCTYPE"):
+				return rawText.strip()
+			raise RuntimeError(f"Model {getAiProviderDisplayName(p)} nie zwrócił treści odpowiedzi.")
 		except urllib.error.HTTPError as he:
 			lastErr = he
 			if he.code in (429, 502, 503, 504) and attempt < 2:
@@ -6868,42 +7288,187 @@ def askOpenAiMultiTurn(
 
 	if lastErr:
 		raise lastErr
-	raise RuntimeError("Brak odpowiedzi od API OpenAI.")
+	raise RuntimeError(f"Brak odpowiedzi od {getAiProviderDisplayName(p)}.")
+
+
+def askOpenAiMultiTurn(
+	chatHistory: list[dict],
+	apiKey: str | None = None,
+	model: str = "gpt-4o-mini",
+	timeout: int = 40,
+) -> str:
+	"""Obsługuje wieloturowy czat konwersacyjny z modelami OpenAI (ChatGPT)."""
+	return askOpenAiCompatibleMultiTurn(chatHistory, prov="openai", apiKey=apiKey, model=model, timeout=timeout)
+
+
+def testAiConnection(prov: str | None = None, apiKey: str = "", model: str = "", baseUrl: str = "") -> tuple[bool, str]:
+	"""Uniwersalna funkcja testująca połączenie i klucz API z wybranym dostawcą AI."""
+	p = prov or getActiveAiProvider()
+	if p == "gemini":
+		key = apiKey or getActiveAiApiKey("gemini")
+		m = model or getActiveAiModel("gemini")
+		return testGeminiApiKey(key, m)
+	elif p == "pollinations":
+		key = (apiKey or getActiveAiApiKey("pollinations")).strip()
+		m = model or getActiveAiModel("pollinations")
+		bUrl = (baseUrl or getActiveAiBaseUrl("pollinations")).rstrip("/")
+		if key:
+			endpoint = f"{bUrl}/chat/completions" if not bUrl.endswith("/chat/completions") else bUrl
+			payload = {
+				"model": m,
+				"messages": [{"role": "user", "content": "Odpowiedz: OK"}],
+				"max_tokens": 5,
+			}
+			headers = {"Content-Type": "application/json", "Authorization": f"Bearer {key}"}
+			try:
+				req = urllib.request.Request(endpoint, data=json.dumps(payload).encode("utf-8"), headers=headers)
+				with urllib.request.urlopen(req, timeout=15) as resp:
+					resData = json.loads(resp.read().decode("utf-8"))
+				if "choices" in resData:
+					return True, f"Sukces! Połączenie z Pollinations AI (klucz autoryzowany) działa prawidłowo (model: '{m}')."
+			except urllib.error.HTTPError as he:
+				return False, f"Błąd autoryzacji Pollinations AI: HTTP {he.code}"
+			except Exception as ex:
+				return False, f"Błąd połączenia z Pollinations AI: {ex}"
+			return True, "Połączenie z Pollinations AI działa prawidłowo."
+		else:
+			testUrl = "https://text.pollinations.ai/"
+			payload = {
+				"model": "openai-fast",
+				"messages": [{"role": "user", "content": "Odpowiedz: OK"}],
+				"max_tokens": 5,
+			}
+			try:
+				req = urllib.request.Request(
+					testUrl,
+					data=json.dumps(payload).encode("utf-8"),
+					headers={"Content-Type": "application/json"},
+				)
+				with urllib.request.urlopen(req, timeout=12) as resp:
+					raw = resp.read().decode("utf-8")
+				return False, (
+					"Serwer Pollinations AI odpowiada tekstowo, lecz usługa wycofała darmową analizę obrazów bez klucza.\n\n"
+					"Darmowy model 'openai-fast' obsługuje wyłącznie tekst. Aby opisywać grafiki, zalecamy przełączenie się na Google Gemini "
+					"(Twój darmowy klucz z AI Studio jest już zapisany i gotowy) lub wprowadzenie klucza z enter.pollinations.ai."
+				)
+			except Exception as ex:
+				return False, f"Błąd połączenia z serwerem Pollinations: {ex}"
+	else:
+		key = (apiKey or getActiveAiApiKey(p)).strip()
+		provName = getAiProviderDisplayName(p)
+		if not key:
+			return False, f"Pole klucza API dla usługi {provName} jest puste. Wprowadź swój klucz API."
+		bUrl = (baseUrl or getActiveAiBaseUrl(p)).rstrip("/")
+		endpoint = f"{bUrl}/chat/completions" if not bUrl.endswith("/chat/completions") else bUrl
+		m = model or getActiveAiModel(p)
+		payload = {
+			"model": m,
+			"messages": [{"role": "user", "content": "Hello"}],
+			"max_tokens": 5,
+		}
+		headers = {
+			"Content-Type": "application/json",
+			"Authorization": f"Bearer {key}",
+		}
+		if p == "openrouter":
+			headers["HTTP-Referer"] = "https://github.com/strugo10/outlookImageHelper"
+			headers["X-Title"] = "Outlook Image Helper NVDA Addon"
+
+		try:
+			req = urllib.request.Request(
+				endpoint,
+				data=json.dumps(payload).encode("utf-8"),
+				headers=headers,
+			)
+			with urllib.request.urlopen(req, timeout=15) as resp:
+				resData = json.loads(resp.read().decode("utf-8"))
+			if "choices" in resData:
+				return True, f"Sukces! Połączenie z {provName} działa prawidłowo. Klucz jest aktywny (model: '{m}')."
+		except urllib.error.HTTPError as he:
+			if he.code == 401:
+				return False, f"Nieprawidłowy klucz API dla {provName} (HTTP 401 Unauthorized). Sprawdź czy klucz został poprawnie skopiowany."
+			elif he.code == 429:
+				return True, f"Klucz API jest poprawny, lecz wystąpił limit zapytań lub brak środków na koncie {provName} (HTTP 429 Too Many Requests)."
+			return False, f"Błąd serwera {provName}: HTTP {he.code}"
+		except Exception as ex:
+			return False, f"Błąd sieciowy podczas testu {provName}: {ex}"
+		return False, f"Brak odpowiedzi od serwera {provName}."
 
 
 def testOpenAiApiKey(apiKey: str, model: str = "gpt-4o-mini") -> tuple[bool, str]:
 	"""Testuje poprawność klucza API OpenAI."""
-	key = (apiKey or "").strip()
-	if not key:
-		return False, "Klucz API OpenAI jest pusty."
+	return testAiConnection("openai", apiKey=apiKey, model=model)
 
-	payload = {
-		"model": model or "gpt-4o-mini",
-		"messages": [{"role": "user", "content": "Hello"}],
-		"max_tokens": 5,
-	}
-	req = urllib.request.Request(
-		"https://api.openai.com/v1/chat/completions",
-		data=json.dumps(payload).encode("utf-8"),
-		headers={
-			"Content-Type": "application/json",
-			"Authorization": f"Bearer {key}",
-		},
-	)
-	try:
-		with urllib.request.urlopen(req, timeout=12) as resp:
-			resData = json.loads(resp.read().decode("utf-8"))
-		if "choices" in resData:
-			return True, f"Klucz API OpenAI jest prawidłowy! Połączono pomyślnie z modelem '{model}'."
-	except urllib.error.HTTPError as he:
-		if he.code == 401:
-			return False, "Nieprawidłowy klucz API OpenAI (HTTP 401 Unauthorized). Sprawdź czy klucz został poprawnie skopiowany."
-		elif he.code == 429:
-			return True, "Klucz API jest poprawny, lecz wystąpił limit zapytań lub brak środków na koncie OpenAI (HTTP 429 Too Many Requests)."
-		return False, f"Błąd serwera OpenAI: HTTP {he.code}"
-	except Exception as ex:
-		return False, f"Błąd sieciowy podczas testu OpenAI: {ex}"
-	return False, "Brak odpowiedzi od serwera OpenAI."
+
+def fetchRemoteModelsForProvider(prov: str | None = None, apiKey: str = "", baseUrl: str = "") -> list[tuple[str, str]]:
+	"""Pobiera listę aktualnie dostępnych modeli bezpośrednio z serwerów wybranego dostawcy."""
+	p = prov or getActiveAiProvider()
+	curated = AI_PROVIDERS.get(p, {}).get("models", [])
+	if p == "gemini":
+		key = (apiKey or getActiveAiApiKey("gemini")).strip()
+		if not key:
+			return curated
+		url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
+		try:
+			req = urllib.request.Request(url, headers={"Content-Type": "application/json"})
+			with urllib.request.urlopen(req, timeout=10) as resp:
+				data = json.loads(resp.read().decode("utf-8"))
+			rawModels = data.get("models", [])
+			results = []
+			for m in rawModels:
+				methods = m.get("supportedGenerationMethods", [])
+				if "generateContent" in methods:
+					mName = m.get("name", "").replace("models/", "")
+					dName = m.get("displayName", mName)
+					if not mName.startswith("embedding") and "aqa" not in mName:
+						results.append((mName, f"{dName} ({mName})"))
+			if results:
+				return results
+		except Exception as ex:
+			log.warning(f"outlookImageHelper: Błąd pobierania modeli Gemini: {ex}")
+	elif p in ("openai", "grok", "groq"):
+		key = (apiKey or getActiveAiApiKey(p)).strip()
+		if not key:
+			return curated
+		bUrl = (baseUrl or getActiveAiBaseUrl(p)).rstrip("/")
+		url = f"{bUrl}/models"
+		try:
+			req = urllib.request.Request(url, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+			with urllib.request.urlopen(req, timeout=10) as resp:
+				data = json.loads(resp.read().decode("utf-8"))
+			rawModels = data.get("data", [])
+			results = []
+			for m in rawModels:
+				mId = m.get("id", "")
+				if p == "groq" and ("vision" in mId or "llama" in mId):
+					results.append((mId, mId))
+				elif p == "openai" and ("gpt" in mId or "o1" in mId or "o3" in mId):
+					results.append((mId, mId))
+				elif p == "grok":
+					results.append((mId, mId))
+			if results:
+				results.sort(key=lambda x: x[0])
+				return results
+		except Exception as ex:
+			log.warning(f"outlookImageHelper: Błąd pobierania modeli {p}: {ex}")
+	elif p == "openrouter":
+		url = "https://openrouter.ai/api/v1/models"
+		try:
+			req = urllib.request.Request(url, headers={"Content-Type": "application/json"})
+			with urllib.request.urlopen(req, timeout=10) as resp:
+				data = json.loads(resp.read().decode("utf-8"))
+			rawModels = data.get("data", [])
+			freeList = []
+			for m in rawModels:
+				mId = m.get("id", "")
+				mName = m.get("name", mId)
+				if ":free" in mId:
+					freeList.append((mId, f"{mName} (Darmowy :free)"))
+			if freeList:
+				return freeList[:25]
+		except Exception as ex:
+			log.warning(f"outlookImageHelper: Błąd pobierania modeli openrouter: {ex}")
+	return curated
 
 
 def callAiVisionApi(
@@ -6913,31 +7478,60 @@ def callAiVisionApi(
 	mimeType: str = "image/png",
 	parentDialog=None,
 ) -> str:
-	"""Uniwersalna funkcja wywołująca zapytanie wizyjne do wybranego w konfiguracji dostawcy (Gemini lub OpenAI)."""
+	"""Uniwersalna funkcja wywołująca zapytanie wizyjne do aktywnego dostawcy AI."""
 	prov = getActiveAiProvider()
-	key = getActiveAiApiKey()
-	if not key:
-		provName = "OpenAI (ChatGPT)" if prov == "openai" else "Google Gemini"
-		raise ValueError(f"Brak klucza API dla usługi {provName}. Skonfiguruj klucz w ustawieniach dodatku.")
-	model = getActiveAiModel()
-	if prov == "openai":
-		return callOpenAiVisionApi(prompt, imagePath=imagePath, base64Data=base64Data, mimeType=mimeType, apiKey=key, model=model)
-	else:
+	if not isAiConfigured(prov):
+		provName = getAiProviderDisplayName(prov)
+		raise ValueError(f"Brak klucza API dla usługi {provName}. Skonfiguruj klucz w ustawieniach dodatku lub wybierz bezpłatnego dostawcę Pollinations.")
+	model = getActiveAiModel(prov)
+	key = getActiveAiApiKey(prov)
+	baseUrl = getActiveAiBaseUrl(prov)
+	sec = config.conf.get(CONFIG_SECTION, {})
+	timeout = _to_int(sec.get("aiTimeout", 35), default=35, min_val=5, max_val=120)
+	maxTokens = _to_int(sec.get("aiMaxTokens", 1500), default=1500, min_val=100, max_val=8192)
+
+	if prov == "gemini":
 		return callGeminiVisionApi(prompt, imagePath=imagePath, base64Data=base64Data, mimeType=mimeType, apiKey=key, model=model)
+	else:
+		return callOpenAiCompatibleVisionApi(
+			prov=prov,
+			prompt=prompt,
+			imagePath=imagePath,
+			base64Data=base64Data,
+			mimeType=mimeType,
+			apiKey=key,
+			model=model,
+			baseUrl=baseUrl,
+			timeout=timeout,
+			maxTokens=maxTokens,
+		)
 
 
 def askAiMultiTurn(chatHistory: list[dict], parentDialog=None) -> str:
 	"""Uniwersalna funkcja obsługująca wieloturową rozmowę dla aktywnego dostawcy AI."""
 	prov = getActiveAiProvider()
-	key = getActiveAiApiKey()
-	if not key:
-		provName = "OpenAI (ChatGPT)" if prov == "openai" else "Google Gemini"
-		raise ValueError(f"Brak klucza API dla usługi {provName}. Skonfiguruj klucz w ustawieniach dodatku.")
-	model = getActiveAiModel()
-	if prov == "openai":
-		return askOpenAiMultiTurn(chatHistory, apiKey=key, model=model)
-	else:
+	if not isAiConfigured(prov):
+		provName = getAiProviderDisplayName(prov)
+		raise ValueError(f"Brak klucza API dla usługi {provName}. Skonfiguruj klucz w ustawieniach dodatku lub wybierz bezpłatnego dostawcę Pollinations.")
+	model = getActiveAiModel(prov)
+	key = getActiveAiApiKey(prov)
+	baseUrl = getActiveAiBaseUrl(prov)
+	sec = config.conf.get(CONFIG_SECTION, {})
+	timeout = _to_int(sec.get("aiTimeout", 35), default=35, min_val=5, max_val=120)
+	maxTokens = _to_int(sec.get("aiMaxTokens", 1800), default=1800, min_val=100, max_val=8192)
+
+	if prov == "gemini":
 		return askGeminiMultiTurn(chatHistory, apiKey=key, model=model)
+	else:
+		return askOpenAiCompatibleMultiTurn(
+			chatHistory,
+			prov=prov,
+			apiKey=key,
+			model=model,
+			baseUrl=baseUrl,
+			timeout=timeout,
+			maxTokens=maxTokens,
+		)
 
 
 def getDefaultSaveDirectory(category: str = "chat") -> str:
@@ -6960,7 +7554,7 @@ def getDefaultSaveDirectory(category: str = "chat") -> str:
 
 	lang = getEffectiveLanguage()
 	prov = getActiveAiProvider()
-	provName = "ChatGPT" if prov == "openai" else "Gemini"
+	provName = getAiProviderDisplayName(prov)
 
 	if category == "chat":
 		folderName = f"Zapisane rozmowy z {provName}" if lang == "pl" else f"Saved chats with {provName}"
@@ -6978,21 +7572,98 @@ def getDefaultSaveDirectory(category: str = "chat") -> str:
 	return targetDir
 
 
-def showGeminiKeyInstructions(parent=None):
-	"""Wyświetla dostępne okno instrukcji uzyskania bezpłatnego klucza Google Gemini z linkiem."""
-	url = "https://aistudio.google.com/app/apikey"
-	msg = (
-		"INSTRUKCJA: JAK UZYSKAĆ BEZPŁATNY KLUCZ API GOOGLE GEMINI\n"
-		+ "=" * 60 + "\n\n"
-		"Klucz API Google Gemini jest bezpłatny do użytku osobistego. Aby go uzyskać:\n\n"
-		f"1. Otwórz w przeglądarce stronę Google AI Studio:\n   {url}\n\n"
-		"2. Zaloguj się na swoje konto Google (Gmail).\n\n"
-		"3. Kliknij przycisk 'Create API key' (Utwórz klucz API).\n\n"
-		"4. Wybierz projekt Google Cloud lub zaakceptuj domyślny nowy projekt i zatwierdź.\n\n"
-		"5. Wygenerowany klucz (długi ciąg liter i cyfr) skopiuj do schowka przyciskiem 'Copy'.\n\n"
-		"6. Wróć do ustawień dodatku Outlook Image Helper w NVDA, wklej klucz w polu 'Klucz API Google Gemini' i kliknij przycisk 'Testuj klucz'.\n\n"
-		"Możesz nacisnąć Tab i użyć przycisku 'Otwórz stronę w przeglądarce' lub naciśnij Enter/Esc, aby zamknąć tę instrukcję."
-	)
+def showAiProviderInstructions(prov: str | None = None, parent=None):
+	"""Wyświetla dostępne okno instrukcji uzyskania klucza API dla wybranego dostawcy AI z przyciskiem przejścia na stronę."""
+	p = prov or getActiveAiProvider()
+	if p == "pollinations":
+		url = "https://enter.pollinations.ai"
+		title = "Instrukcja: Klucz API Pollinations AI"
+		msg = (
+			"INSTRUKCJA: POLLINATIONS AI (DOSTĘP DO MODELI AI I ANALIZY OBRAZÓW)\n"
+			+ "=" * 60 + "\n\n"
+			"1. Darmowe zapytania tekstowe nie wymagają klucza, lecz analiza obrazów (Vision) wymaga obecnie zarejestrowanego klucza API.\n\n"
+			f"2. Aby uzyskać darmowy klucz, otwórz w przeglądarce stronę:\n   {url}\n\n"
+			"3. Zaloguj się bezpłatnie swoim kontem GitHub lub Discord i wygeneruj klucz API.\n\n"
+			"4. Skopiuj klucz i wklej go w polu 'Klucz API' w konfiguracji tego modelu.\n\n"
+			"Wskazówka: Do opisywania grafik w Outlooku najbardziej polecamy usługę Google Gemini, która oferuje bezpłatnie do 1500 zapytań dziennie bez opóźnień.\n\n"
+			"Możesz nacisnąć Tab i użyć przycisku 'Otwórz stronę w przeglądarce' lub naciśnij Enter/Esc, aby zamknąć tę instrukcję."
+		)
+	elif p == "openai":
+		url = "https://platform.openai.com/api-keys"
+		title = "Instrukcja: Klucz API OpenAI (ChatGPT)"
+		msg = (
+			"INSTRUKCJA: JAK UZYSKAĆ KLUCZ API OPENAI (CHATGPT)\n"
+			+ "=" * 60 + "\n\n"
+			"Klucz OpenAI umożliwia korzystanie z modeli ChatGPT (GPT-4o, GPT-4o-mini). Aby go uzyskać:\n\n"
+			f"1. Otwórz w przeglądarce platformę deweloperską OpenAI:\n   {url}\n\n"
+			"2. Zaloguj się na swoje konto OpenAI lub utwórz nowe konto.\n\n"
+			"3. Kliknij przycisk '+ Create new secret key' (Utwórz nowy klucz tajny).\n\n"
+			"4. Nadaj kluczowi dowolną nazwę (np. 'NVDA Outlook') i zatwierdź.\n\n"
+			"5. Skopiuj wyświetlony klucz (zaczyna się od 'sk-...') do schowka — pamiętaj, że klucz wyświetla się tylko raz!\n\n"
+			"6. Wróć do dodatku i wklej klucz w polu 'Klucz API'.\n\n"
+			"Możesz nacisnąć Tab i użyć przycisku 'Otwórz stronę w przeglądarce' lub naciśnij Enter/Esc, aby zamknąć tę instrukcję."
+		)
+	elif p == "grok":
+		url = "https://console.x.ai/"
+		title = "Instrukcja: Klucz API xAI Grok"
+		msg = (
+			"INSTRUKCJA: JAK UZYSKAĆ KLUCZ API XAI GROK\n"
+			+ "=" * 60 + "\n\n"
+			"Klucz xAI umożliwia korzystanie z modeli Grok 2 Vision. Aby go uzyskać:\n\n"
+			f"1. Otwórz w przeglądarce konsolę deweloperską xAI:\n   {url}\n\n"
+			"2. Zaloguj się swoim kontem w serwisie X (dawniej Twitter).\n\n"
+			"3. Przejdź do sekcji 'API Keys' i kliknij przycisk 'Create Key'.\n\n"
+			"4. Nadaj kluczowi nazwę i zatwierdź.\n\n"
+			"5. Skopiuj wygenerowany klucz (zaczyna się od 'xai-...').\n\n"
+			"6. Wróć do dodatku i wklej klucz w polu 'Klucz API'.\n\n"
+			"Możesz nacisnąć Tab i użyć przycisku 'Otwórz stronę w przeglądarce' lub naciśnij Enter/Esc, aby zamknąć tę instrukcję."
+		)
+	elif p == "groq":
+		url = "https://console.groq.com/keys"
+		title = "Instrukcja: Bezpłatny klucz API Groq Cloud"
+		msg = (
+			"INSTRUKCJA: JAK UZYSKAĆ BEZPŁATNY KLUCZ API GROQ CLOUD\n"
+			+ "=" * 60 + "\n\n"
+			"Platforma Groq oferuje bezpłatny pakiet startowy z błyskawicznymi modelami Llama 3.2 Vision. Aby uzyskać klucz:\n\n"
+			f"1. Otwórz w przeglądarce konsolę Groq Cloud:\n   {url}\n\n"
+			"2. Zarejestruj bezpłatne konto (możesz zalogować się jednym kliknięciem przez konto Google).\n\n"
+			"3. Kliknij przycisk 'Create API Key' (Utwórz klucz API).\n\n"
+			"4. Nadaj kluczowi dowolną nazwę i kliknij 'Submit'.\n\n"
+			"5. Skopiuj wygenerowany klucz (zaczyna się od 'gsk_...').\n\n"
+			"6. Wróć do dodatku i wklej klucz w polu 'Klucz API'.\n\n"
+			"Możesz nacisnąć Tab i użyć przycisku 'Otwórz stronę w przeglądarce' lub naciśnij Enter/Esc, aby zamknąć tę instrukcję."
+		)
+	elif p == "openrouter":
+		url = "https://openrouter.ai/keys"
+		title = "Instrukcja: Klucz API OpenRouter (Modele darmowe i uniwersalne)"
+		msg = (
+			"INSTRUKCJA: JAK UZYSKAĆ KLUCZ API OPENROUTER\n"
+			+ "=" * 60 + "\n\n"
+			"OpenRouter zrzesza setki modeli AI i oferuje dostęp do modeli całkowicie bezpłatnych (oznaczonych jako :free). Aby uzyskać klucz:\n\n"
+			f"1. Otwórz w przeglądarce stronę OpenRouter:\n   {url}\n\n"
+			"2. Zarejestruj darmowe konto.\n\n"
+			"3. Kliknij przycisk 'Create Key', nadaj mu nazwę i zatwierdź.\n\n"
+			"4. Skopiuj wygenerowany klucz (zaczyna się od 'sk-or-...').\n\n"
+			"5. Wróć do dodatku i wklej klucz w polu 'Klucz API'. Możesz korzystać z darmowych modeli z dopiskiem :free bez opłat.\n\n"
+			"Możesz nacisnąć Tab i użyć przycisku 'Otwórz stronę w przeglądarce' lub naciśnij Enter/Esc, aby zamknąć tę instrukcję."
+		)
+	else:
+		# gemini
+		url = "https://aistudio.google.com/app/apikey"
+		title = "Instrukcja: Bezpłatny klucz API Google Gemini"
+		msg = (
+			"INSTRUKCJA: JAK UZYSKAĆ BEZPŁATNY KLUCZ API GOOGLE GEMINI\n"
+			+ "=" * 60 + "\n\n"
+			"Klucz API Google Gemini jest całkowicie bezpłatny do użytku osobistego (do 1500 zapytań dziennie). Aby go uzyskać:\n\n"
+			f"1. Otwórz w przeglądarce stronę Google AI Studio:\n   {url}\n\n"
+			"2. Zaloguj się na swoje konto Google (Gmail).\n\n"
+			"3. Kliknij przycisk 'Create API key' (Utwórz klucz API).\n\n"
+			"4. Wybierz opcję 'Create API key in new project' i zatwierdź.\n\n"
+			"5. W okienku z gotowym kluczem kliknij przycisk 'Copy' (Kopiuj).\n\n"
+			"6. Wróć do dodatku i wklej klucz w polu 'Klucz API Google Gemini'.\n\n"
+			"Możesz nacisnąć Tab i użyć przycisku 'Otwórz stronę w przeglądarce' lub naciśnij Enter/Esc, aby zamknąć tę instrukcję."
+		)
+
 	def _openUrl(evt):
 		try:
 			os.startfile(url)
@@ -7001,43 +7672,465 @@ def showGeminiKeyInstructions(parent=None):
 
 	showAccessibleMessageBox(
 		msg,
-		title="Instrukcja: Klucz API Google Gemini",
+		title=title,
 		parent=parent,
 		buttonLabel="&Zamknij (Esc)",
 		actionBtnLabel="&Otwórz stronę w przeglądarce",
 		actionCallback=_openUrl,
 	)
+
+
+def showGeminiKeyInstructions(parent=None):
+	"""Wyświetla dostępne okno instrukcji uzyskania bezpłatnego klucza Google Gemini z linkiem."""
+	showAiProviderInstructions("gemini", parent=parent)
 
 
 def showOpenAiKeyInstructions(parent=None):
 	"""Wyświetla dostępne okno instrukcji uzyskania klucza OpenAI (ChatGPT) z linkiem."""
-	url = "https://platform.openai.com/api-keys"
-	msg = (
-		"INSTRUKCJA: JAK UZYSKAĆ KLUCZ API OPENAI (CHATGPT)\n"
-		+ "=" * 60 + "\n\n"
-		"Aby korzystać z modeli ChatGPT (np. GPT-4o, GPT-4o-mini) do analizy obrazów i rozmowy:\n\n"
-		f"1. Otwórz w przeglądarce platformę deweloperską OpenAI:\n   {url}\n\n"
-		"2. Zaloguj się na swoje konto OpenAI lub utwórz nowe konto.\n\n"
-		"3. Kliknij przycisk '+ Create new secret key' (Utwórz nowy klucz tajny).\n\n"
-		"4. Nadaj kluczowi dowolną nazwę (np. 'NVDA Outlook') i zatwierdź.\n\n"
-		"5. Skopiuj wyświetlony klucz (zaczyna się od 'sk-...') do schowka — pamiętaj, że klucz wyświetla się tylko raz!\n\n"
-		"6. Wróć do ustawień dodatku w NVDA, wybierz dostawcę 'OpenAI / ChatGPT', wklej klucz w polu 'Klucz API OpenAI' i kliknij 'Testuj klucz'.\n\n"
-		"Możesz nacisnąć Tab i użyć przycisku 'Otwórz stronę w przeglądarce' lub naciśnij Enter/Esc, aby zamknąć tę instrukcję."
-	)
-	def _openUrl(evt):
-		try:
-			os.startfile(url)
-		except Exception as e:
-			ui.message(f"Błąd otwierania przeglądarki: {e}")
+	showAiProviderInstructions("openai", parent=parent)
 
-	showAccessibleMessageBox(
-		msg,
-		title="Instrukcja: Klucz API OpenAI (ChatGPT)",
-		parent=parent,
-		buttonLabel="&Zamknij (Esc)",
-		actionBtnLabel="&Otwórz stronę w przeglądarce",
-		actionCallback=_openUrl,
-	)
+
+class ManageAiModelsDialog(wx.Dialog):
+	"""
+	Dostępne okno zarządzania modelami i dostawcami AI w układzie dwukolumnowym (WCAG 2.1 / 2.2 AA).
+	Lewa kolumna: lista dostawców i przycisk ustawienia jako aktywny model.
+	Prawa kolumna: pełna konfiguracja wybranego dostawcy (URL, klucz API, nazwa modelu z weryfikacją,
+	dedykowany prompt dla danego modelu, limity tokenów i czasu, instrukcja pozyskania klucza).
+	"""
+
+	def __init__(self, parent=None, initialProvider: str | None = None):
+		super().__init__(
+			parent or gui.mainFrame,
+			title=_T("manage_models_title"),
+			size=(880, 640),
+			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
+		)
+		self.SetMinSize((760, 560))
+
+		sec = config.conf.get(CONFIG_SECTION, {})
+		self.activeProv = getActiveAiProvider()
+		self.currentProv = initialProvider or self.activeProv
+
+		# Bufor konfiguracji dla każdego dostawcy
+		self.configs = {}
+		for pId, pData in AI_PROVIDERS.items():
+			self.configs[pId] = {
+				"apiKey": str(sec.get(f"{pId}ApiKey", "") or "").strip(),
+				"model": str(sec.get(f"{pId}Model", "") or pData["defaultModel"]).strip(),
+				"baseUrl": str(sec.get(f"{pId}BaseUrl", "") or pData["defaultUrl"]).strip(),
+				"prompt": str(sec.get(f"{pId}Prompt", "") or "").strip(),
+				"maxTokens": _to_int(sec.get("aiMaxTokens", 1500), default=1500, min_val=100, max_val=8192),
+				"timeout": _to_int(sec.get("aiTimeout", 35), default=35, min_val=5, max_val=120),
+			}
+			# Zachowanie kompatybilności wstecznej dla gemini i openai
+			if pId == "gemini" and not self.configs["gemini"]["apiKey"]:
+				self.configs["gemini"]["apiKey"] = str(sec.get("geminiApiKey", "") or "").strip()
+			if pId == "openai" and not self.configs["openai"]["apiKey"]:
+				self.configs["openai"]["apiKey"] = str(sec.get("openaiApiKey", "") or "").strip()
+
+		self.providerIds = list(AI_PROVIDERS.keys())
+
+		mainSizer = wx.BoxSizer(wx.VERTICAL)
+		colsSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+		# ======================================================================
+		# LEWA KOLUMNA: Lista dostawców
+		# ======================================================================
+		leftSizer = wx.BoxSizer(wx.VERTICAL)
+		lblList = wx.StaticText(self, label=_T("manage_models_list_lbl"))
+		lblList.SetFont(lblList.GetFont().Bold())
+		leftSizer.Add(lblList, flag=wx.BOTTOM, border=6)
+
+		self.providersList = wx.ListBox(self, style=wx.LB_SINGLE, size=(280, 360))
+		self.providersList.SetName(_T("manage_models_list_lbl"))
+		leftSizer.Add(self.providersList, proportion=1, flag=wx.EXPAND | wx.BOTTOM, border=10)
+
+		self.btnSetActive = wx.Button(self, label=_T("manage_models_btn_set_active"))
+		self.btnSetActive.Bind(wx.EVT_BUTTON, self.onSetActiveClicked)
+		leftSizer.Add(self.btnSetActive, flag=wx.EXPAND | wx.BOTTOM, border=8)
+
+		self.lblActiveStatus = wx.StaticText(self, label="")
+		self.lblActiveStatus.SetFont(self.lblActiveStatus.GetFont().Bold())
+		leftSizer.Add(self.lblActiveStatus, flag=wx.EXPAND)
+
+		colsSizer.Add(leftSizer, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
+
+		# ======================================================================
+		# PRAWA KOLUMNA: Konfiguracja wybranego dostawcy
+		# ======================================================================
+		rightSizer = wx.BoxSizer(wx.VERTICAL)
+
+		# Nagłówek z logotypem wybranego dostawcy
+		hdrBox = wx.BoxSizer(wx.HORIZONTAL)
+		self.bmpRightLogo = wx.StaticBitmap(self, size=(28, 28))
+		hdrBox.Add(self.bmpRightLogo, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+
+		self.lblProviderHeader = wx.StaticText(self, label="")
+		headerFont = self.lblProviderHeader.GetFont()
+		headerFont.SetPointSize(headerFont.GetPointSize() + 1)
+		headerFont.SetWeight(wx.FONTWEIGHT_BOLD)
+		self.lblProviderHeader.SetFont(headerFont)
+		hdrBox.Add(self.lblProviderHeader, 1, wx.ALIGN_CENTER_VERTICAL)
+		rightSizer.Add(hdrBox, flag=wx.BOTTOM, border=4)
+
+		self.lblProviderDesc = wx.StaticText(self, label="")
+		self.lblProviderDesc.Wrap(520)
+		rightSizer.Add(self.lblProviderDesc, flag=wx.BOTTOM, border=10)
+
+		# Bazowy adres URL
+		lblUrl = wx.StaticText(self, label=_T("manage_models_base_url"))
+		rightSizer.Add(lblUrl, flag=wx.BOTTOM, border=2)
+		self.txtUrl = wx.TextCtrl(self)
+		self.txtUrl.SetName(_T("manage_models_base_url"))
+		rightSizer.Add(self.txtUrl, flag=wx.EXPAND | wx.BOTTOM, border=8)
+
+		# Klucz API
+		self.lblKey = wx.StaticText(self, label=_T("manage_models_api_key"))
+		rightSizer.Add(self.lblKey, flag=wx.BOTTOM, border=2)
+
+		self.keyBox = wx.BoxSizer(wx.VERTICAL)
+		self.txtKey = wx.TextCtrl(self, style=wx.TE_PASSWORD)
+		self.txtKey.SetName(_T("manage_models_api_key"))
+		self.keyBox.Add(self.txtKey, flag=wx.EXPAND)
+
+		self.txtKeyPlain = wx.TextCtrl(self)
+		self.txtKeyPlain.SetName(_T("manage_models_api_key"))
+		self.txtKeyPlain.Hide()
+		self.keyBox.Add(self.txtKeyPlain, flag=wx.EXPAND)
+
+		rightSizer.Add(self.keyBox, flag=wx.EXPAND | wx.BOTTOM, border=4)
+
+		self.chkShowKey = wx.CheckBox(self, label=_T("manage_models_show_key"))
+		self.chkShowKey.Bind(wx.EVT_CHECKBOX, self.onToggleShowKey)
+		rightSizer.Add(self.chkShowKey, flag=wx.BOTTOM, border=8)
+
+		# Wiersz przycisków pomocniczych
+		btnsRow = wx.BoxSizer(wx.HORIZONTAL)
+		self.btnGuide = wx.Button(self, label=_T("manage_models_btn_instructions"))
+		self.btnGuide.Bind(wx.EVT_BUTTON, self.onGuideClicked)
+		btnsRow.Add(self.btnGuide, flag=wx.RIGHT, border=6)
+
+		self.btnTest = wx.Button(self, label=_T("manage_models_btn_test"))
+		self.btnTest.Bind(wx.EVT_BUTTON, self.onTestClicked)
+		btnsRow.Add(self.btnTest, flag=wx.RIGHT, border=6)
+
+		self.btnListModels = wx.Button(self, label=_T("manage_models_btn_list"))
+		self.btnListModels.Bind(wx.EVT_BUTTON, self.onListModelsClicked)
+		btnsRow.Add(self.btnListModels)
+
+		rightSizer.Add(btnsRow, flag=wx.BOTTOM, border=10)
+
+		# Wybór / nazwa modelu
+		lblModel = wx.StaticText(self, label=_T("manage_models_model_name"))
+		rightSizer.Add(lblModel, flag=wx.BOTTOM, border=2)
+		self.cmbModel = wx.ComboBox(self, style=wx.CB_DROPDOWN)
+		self.cmbModel.SetName(_T("manage_models_model_name"))
+		rightSizer.Add(self.cmbModel, flag=wx.EXPAND | wx.BOTTOM, border=8)
+
+		# Dedykowany prompt dla tego modelu
+		promptHdrBox = wx.BoxSizer(wx.HORIZONTAL)
+		lblPrompt = wx.StaticText(self, label=_T("manage_models_prompt_lbl"))
+		promptHdrBox.Add(lblPrompt, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=10)
+
+		self.btnResetPrompt = wx.Button(self, label=_T("manage_models_btn_reset_prompt"))
+		self.btnResetPrompt.Bind(wx.EVT_BUTTON, self.onResetPromptClicked)
+		promptHdrBox.Add(self.btnResetPrompt)
+		rightSizer.Add(promptHdrBox, flag=wx.EXPAND | wx.BOTTOM, border=4)
+
+		self.txtPrompt = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 85))
+		self.txtPrompt.SetName(_T("manage_models_prompt_lbl"))
+		rightSizer.Add(self.txtPrompt, flag=wx.EXPAND | wx.BOTTOM, border=8)
+
+		# Parametry techniczne: tokeny i limit czasu
+		limitsRow = wx.BoxSizer(wx.HORIZONTAL)
+		lblTokens = wx.StaticText(self, label=_T("manage_models_max_tokens"))
+		limitsRow.Add(lblTokens, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=6)
+		self.spinTokens = wx.SpinCtrl(self, min=100, max=8192, initial=1500)
+		self.spinTokens.SetName(_T("manage_models_max_tokens"))
+		limitsRow.Add(self.spinTokens, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=18)
+
+		lblTimeout = wx.StaticText(self, label=_T("manage_models_timeout"))
+		limitsRow.Add(lblTimeout, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=6)
+		self.spinTimeout = wx.SpinCtrl(self, min=5, max=120, initial=35)
+		self.spinTimeout.SetName(_T("manage_models_timeout"))
+		limitsRow.Add(self.spinTimeout, flag=wx.ALIGN_CENTER_VERTICAL)
+
+		rightSizer.Add(limitsRow, flag=wx.BOTTOM, border=10)
+
+		colsSizer.Add(rightSizer, proportion=2, flag=wx.EXPAND | wx.ALL, border=10)
+		mainSizer.Add(colsSizer, proportion=1, flag=wx.EXPAND)
+
+		# Dolny pasek przycisków: Zapisz i Anuluj
+		bottomSizer = wx.BoxSizer(wx.HORIZONTAL)
+		self.btnSave = wx.Button(self, wx.ID_OK, label=_T("manage_models_btn_save"))
+		self.btnSave.SetDefault()
+		self.btnSave.Bind(wx.EVT_BUTTON, self.onSaveClicked)
+		bottomSizer.Add(self.btnSave, flag=wx.RIGHT, border=10)
+
+		self.btnCancel = wx.Button(self, wx.ID_CANCEL, label=_T("manage_models_btn_cancel"))
+		bottomSizer.Add(self.btnCancel)
+
+		mainSizer.Add(bottomSizer, flag=wx.ALIGN_RIGHT | wx.ALL, border=10)
+
+		self.SetSizer(mainSizer)
+
+		# Inicjalizacja listy i załadowanie aktywnego dostawcy
+		self.refreshProvidersList()
+		initIdx = self.providerIds.index(self.currentProv) if self.currentProv in self.providerIds else 0
+		self.providersList.SetSelection(initIdx)
+		self.loadProviderToForm(self.providerIds[initIdx])
+
+		self.providersList.Bind(wx.EVT_LISTBOX, self.onProviderSelected)
+		self.Bind(wx.EVT_CHAR_HOOK, self.onCharHook)
+
+	def onCharHook(self, evt):
+		if evt.GetKeyCode() == wx.WXK_ESCAPE:
+			self.EndModal(wx.ID_CANCEL)
+			return
+		evt.Skip()
+
+	def refreshProvidersList(self):
+		effLang = getEffectiveLanguage()
+		items = []
+		for pId in self.providerIds:
+			pData = AI_PROVIDERS[pId]
+			sym = pData.get("symbol", "")
+			pName = pData["nameEn"] if effLang == "en" else pData["name"]
+			prefix = f"{sym} " if sym else ""
+			if pId == self.activeProv:
+				tag = " (Aktywny)" if effLang == "pl" else " (Active)"
+				items.append(f"{prefix}{pName}{tag}")
+			else:
+				items.append(f"{prefix}{pName}")
+		sel = self.providersList.GetSelection()
+		self.providersList.Set(items)
+		if 0 <= sel < len(items):
+			self.providersList.SetSelection(sel)
+
+	def onProviderSelected(self, evt):
+		idx = self.providersList.GetSelection()
+		if 0 <= idx < len(self.providerIds):
+			self.saveCurrentFormToCache(self.currentProv)
+			self.currentProv = self.providerIds[idx]
+			self.loadProviderToForm(self.currentProv)
+
+	def loadProviderToForm(self, pId: str):
+		pData = AI_PROVIDERS.get(pId, {})
+		cfg = self.configs.get(pId, {})
+		effLang = getEffectiveLanguage()
+
+		pName = pData.get("nameEn", pId) if effLang == "en" else pData.get("name", pId)
+		self.bmpRightLogo.SetBitmap(getProviderLogoBitmap(pId, (28, 28)))
+		self.lblProviderHeader.SetLabel(f"Konfiguracja: {pName}")
+		self.lblProviderDesc.SetLabel(pData.get("description", ""))
+		self.lblProviderDesc.Wrap(520)
+
+		self.txtUrl.SetValue(cfg.get("baseUrl", pData.get("defaultUrl", "")))
+
+		reqKey = pData.get("requiresKey", True)
+		keyVal = cfg.get("apiKey", "")
+		if not reqKey:
+			placeholder = _T("manage_models_key_not_required")
+			self.txtKey.SetValue(placeholder)
+			self.txtKey.Disable()
+			self.txtKeyPlain.SetValue(placeholder)
+			self.txtKeyPlain.Disable()
+			self.chkShowKey.SetValue(False)
+			self.chkShowKey.Disable()
+			self.txtKey.Show()
+			self.txtKeyPlain.Hide()
+		else:
+			self.txtKey.Enable()
+			self.txtKeyPlain.Enable()
+			self.chkShowKey.Enable()
+			self.txtKey.SetValue(keyVal)
+			self.txtKeyPlain.SetValue(keyVal)
+			showPlain = self.chkShowKey.GetValue()
+			self.txtKey.Show(not showPlain)
+			self.txtKeyPlain.Show(showPlain)
+
+		# Modele w ComboBox
+		self.cmbModel.Clear()
+		modelChoices = [m[0] for m in pData.get("models", [])]
+		for mId, mLabel in pData.get("models", []):
+			self.cmbModel.Append(mLabel, mId)
+
+		curModel = cfg.get("model", pData.get("defaultModel", ""))
+		matched = False
+		for i in range(self.cmbModel.GetCount()):
+			mId = self.cmbModel.GetClientData(i)
+			if mId == curModel:
+				self.cmbModel.SetSelection(i)
+				matched = True
+				break
+		if not matched:
+			self.cmbModel.SetValue(curModel)
+
+		self.txtPrompt.SetValue(cfg.get("prompt", ""))
+		self.spinTokens.SetValue(cfg.get("maxTokens", 1500))
+		self.spinTimeout.SetValue(cfg.get("timeout", 35))
+
+		# Status aktywności
+		if pId == self.activeProv:
+			self.lblActiveStatus.SetLabel(_T("manage_models_active_status"))
+			self.lblActiveStatus.SetForegroundColour(wx.Colour(0, 150, 0))
+		else:
+			self.lblActiveStatus.SetLabel(_T("manage_models_inactive_status"))
+			self.lblActiveStatus.SetForegroundColour(wx.Colour(120, 120, 120))
+
+		self.Layout()
+
+	def saveCurrentFormToCache(self, pId: str):
+		if not pId or pId not in self.configs:
+			return
+		pData = AI_PROVIDERS.get(pId, {})
+		reqKey = pData.get("requiresKey", True)
+
+		if reqKey:
+			k = self.txtKeyPlain.GetValue().strip() if self.chkShowKey.GetValue() else self.txtKey.GetValue().strip()
+			if "nie wymaga" in k.lower():
+				k = ""
+		else:
+			k = ""
+
+		selModelIdx = self.cmbModel.GetSelection()
+		if selModelIdx != wx.NOT_FOUND:
+			mVal = self.cmbModel.GetClientData(selModelIdx) or self.cmbModel.GetString(selModelIdx)
+		else:
+			mVal = self.cmbModel.GetValue().strip()
+
+		self.configs[pId] = {
+			"apiKey": k,
+			"model": mVal or pData.get("defaultModel", ""),
+			"baseUrl": self.txtUrl.GetValue().strip() or pData.get("defaultUrl", ""),
+			"prompt": self.txtPrompt.GetValue().strip(),
+			"maxTokens": self.spinTokens.GetValue(),
+			"timeout": self.spinTimeout.GetValue(),
+		}
+
+	def onToggleShowKey(self, evt):
+		show = self.chkShowKey.GetValue()
+		if show:
+			self.txtKeyPlain.SetValue(self.txtKey.GetValue())
+			self.txtKey.Hide()
+			self.txtKeyPlain.Show()
+			if hasattr(self, "keyBox"):
+				self.keyBox.Show(self.txtKey, False)
+				self.keyBox.Show(self.txtKeyPlain, True)
+			self.txtKeyPlain.SetFocus()
+		else:
+			self.txtKey.SetValue(self.txtKeyPlain.GetValue())
+			self.txtKeyPlain.Hide()
+			self.txtKey.Show()
+			if hasattr(self, "keyBox"):
+				self.keyBox.Show(self.txtKeyPlain, False)
+				self.keyBox.Show(self.txtKey, True)
+			self.txtKey.SetFocus()
+		self.Layout()
+
+	def onSetActiveClicked(self, evt):
+		idx = self.providersList.GetSelection()
+		if 0 <= idx < len(self.providerIds):
+			pId = self.providerIds[idx]
+			self.activeProv = pId
+			self.refreshProvidersList()
+			self.loadProviderToForm(pId)
+			pName = getAiProviderDisplayName(pId)
+			ui.message(f"Ustawiono {pName} jako aktywny model AI.")
+
+	def onResetPromptClicked(self, evt):
+		defaultPrompt = (
+			"Jesteś precyzyjnym asystentem osoby niewidomej. "
+			"Dokładnie i wyczerpująco przeanalizuj załączony materiał w języku polskim.\n"
+			"- Jeśli to zrzut ekranu lub tabela: połącz widoczne dane, podaj nagłówki kolumn, wartości i wnioski.\n"
+			"- Jeśli to dokument PDF: wskaż temat, nadawcę, odbiorcę, daty, kwoty, tabelaryczne zestawienia i podsumowanie.\n"
+			"- Jeśli to wykres: opisz osie, wartości i trendy.\n"
+			"- Jeśli to zdjęcie: opisz scenę, obiekty, ludzi i kolory."
+		)
+		self.txtPrompt.SetValue(defaultPrompt)
+		ui.message("Przywrócono standardową treść instrukcji dla AI.")
+
+	def onGuideClicked(self, evt):
+		showAiProviderInstructions(self.currentProv, parent=self)
+
+	def onTestClicked(self, evt):
+		self.saveCurrentFormToCache(self.currentProv)
+		cfg = self.configs.get(self.currentProv, {})
+		ok, msg = testAiConnection(
+			self.currentProv,
+			apiKey=cfg.get("apiKey", ""),
+			model=cfg.get("model", ""),
+			baseUrl=cfg.get("baseUrl", ""),
+		)
+		title = "Test połączenia z AI"
+		icon = wx.ICON_INFORMATION if ok else wx.ICON_WARNING
+		wx.MessageBox(msg, title, style=wx.OK | icon, parent=self)
+
+	def onListModelsClicked(self, evt):
+		self.saveCurrentFormToCache(self.currentProv)
+		cfg = self.configs.get(self.currentProv, {})
+		pName = getAiProviderDisplayName(self.currentProv)
+		ui.message(f"Pobieranie listy dostępnych modeli z serwera {pName}...")
+		models = fetchRemoteModelsForProvider(
+			self.currentProv,
+			apiKey=cfg.get("apiKey", ""),
+			baseUrl=cfg.get("baseUrl", ""),
+		)
+		if models:
+			self.cmbModel.Clear()
+			for mId, mLabel in models:
+				self.cmbModel.Append(mLabel, mId)
+			if self.cmbModel.GetCount() > 0:
+				self.cmbModel.SetSelection(0)
+			ui.message(f"Pomyślnie zaktualizowano listę modeli dla {pName}. Dostępnych modeli: {len(models)}.")
+		else:
+			ui.message(f"Nie udało się pobrać modeli z serwera {pName}. Zachowano listę domyślną.")
+
+	def onSaveClicked(self, evt):
+		self.saveCurrentFormToCache(self.currentProv)
+		sec = config.conf.get(CONFIG_SECTION, {})
+		sec["aiProvider"] = self.activeProv
+
+		for pId, cfg in self.configs.items():
+			sec[f"{pId}ApiKey"] = cfg.get("apiKey", "")
+			sec[f"{pId}Model"] = cfg.get("model", "")
+			sec[f"{pId}BaseUrl"] = cfg.get("baseUrl", "")
+			sec[f"{pId}Prompt"] = cfg.get("prompt", "")
+
+			# Zachowanie kompatybilności wstecznej
+			if pId == "gemini":
+				sec["geminiApiKey"] = cfg.get("apiKey", "")
+				sec["geminiModel"] = cfg.get("model", "")
+			elif pId == "openai":
+				sec["openaiApiKey"] = cfg.get("apiKey", "")
+				sec["openaiModel"] = cfg.get("model", "")
+
+		# Globalny fallback promptu i limity
+		activeCfg = self.configs.get(self.activeProv, {})
+		if activeCfg.get("prompt"):
+			sec["aiPrompt"] = activeCfg["prompt"]
+		sec["aiMaxTokens"] = activeCfg.get("maxTokens", 1500)
+		sec["aiTimeout"] = activeCfg.get("timeout", 35)
+
+		try:
+			config.conf.save()
+		except Exception as ex:
+			log.warning(f"outlookImageHelper: Błąd zapisu konfiguracji modeli: {ex}")
+
+		ui.message(f"Zapisano ustawienia modeli AI. Aktywny model: {getAiProviderDisplayName(self.activeProv)}.")
+		self.EndModal(wx.ID_OK)
+
+
+def showManageAiModelsDialog(parent=None, initialProvider: str | None = None) -> int:
+	"""Otwiera modalne okno zarządzania modelami i dostawcami AI."""
+	dlg = ManageAiModelsDialog(parent or gui.mainFrame, initialProvider=initialProvider)
+	gui.mainFrame.prePopup()
+	try:
+		return dlg.ShowModal()
+	finally:
+		dlg.Destroy()
+		gui.mainFrame.postPopup()
+
 
 
 
@@ -7277,9 +8370,15 @@ def buildHtmlReport(
 			"""
 
 	prov = getActiveAiProvider()
-	provName = "ChatGPT" if prov == "openai" else "Gemini"
-	provFullName = "OpenAI (ChatGPT)" if prov == "openai" else "Google Gemini"
-	continueUrl = "https://chatgpt.com" if prov == "openai" else "https://gemini.google.com/app"
+	provName = getAiProviderDisplayName(prov)
+	provFullName = f"Sztuczna inteligencja ({provName})"
+	continueUrl = {
+		"gemini": "https://gemini.google.com/app",
+		"openai": "https://chatgpt.com",
+		"grok": "https://x.ai",
+		"groq": "https://groq.com",
+		"openrouter": "https://openrouter.ai",
+	}.get(prov, "https://pollinations.ai")
 
 	turnsHtml = []
 	qIdx = 0
@@ -7354,8 +8453,15 @@ def buildHtmlReport(
 def buildPlainTextReport(item: GraphicItem | AttachmentItem, turns: list[dict], includeImage: bool) -> str:
 	"""Tworzy czytelny, tekstowy raport z analizy grafiki lub załącznika."""
 	prov = getActiveAiProvider()
-	provFullName = "Sztuczna inteligencja (OpenAI ChatGPT)" if prov == "openai" else "Sztuczna inteligencja (Google Gemini)"
-	continueUrl = "https://chatgpt.com" if prov == "openai" else "https://gemini.google.com/app"
+	provName = getAiProviderDisplayName(prov)
+	provFullName = f"Sztuczna inteligencja ({provName})"
+	continueUrl = {
+		"gemini": "https://gemini.google.com/app",
+		"openai": "https://chatgpt.com",
+		"grok": "https://x.ai",
+		"groq": "https://groq.com",
+		"openrouter": "https://openrouter.ai",
+	}.get(prov, "https://pollinations.ai")
 
 	isAtt = isinstance(item, AttachmentItem)
 	titleStr = f"RAPORT ANALIZY ZAŁĄCZNIKA: {item.fileName}" if isAtt else f"RAPORT ANALIZY OBRAZU: Grafika {item.index}"
@@ -7425,6 +8531,26 @@ class AiPromptSelectionDialog(wx.Dialog):
 		lblInfo.SetFont(lblInfo.GetFont().Bold())
 		mainSizer.Add(lblInfo, 0, wx.ALL, 8)
 
+		# Sekcja aktywnego modelu AI (WCAG 2.1/2.2 AA)
+		modelBox = wx.StaticBox(self, label="&Aktywny model i dostawca AI:")
+		modelSizer = wx.StaticBoxSizer(modelBox, wx.VERTICAL)
+
+		modelRow = wx.BoxSizer(wx.HORIZONTAL)
+		self.bmpModelLogo = wx.StaticBitmap(self, bitmap=wx.Bitmap(24, 24))
+		modelRow.Add(self.bmpModelLogo, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+
+		self.comboModel = wx.Choice(self, choices=[])
+		modelRow.Add(self.comboModel, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+
+		self.btnConfigureModel = wx.Button(self, label="&Zmień / Konfiguruj...")
+		modelRow.Add(self.btnConfigureModel, 0, wx.ALIGN_CENTER_VERTICAL)
+		modelSizer.Add(modelRow, 0, wx.EXPAND | wx.ALL, 6)
+
+		self.lblModelStatus = wx.StaticText(self, label="")
+		modelSizer.Add(self.lblModelStatus, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+
+		mainSizer.Add(modelSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
 		lblCombo = wx.StaticText(self, label="&Wybierz szablon instrukcji z listy:")
 		mainSizer.Add(lblCombo, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
 
@@ -7465,14 +8591,98 @@ class AiPromptSelectionDialog(wx.Dialog):
 
 		self.SetSizer(mainSizer)
 		self.Fit()
-		self.SetSize((650, 460))
+		self.SetSize((680, 560))
+		self.SetMinSize((620, 480))
 		self.CenterOnScreen()
 
+		self.refreshModelSelection()
+
+		self.comboModel.Bind(wx.EVT_CHOICE, self.onModelChoiceChanged)
+		self.btnConfigureModel.Bind(wx.EVT_BUTTON, self.onConfigureModelClicked)
 		self.comboPresets.Bind(wx.EVT_CHOICE, self.onPresetChanged)
 		self.btnSaveAsNew.Bind(wx.EVT_BUTTON, self.onSaveAsNew)
 		self.btnDeletePreset.Bind(wx.EVT_BUTTON, self.onDeletePreset)
 		self.btnOk.Bind(wx.EVT_BUTTON, self.onOk)
 		self.Bind(wx.EVT_CHAR_HOOK, self.onCharHook)
+
+	def _getProviderKeys(self) -> list[str]:
+		return list(AI_PROVIDERS.keys())
+
+	def _buildProviderChoices(self) -> list[str]:
+		choices = []
+		sec = config.conf.get(CONFIG_SECTION, {})
+		for pId, pData in AI_PROVIDERS.items():
+			sym = pData.get("symbol", "")
+			name = pData.get("name", pId)
+			modelVal = str(sec.get(f"{pId}Model", pData.get("defaultModel", "")) or "").strip()
+			configured = isAiConfigured(pId)
+			statusBadge = "gotowy" if configured else "brak klucza"
+			badge = pData.get("badge", "")
+			extra = f" ({badge})" if badge else ""
+			choices.append(f"{sym} {name} [{modelVal}] — {statusBadge}{extra}")
+		return choices
+
+	def _updateProviderDisplay(self, prov: str):
+		try:
+			bmp = getProviderLogoBitmap(prov, size=(24, 24))
+			self.bmpModelLogo.SetBitmap(bmp)
+		except Exception as ex:
+			log.debug(f"AiPromptSelectionDialog: błąd ładowania logo {prov}: {ex}")
+
+		sec = config.conf.get(CONFIG_SECTION, {})
+		modelVal = str(sec.get(f"{prov}Model", AI_PROVIDERS.get(prov, {}).get("defaultModel", "")) or "").strip()
+		configured = isAiConfigured(prov)
+		if configured:
+			self.lblModelStatus.SetLabel(f"Status: Gotowy do analizy • Model: {modelVal}")
+			self.lblModelStatus.SetForegroundColour(
+				wx.Colour(0, 150, 0) if not wx.SystemSettings.GetAppearance().IsUsingDarkBackground() else wx.Colour(120, 220, 120)
+			)
+		else:
+			if prov == "pollinations":
+				self.lblModelStatus.SetLabel("Status: Pollinations wymaga bezpłatnego klucza do analizy obrazów (enter.pollinations.ai).")
+			else:
+				self.lblModelStatus.SetLabel(f"Status: Brak klucza API dla tego modelu. Kliknij 'Zmień / Konfiguruj...'.")
+			self.lblModelStatus.SetForegroundColour(
+				wx.Colour(180, 50, 0) if not wx.SystemSettings.GetAppearance().IsUsingDarkBackground() else wx.Colour(255, 140, 100)
+			)
+		self.Layout()
+
+	def refreshModelSelection(self):
+		activeProv = getActiveAiProvider()
+		keys = self._getProviderKeys()
+		choices = self._buildProviderChoices()
+		self.comboModel.Clear()
+		for c in choices:
+			self.comboModel.Append(c)
+		if activeProv in keys:
+			self.comboModel.SetSelection(keys.index(activeProv))
+		elif keys:
+			self.comboModel.SetSelection(0)
+		selIdx = self.comboModel.GetSelection()
+		curr = keys[selIdx] if 0 <= selIdx < len(keys) else "gemini"
+		self._updateProviderDisplay(curr)
+
+	def onModelChoiceChanged(self, event):
+		idx = self.comboModel.GetSelection()
+		keys = self._getProviderKeys()
+		if 0 <= idx < len(keys):
+			newProv = keys[idx]
+			try:
+				sec = config.conf.setdefault(CONFIG_SECTION, {})
+				sec["aiProvider"] = newProv
+				config.conf.save()
+			except Exception as ex:
+				log.warning(f"outlookImageHelper: Błąd zapisu wybranego dostawcy AI: {ex}")
+			self._updateProviderDisplay(newProv)
+			pName = AI_PROVIDERS.get(newProv, {}).get("name", newProv)
+			ui.message(f"Wybrano model: {pName}")
+
+	def onConfigureModelClicked(self, event):
+		idx = self.comboModel.GetSelection()
+		keys = self._getProviderKeys()
+		initialProv = keys[idx] if 0 <= idx < len(keys) else getActiveAiProvider()
+		showManageAiModelsDialog(self, initialProvider=initialProv)
+		self.refreshModelSelection()
 
 	def onPresetChanged(self, event):
 		idx = self.comboPresets.GetSelection()
@@ -7529,6 +8739,25 @@ class AiPromptSelectionDialog(wx.Dialog):
 
 	def onOk(self, event):
 		self.selectedPrompt = self.promptEdit.GetValue().strip()
+		activeProv = getActiveAiProvider()
+		if not isAiConfigured(activeProv):
+			pName = AI_PROVIDERS.get(activeProv, {}).get("name", activeProv)
+			if activeProv == "pollinations":
+				msg = (
+					"Darmowa usługa Pollinations AI wymaga bezpłatnego klucza API do analizy obrazów "
+					"(serwer bez klucza przyjmuje tylko zapytania tekstowe).\n\n"
+					"Czy chcesz otworzyć okno konfiguracji i wprowadzić klucz, czy wolisz użyć zalecanego Google Gemini?"
+				)
+			else:
+				msg = f"Dla wybranego modelu ({pName}) nie skonfigurowano jeszcze klucza API.\n\nCzy chcesz otworzyć okno konfiguracji modeli AI?"
+
+			if showAccessibleConfirmBox(msg, title="Wymagana konfiguracja modelu AI", parent=self, defaultYes=True):
+				showManageAiModelsDialog(self, initialProvider=activeProv)
+				self.refreshModelSelection()
+				if not isAiConfigured(getActiveAiProvider()):
+					return
+			else:
+				return
 		self.EndModal(wx.ID_OK)
 
 	def onCharHook(self, event):
@@ -8678,7 +9907,7 @@ class AiConversationDialog(wx.Dialog):
 			ui.message("Wpisz pytanie przed wysłaniem.")
 			return
 
-		if not getActiveAiApiKey():
+		if not isAiConfigured():
 			if not checkAndPromptAiApiKey(parentWin=self):
 				return
 
@@ -8753,7 +9982,7 @@ class AiConversationDialog(wx.Dialog):
 		self.questionCtrl.SetValue("")
 
 		prov = getActiveAiProvider()
-		provName = "ChatGPT" if prov == "openai" else "Gemini"
+		provName = getAiProviderDisplayName(prov)
 		feedback = AiProgressFeedback(f"Wysyłanie pytania do {provName}, proszę czekać...")
 
 		def worker():
@@ -8899,7 +10128,7 @@ class AiConversationDialog(wx.Dialog):
 		plainContent = buildPlainTextReport(self.item, self.item.chatHistory, includeImage=includeImg)
 
 		prov = getActiveAiProvider()
-		provName = "ChatGPT" if prov == "openai" else "Gemini"
+		provName = getAiProviderDisplayName(prov)
 		isAtt = isinstance(self.item, AttachmentItem)
 		subject = f"Rozmowa z {provName}: {self.item.fileName}" if isAtt else f"Rozmowa z {provName}: Grafika {self.item.index}"
 
@@ -9236,23 +10465,20 @@ GeminiApiKeyDialog = GeminiApiKeyWizardDialog
 
 def checkAndPromptAiApiKey(parentWin=None, onKeyReadyCallback=None) -> bool:
 	"""
-	Sprawdza, czy klucz API dla aktywnego dostawcy AI jest skonfigurowany.
-	Jeśli nie, wyświetla przyjazne i w pełni dostępne pytanie z opcją natychmiastowego
-	otwarcia modalnego kreatora bezpłatnego klucza Google Gemini (lub OpenAI).
-	Zwraca True jeśli klucz jest gotowy, False jeśli użytkownik anulował konfigurację.
+	Sprawdza, czy aktywny dostawca AI jest skonfigurowany.
+	Dla bezpłatnego dostawcy Pollinations zwraca natychmiast True (nie wymaga klucza).
+	Dla pozostałych dostawców, jeśli brak klucza, otwiera okno zarządzania modelami lub instrukcję.
 	"""
 	prov = getActiveAiProvider()
-	apiKey = getActiveAiApiKey()
-	if apiKey:
+	if isAiConfigured(prov):
 		return True
 
-	provName = "OpenAI (ChatGPT)" if prov == "openai" else "Google Gemini"
+	provName = getAiProviderDisplayName(prov)
 	dlgParent = parentWin or gui.mainFrame
 
 	msg = (
 		f"Do wykonania tej analizy wymagany jest klucz API sztucznej inteligencji ({provName}).\n\n"
-		"Osobisty klucz Google Gemini jest całkowicie BEZPŁATNY dla każdego konta Google.\n\n"
-		"Czy chcesz teraz otworzyć prosty kreator i wprowadzić swój bezpłatny klucz API?"
+		"Czy chcesz teraz otworzyć okno konfiguracji modeli i wprowadzić klucz lub przełączyć się na bezpłatnego dostawcę Pollinations AI (bez klucza)?"
 	)
 
 	dlg = wx.MessageDialog(
@@ -9265,17 +10491,11 @@ def checkAndPromptAiApiKey(parentWin=None, onKeyReadyCallback=None) -> bool:
 	dlg.Destroy()
 
 	if res == wx.ID_YES:
-		if prov == "openai":
-			showOpenAiKeyInstructions(dlgParent)
-			return False
-		else:
-			def onSaved(newKey=None):
-				if onKeyReadyCallback:
-					wx.CallAfter(onKeyReadyCallback)
-			wizard = GeminiApiKeyWizardDialog(dlgParent, onKeySavedCallback=onSaved)
-			wizard.ShowModal()
-			wizard.Destroy()
-			return bool(getActiveAiApiKey())
+		showManageAiModelsDialog(dlgParent)
+		ready = isAiConfigured()
+		if ready and onKeyReadyCallback:
+			wx.CallAfter(onKeyReadyCallback)
+		return ready
 	else:
 		ui.message(f"Analiza AI anulowana — brak skonfigurowanego klucza API dla {provName}.")
 		return False
@@ -10718,7 +11938,7 @@ class ImagePreviewDialog(wx.Dialog):
 		def doAi():
 			if GlobalPlugin.instance:
 				GlobalPlugin.instance.triggerAiDescriptionForItem(self.item, parentDialog=self, customPrompt="")
-		if not getActiveAiApiKey():
+		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=self, onKeyReadyCallback=doAi)
 			return
 		doAi()
@@ -11030,7 +12250,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		def doAi():
 			if GlobalPlugin.instance:
 				GlobalPlugin.instance.triggerAiDescriptionForItem(item, parentDialog=parent if isinstance(parent, wx.Dialog) else None, customPrompt="")
-		if not getActiveAiApiKey():
+		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doAi)
 			return
 		doAi()
@@ -11044,7 +12264,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 				if dlg.ShowModal() == wx.ID_OK:
 					if GlobalPlugin.instance:
 						GlobalPlugin.instance.triggerAiDescriptionForItem(item, parentDialog=parent if isinstance(parent, wx.Dialog) else None, customPrompt=dlg.selectedPrompt)
-		if not getActiveAiApiKey():
+		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doPrompt)
 			return
 		doPrompt()
@@ -11062,7 +12282,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 			d.Destroy()
 			if callbackRefresh:
 				callbackRefresh()
-		if not getActiveAiApiKey():
+		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doChat)
 			return
 		doChat()
@@ -11227,7 +12447,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 				return
 
 			useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
-			apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
+			aiConfigured = isAiConfigured()
 
 			def _doSaveWithPrompt(aiCandidate=""):
 				try:
@@ -11261,14 +12481,14 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 					except Exception:
 						pass
 
-			if useAi and apiKey and item.isScreenshotOrUnlabeled and not item.ocrText:
+			if useAi and aiConfigured and item.isScreenshotOrUnlabeled and not item.ocrText:
 				def _aiNamingWorker():
 					aiCand = ""
 					try:
-						aiCand = describeWithGemini(
-							tempPng,
-							apiKey,
-							customPrompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę."
+						aiCand = callAiVisionApi(
+							prompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę.",
+							imagePath=tempPng,
+							parentDialog=parentWin,
 						)
 					except Exception as ex:
 						log.debug(f"outlookImageHelper: błąd zapytania AI o nazwę pliku: {ex}")
@@ -12520,7 +13740,7 @@ class GraphicElementsDialog(wx.Dialog):
 				if dlg.ShowModal() == wx.ID_OK:
 					prompt = dlg.selectedPrompt
 					GlobalPlugin.instance.triggerAiDescriptionForItem(item, parentDialog=self, customPrompt=prompt)
-		if not getActiveAiApiKey():
+		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=self, onKeyReadyCallback=doPrompt)
 			return
 		doPrompt()
@@ -12543,7 +13763,7 @@ class GraphicElementsDialog(wx.Dialog):
 			finally:
 				gui.mainFrame.postPopup()
 			self.refreshListLabels()
-		if not getActiveAiApiKey():
+		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=self, onKeyReadyCallback=doChat)
 			return
 		doChat()
@@ -12554,7 +13774,7 @@ class GraphicElementsDialog(wx.Dialog):
 	def onBatchAiClicked(self, items: list[GraphicItem | AttachmentItem]):
 		def doBatch():
 			GlobalPlugin.instance.triggerBatchAi(items, parentDialog=self)
-		if not getActiveAiApiKey():
+		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=self, onKeyReadyCallback=doBatch)
 			return
 		doBatch()
@@ -12623,7 +13843,7 @@ class GraphicElementsDialog(wx.Dialog):
 				return
 
 			useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
-			apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
+			aiConfigured = isAiConfigured()
 
 			def _doSaveWithPrompt(aiCandidate=""):
 				try:
@@ -12656,14 +13876,14 @@ class GraphicElementsDialog(wx.Dialog):
 					except Exception:
 						pass
 
-			if useAi and apiKey and item.isScreenshotOrUnlabeled and not item.ocrText:
+			if useAi and aiConfigured and item.isScreenshotOrUnlabeled and not item.ocrText:
 				def _aiNamingWorker():
 					aiCand = ""
 					try:
-						aiCand = describeWithGemini(
-							tempPng,
-							apiKey,
-							customPrompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę."
+						aiCand = callAiVisionApi(
+							prompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę.",
+							imagePath=tempPng,
+							parentDialog=self,
 						)
 					except Exception as ex:
 						log.debug(f"outlookImageHelper: błąd zapytania AI o nazwę pliku: {ex}")
@@ -12726,7 +13946,7 @@ class GraphicElementsDialog(wx.Dialog):
 		ui.message(f"Trwa przygotowywanie {len(items)} grafik do zapisu...")
 
 		useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
-		apiKey = config.conf[CONFIG_SECTION].get("geminiApiKey", "")
+		aiConfigured = isAiConfigured()
 
 		# Ekstrakcja grafik oraz metadanych na głównym wątku STA przed uruchomieniem wątku w tle
 		# (wątek roboczy nie ma prawa dotykać obiektów GraphicItem ani wskaźników COM rawObject!)
@@ -12737,7 +13957,7 @@ class GraphicElementsDialog(wx.Dialog):
 				p = extractGraphicToPngFile(item)
 				needsAi = bool(
 					useAi
-					and apiKey
+					and aiConfigured
 					and item.isScreenshotOrUnlabeled
 					and not item.ocrText
 					and not getattr(item, "customName", "")
@@ -12763,10 +13983,9 @@ class GraphicElementsDialog(wx.Dialog):
 						aiCand = ""
 						if needsAi:
 							try:
-								aiCand = describeWithGemini(
-									tempPng,
-									apiKey,
-									customPrompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę."
+								aiCand = callAiVisionApi(
+									prompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę.",
+									imagePath=tempPng,
 								)
 							except Exception:
 								pass
@@ -14271,147 +15490,53 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		self.aiNamingChk.SetValue(_to_bool(sec.get("aiNaming", False), default=False))
 		sHelper.addItem(self.aiNamingChk)
 
-		# E. Sztuczna inteligencja: Wybór dostawcy (Gemini / OpenAI)
+		# E. Sztuczna inteligencja: Wybór dostawcy i modeli AI
 		self.provBox = wx.BoxSizer(wx.HORIZONTAL)
 		self.lblAiProvider = wx.StaticText(self, label=_T("set_ai_provider"))
 		self.provBox.Add(self.lblAiProvider, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=10)
 
-		currentProv = str(sec.get("aiProvider", "gemini")).strip().lower()
-		self.aiProviderKeys = ["gemini", "openai"]
-		provChoicesPl = [
-			"Google Gemini (zalecany, bezpłatny klucz osobisty)",
-			"OpenAI / ChatGPT (GPT-4o, GPT-4o-mini)",
-		]
-		provChoicesEn = [
-			"Google Gemini (recommended, free personal key)",
-			"OpenAI / ChatGPT (GPT-4o, GPT-4o-mini)",
-		]
-		pChoices = provChoicesEn if effLang == "en" else provChoicesPl
-		selProvIdx = 1 if currentProv == "openai" else 0
-		self.aiProviderChoice = wx.Choice(self, choices=pChoices)
+		currentProv = str(sec.get("aiProvider", "pollinations")).strip().lower()
+		self.aiProviderKeys = list(AI_PROVIDERS.keys())
+		provChoices = [pData["nameEn"] if effLang == "en" else pData["name"] for pData in AI_PROVIDERS.values()]
+		selProvIdx = self.aiProviderKeys.index(currentProv) if currentProv in self.aiProviderKeys else 0
+		self.aiProviderChoice = wx.Choice(self, choices=provChoices)
 		self.aiProviderChoice.SetName(_T("set_ai_provider"))
 		self.aiProviderChoice.SetSelection(selProvIdx)
-		self.provBox.Add(self.aiProviderChoice, flag=wx.ALIGN_CENTER_VERTICAL)
+		self.provBox.Add(self.aiProviderChoice, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=10)
+
+		self.btnManageAiModels = wx.Button(self, label=_T("set_btn_manage_ai_models"))
+		self.btnManageAiModels.Bind(wx.EVT_BUTTON, self.onManageAiModelsClicked)
+		self.provBox.Add(self.btnManageAiModels, flag=wx.ALIGN_CENTER_VERTICAL)
 		sHelper.addItem(self.provBox)
 
-		# F. Sekcja Google Gemini
-		self.lblApiKey = wx.StaticText(self, label=_T("set_gemini_key"))
-		sHelper.addItem(self.lblApiKey)
-		geminiKeyVal = str(sec.get("geminiApiKey", "") or "")
-		self.apiKeyEdit = wx.TextCtrl(self, style=wx.TE_PASSWORD)
-		self.apiKeyEdit.SetName(_T("set_gemini_key"))
-		self.apiKeyEdit.SetValue(geminiKeyVal)
-		sHelper.addItem(self.apiKeyEdit)
+		# Szybka informacja o stanie aktywnego dostawcy
+		self.lblAiQuickStatus = wx.StaticText(self, label=self._getAiQuickStatusText(currentProv))
+		self.lblAiQuickStatus.Wrap(560)
+		sHelper.addItem(self.lblAiQuickStatus)
 
-		self.apiKeyEditPlain = wx.TextCtrl(self)
-		self.apiKeyEditPlain.SetName(_T("set_gemini_key"))
-		self.apiKeyEditPlain.SetValue(geminiKeyVal)
-		self.apiKeyEditPlain.Hide()
-		sHelper.addItem(self.apiKeyEditPlain)
+		# Przyciski szybkiej instrukcji i testu
+		self.aiQuickBtnsBox = wx.BoxSizer(wx.HORIZONTAL)
+		self.btnAiQuickGuide = wx.Button(self, label=_T("set_btn_get_api_key"))
+		self.btnAiQuickGuide.Bind(wx.EVT_BUTTON, lambda evt: showAiProviderInstructions(self._getSelectedProvider(), self))
+		self.aiQuickBtnsBox.Add(self.btnAiQuickGuide, flag=wx.RIGHT, border=10)
 
-		self.chkShowGeminiKey = wx.CheckBox(self, label="Pokaż klucz API Google Gemini" if effLang == "pl" else "Show Google Gemini API key")
-		def onToggleGeminiKey(evt):
-			if self.chkShowGeminiKey.GetValue():
-				self.apiKeyEditPlain.SetValue(self.apiKeyEdit.GetValue())
-				self.apiKeyEdit.Hide()
-				self.apiKeyEditPlain.Show()
-				if hasattr(self, "sHelper") and hasattr(self.sHelper, "sizer"):
-					self.sHelper.sizer.Show(self.apiKeyEdit, False)
-					self.sHelper.sizer.Show(self.apiKeyEditPlain, True)
-				self.apiKeyEditPlain.SetFocus()
-			else:
-				self.apiKeyEdit.SetValue(self.apiKeyEditPlain.GetValue())
-				self.apiKeyEditPlain.Hide()
-				self.apiKeyEdit.Show()
-				if hasattr(self, "sHelper") and hasattr(self.sHelper, "sizer"):
-					self.sHelper.sizer.Show(self.apiKeyEditPlain, False)
-					self.sHelper.sizer.Show(self.apiKeyEdit, True)
-				self.apiKeyEdit.SetFocus()
-			self.Layout()
-		self.chkShowGeminiKey.Bind(wx.EVT_CHECKBOX, onToggleGeminiKey)
-		sHelper.addItem(self.chkShowGeminiKey)
+		self.btnAiQuickTest = wx.Button(self, label=_T("set_btn_test_api_key"))
+		self.btnAiQuickTest.Bind(wx.EVT_BUTTON, self.onTestActiveAiProvider)
+		self.aiQuickBtnsBox.Add(self.btnAiQuickTest)
+		sHelper.addItem(self.aiQuickBtnsBox)
 
-		self.apiBtnsBox = wx.BoxSizer(wx.HORIZONTAL)
-		self.btnGetApiKey = wx.Button(self, label=_T("set_btn_get_api_key"))
-		self.btnGetApiKey.Bind(wx.EVT_BUTTON, lambda evt: showGeminiKeyInstructions(self))
-		self.apiBtnsBox.Add(self.btnGetApiKey, flag=wx.RIGHT, border=10)
-
-		self.btnTestApiKey = wx.Button(self, label=_T("set_btn_test_api_key"))
-		self.btnTestApiKey.Bind(wx.EVT_BUTTON, self.onTestApiKey)
-		self.apiBtnsBox.Add(self.btnTestApiKey)
-		sHelper.addItem(self.apiBtnsBox)
-
-		self.lblModel = wx.StaticText(self, label=_T("set_gemini_model"))
-		sHelper.addItem(self.lblModel)
-		self.modelEdit = wx.TextCtrl(self)
-		self.modelEdit.SetName(_T("set_gemini_model"))
-		curGemModel = str(sec.get("geminiModel", _DEFAULT_GEMINI_MODEL) or _DEFAULT_GEMINI_MODEL).strip()
-		if curGemModel in _RETIRED_GEMINI_MODELS:
-			curGemModel = _DEFAULT_GEMINI_MODEL
-		self.modelEdit.SetValue(curGemModel)
-		sHelper.addItem(self.modelEdit)
-
-		# G. Sekcja OpenAI (ChatGPT)
-		self.lblOpenAiKey = wx.StaticText(self, label=_T("set_openai_key"))
-		sHelper.addItem(self.lblOpenAiKey)
-		openaiKeyVal = str(sec.get("openaiApiKey", "") or "")
-		self.openAiKeyEdit = wx.TextCtrl(self, style=wx.TE_PASSWORD)
-		self.openAiKeyEdit.SetName(_T("set_openai_key"))
-		self.openAiKeyEdit.SetValue(openaiKeyVal)
-		sHelper.addItem(self.openAiKeyEdit)
-
-		self.openAiKeyEditPlain = wx.TextCtrl(self)
-		self.openAiKeyEditPlain.SetName(_T("set_openai_key"))
-		self.openAiKeyEditPlain.SetValue(openaiKeyVal)
-		self.openAiKeyEditPlain.Hide()
-		sHelper.addItem(self.openAiKeyEditPlain)
-
-		self.chkShowOpenAiKey = wx.CheckBox(self, label="Pokaż klucz API OpenAI" if effLang == "pl" else "Show OpenAI API key")
-		def onToggleOpenAiKey(evt):
-			if self.chkShowOpenAiKey.GetValue():
-				self.openAiKeyEditPlain.SetValue(self.openAiKeyEdit.GetValue())
-				self.openAiKeyEdit.Hide()
-				self.openAiKeyEditPlain.Show()
-				if hasattr(self, "sHelper") and hasattr(self.sHelper, "sizer"):
-					self.sHelper.sizer.Show(self.openAiKeyEdit, False)
-					self.sHelper.sizer.Show(self.openAiKeyEditPlain, True)
-				self.openAiKeyEditPlain.SetFocus()
-			else:
-				self.openAiKeyEdit.SetValue(self.openAiKeyEditPlain.GetValue())
-				self.openAiKeyEditPlain.Hide()
-				self.openAiKeyEdit.Show()
-				if hasattr(self, "sHelper") and hasattr(self.sHelper, "sizer"):
-					self.sHelper.sizer.Show(self.openAiKeyEditPlain, False)
-					self.sHelper.sizer.Show(self.openAiKeyEdit, True)
-				self.openAiKeyEdit.SetFocus()
-			self.Layout()
-		self.chkShowOpenAiKey.Bind(wx.EVT_CHECKBOX, onToggleOpenAiKey)
-		sHelper.addItem(self.chkShowOpenAiKey)
-
-		self.openAiBtnsBox = wx.BoxSizer(wx.HORIZONTAL)
-		self.btnGetOpenAiKey = wx.Button(self, label=_T("set_btn_get_openai_key"))
-		self.btnGetOpenAiKey.Bind(wx.EVT_BUTTON, lambda evt: showOpenAiKeyInstructions(self))
-		self.openAiBtnsBox.Add(self.btnGetOpenAiKey, flag=wx.RIGHT, border=10)
-
-		self.btnTestOpenAiKey = wx.Button(self, label=_T("set_btn_test_openai_key"))
-		self.btnTestOpenAiKey.Bind(wx.EVT_BUTTON, self.onTestOpenAiKey)
-		self.openAiBtnsBox.Add(self.btnTestOpenAiKey)
-		sHelper.addItem(self.openAiBtnsBox)
-
-		self.lblOpenAiModel = wx.StaticText(self, label=_T("set_openai_model"))
-		sHelper.addItem(self.lblOpenAiModel)
-		self.openAiModelEdit = wx.TextCtrl(self)
-		self.openAiModelEdit.SetName(_T("set_openai_model"))
-		self.openAiModelEdit.SetValue(str(sec.get("openaiModel", "gpt-4o-mini") or "gpt-4o-mini"))
-		sHelper.addItem(self.openAiModelEdit)
-
-		# H. Wspólny prompt
-		self.lblPrompt = wx.StaticText(self, label=_T("set_gemini_prompt"))
-		sHelper.addItem(self.lblPrompt)
-		self.promptEdit = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 60))
-		self.promptEdit.SetName(_T("set_gemini_prompt"))
-		self.promptEdit.SetValue(str(sec.get("aiPrompt", "") or ""))
-		sHelper.addItem(self.promptEdit)
+		def onAiProviderChoiceChanged(evt):
+			idx = self.aiProviderChoice.GetSelection()
+			if 0 <= idx < len(self.aiProviderKeys):
+				newProv = self.aiProviderKeys[idx]
+				try:
+					config.conf[CONFIG_SECTION]["aiProvider"] = newProv
+				except Exception:
+					pass
+				self.lblAiQuickStatus.SetLabel(self._getAiQuickStatusText(newProv))
+				self.lblAiQuickStatus.Wrap(560)
+				self.Layout()
+		self.aiProviderChoice.Bind(wx.EVT_CHOICE, onAiProviderChoiceChanged)
 
 		# I. Sekcja aktualizacji dodatku (WCAG 2.1 / 2.2 AA)
 		self.chkAutoUpdates = wx.CheckBox(
@@ -14472,22 +15597,11 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 			self.provBox,
 			self.lblAiProvider,
 			self.aiProviderChoice,
-			self.lblApiKey,
-			self.apiKeyEdit,
-			self.apiKeyEditPlain,
-			self.chkShowGeminiKey,
-			self.apiBtnsBox,
-			self.lblModel,
-			self.modelEdit,
-			self.lblOpenAiKey,
-			self.openAiKeyEdit,
-			self.openAiKeyEditPlain,
-			self.chkShowOpenAiKey,
-			self.openAiBtnsBox,
-			self.lblOpenAiModel,
-			self.openAiModelEdit,
-			self.lblPrompt,
-			self.promptEdit,
+			self.btnManageAiModels,
+			self.lblAiQuickStatus,
+			self.aiQuickBtnsBox,
+			self.btnAiQuickGuide,
+			self.btnAiQuickTest,
 			self.chkAutoUpdates,
 			self.btnUpdBox,
 			self.btnCheckUpdates,
@@ -14496,15 +15610,68 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		]
 		self.onShowAdvancedToggled()
 
+	def _getSelectedProvider(self) -> str:
+		if hasattr(self, "aiProviderChoice") and hasattr(self, "aiProviderKeys"):
+			idx = self.aiProviderChoice.GetSelection()
+			if 0 <= idx < len(self.aiProviderKeys):
+				return self.aiProviderKeys[idx]
+		return getActiveAiProvider()
+
+	def _getAiQuickStatusText(self, prov: str) -> str:
+		pData = AI_PROVIDERS.get(prov, {})
+		pName = getAiProviderDisplayName(prov)
+		m = getActiveAiModel(prov)
+		if not pData.get("requiresKey", True):
+			return f"Aktywny model: {pName} (Model: {m}). Usługa bezpłatna — nie wymaga wprowadzania klucza API."
+		hasKey = bool(getActiveAiApiKey(prov))
+		keyStatus = "Klucz API skonfigurowany" if hasKey else "Brak klucza API (skonfiguruj w oknie zarządzania modelami)"
+		return f"Aktywny model: {pName} (Model: {m}). Stan klucza: {keyStatus}."
+
+	def onManageAiModelsClicked(self, evt):
+		res = showManageAiModelsDialog(self)
+		if res == wx.ID_OK:
+			sec = config.conf.get(CONFIG_SECTION, {})
+			curProv = getActiveAiProvider()
+			if hasattr(self, "aiProviderKeys") and curProv in self.aiProviderKeys:
+				self.aiProviderChoice.SetSelection(self.aiProviderKeys.index(curProv))
+			if hasattr(self, "lblAiQuickStatus"):
+				self.lblAiQuickStatus.SetLabel(self._getAiQuickStatusText(curProv))
+				self.lblAiQuickStatus.Wrap(560)
+			self.Layout()
+
+	def onTestActiveAiProvider(self, evt):
+		prov = self._getSelectedProvider()
+		pName = getAiProviderDisplayName(prov)
+		progress = AiProgressFeedback(
+			startMessage=f"Testowanie połączenia z {pName}, proszę czekać...",
+			ongoingMessage=f"Nadal trwa testowanie połączenia z {pName}, proszę czekać..."
+		)
+		if hasattr(self, "btnAiQuickTest") and self.btnAiQuickTest:
+			self.btnAiQuickTest.Disable()
+
+		def worker():
+			ok, msg = testAiConnection(prov)
+			def finish():
+				if hasattr(self, "btnAiQuickTest") and self.btnAiQuickTest:
+					self.btnAiQuickTest.Enable()
+				progress.stop(finishMessage=msg)
+				try:
+					if ok:
+						tones.beep(880, 50)
+						tones.beep(1175, 70)
+					else:
+						tones.beep(330, 150)
+				except Exception:
+					pass
+			wx.CallAfter(finish)
+
+		threading.Thread(target=worker, daemon=True).start()
+
 	def onShowAdvancedToggled(self, evt=None):
 		"""Przełącza widoczność opcji zaawansowanych i dynamicznie dopasowuje obszar przewijania."""
 		show = self.chkShowAdvanced.GetValue()
 		for ctrl in getattr(self, "advancedControls", []):
 			try:
-				if ctrl in (getattr(self, "apiKeyEditPlain", None), getattr(self, "apiKeyEdit", None)):
-					continue
-				if ctrl in (getattr(self, "openAiKeyEditPlain", None), getattr(self, "openAiKeyEdit", None)):
-					continue
 				if isinstance(ctrl, wx.Sizer):
 					ctrl.ShowItems(show)
 					if hasattr(self, "sHelper") and hasattr(self.sHelper, "sizer"):
@@ -14515,25 +15682,6 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 						self.sHelper.sizer.Show(ctrl, show)
 			except Exception as e:
 				log.debug(f"outlookImageHelper: onShowAdvancedToggled ctrl show error: {e}")
-
-		# Prawidłowa obsługa widoczności pól kluczy (hasło vs jawny) w trybie zaawansowanym
-		if hasattr(self, "apiKeyEdit") and hasattr(self, "apiKeyEditPlain") and hasattr(self, "chkShowGeminiKey"):
-			showPlain = self.chkShowGeminiKey.GetValue() if show else False
-			showPass = (not self.chkShowGeminiKey.GetValue()) if show else False
-			self.apiKeyEdit.Show(showPass)
-			self.apiKeyEditPlain.Show(showPlain)
-			if hasattr(self, "sHelper") and hasattr(self.sHelper, "sizer"):
-				self.sHelper.sizer.Show(self.apiKeyEdit, showPass)
-				self.sHelper.sizer.Show(self.apiKeyEditPlain, showPlain)
-
-		if hasattr(self, "openAiKeyEdit") and hasattr(self, "openAiKeyEditPlain") and hasattr(self, "chkShowOpenAiKey"):
-			showPlain = self.chkShowOpenAiKey.GetValue() if show else False
-			showPass = (not self.chkShowOpenAiKey.GetValue()) if show else False
-			self.openAiKeyEdit.Show(showPass)
-			self.openAiKeyEditPlain.Show(showPlain)
-			if hasattr(self, "sHelper") and hasattr(self.sHelper, "sizer"):
-				self.sHelper.sizer.Show(self.openAiKeyEdit, showPass)
-				self.sHelper.sizer.Show(self.openAiKeyEditPlain, showPlain)
 
 		self.Layout()
 		p = self
@@ -14972,19 +16120,8 @@ class OutlookImageHelperSettingsPanel(gui.settingsDialogs.SettingsPanel):
 		sec["aiNaming"] = self.aiNamingChk.GetValue()
 		if hasattr(self, "aiProviderChoice") and self.aiProviderChoice:
 			provIdx = self.aiProviderChoice.GetSelection()
-			sec["aiProvider"] = "openai" if provIdx == 1 else "gemini"
-		if hasattr(self, "apiKeyEdit") and self.apiKeyEdit:
-			val = self.apiKeyEditPlain.GetValue() if hasattr(self, "chkShowGeminiKey") and self.chkShowGeminiKey.GetValue() else self.apiKeyEdit.GetValue()
-			sec["geminiApiKey"] = val.strip()
-		if hasattr(self, "modelEdit") and self.modelEdit:
-			sec["geminiModel"] = self.modelEdit.GetValue().strip() or _DEFAULT_GEMINI_MODEL
-		if hasattr(self, "openAiKeyEdit") and self.openAiKeyEdit:
-			val = self.openAiKeyEditPlain.GetValue() if hasattr(self, "chkShowOpenAiKey") and self.chkShowOpenAiKey.GetValue() else self.openAiKeyEdit.GetValue()
-			sec["openaiApiKey"] = val.strip()
-		if hasattr(self, "openAiModelEdit") and self.openAiModelEdit:
-			sec["openaiModel"] = self.openAiModelEdit.GetValue().strip() or "gpt-4o-mini"
-		if hasattr(self, "promptEdit") and self.promptEdit:
-			sec["aiPrompt"] = self.promptEdit.GetValue().strip()
+			if hasattr(self, "aiProviderKeys") and 0 <= provIdx < len(self.aiProviderKeys):
+				sec["aiProvider"] = self.aiProviderKeys[provIdx]
 		if hasattr(self, "chkShowAdvanced") and self.chkShowAdvanced:
 			sec["showAdvancedSettings"] = self.chkShowAdvanced.GetValue()
 		if hasattr(self, "chkAutoUpdates") and self.chkAutoUpdates:
@@ -15065,6 +16202,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._cachedGraphicsFast = True
 		self.toolsMenuItem = None
 		self.toolsGuideItem = None
+		self.toolsModelsItem = None
 
 		config.conf.spec[CONFIG_SECTION] = confspec
 		if CONFIG_SECTION not in config.conf:
@@ -15137,6 +16275,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				"Otwiera pełną dokumentację i instrukcję obsługi dodatku w przeglądarce",
 			)
 			gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, lambda evt: openUserGuide(), self.toolsGuideItem)
+
+			self.toolsModelsItem = gui.mainFrame.sysTrayIcon.toolsMenu.Append(
+				wx.ID_ANY,
+				"&Zarządzaj modelami i dostawcami AI (Outlook Image Helper)...",
+				"Otwiera okno konfiguracji i wyboru modeli oraz dostawców sztucznej inteligencji",
+			)
+			gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, lambda evt: showManageAiModelsDialog(), self.toolsModelsItem)
 		except Exception as e:
 			log.warning(f"outlookImageHelper: Nie udało się dodać pozycji do menu Narzędzia: {e}")
 		log.info("outlookImageHelper: Dodatek załadowany pomyślnie. Zarejestrowano panel ustawień, menu Narzędzia, gesty oraz obsługę G/Shift+G.")
@@ -15175,6 +16320,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if getattr(self, "toolsGuideItem", None):
 			try:
 				gui.mainFrame.sysTrayIcon.toolsMenu.RemoveItem(self.toolsGuideItem)
+			except Exception:
+				pass
+		if getattr(self, "toolsModelsItem", None):
+			try:
+				gui.mainFrame.sysTrayIcon.toolsMenu.RemoveItem(self.toolsModelsItem)
 			except Exception:
 				pass
 		if getattr(self, "_pendingInspectCall", None):
@@ -15257,6 +16407,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if not self.isOutlookActive(obj):
 			return
 
+		# Całkowite wyciszenie i ignorowanie fokusu, gdy użytkownik znajduje się w menu kontekstowym,
+		# menu głównym, pasku menu lub oknie podręcznym (zarówno na liście, jak i w treści maila)
+		if isMenuOrPopup(obj):
+			return
+
 		sec = config.conf[CONFIG_SECTION]
 		if not _to_bool(sec.get("autoAnnounce", True), default=True) and not _to_bool(sec.get("playSound", True), default=True):
 			return
@@ -15266,6 +16421,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		# 1. Sprawdzenie, czy fokus wszedł do właściwej treści otwartej wiadomości (_WwG)
 		if cls == "_WwG":
+			# Zresetuj zapamiętany klucz wiersza listy, aby po wyjściu z treści i powrocie do listy
+			# dodatek poprawnie zasygnalizował stan wiadomości.
+			self._lastListAnnouncedMsgKey = ""
 			if time.time() < getattr(self, "_suppressCaretSpeechUntil", 0.0):
 				return
 			if hasattr(self, "_pendingInspectCall") and self._pendingInspectCall:
@@ -15281,12 +16439,15 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			if isGroupHeader(obj):
 				return
 
+			if not isMessageListFocused(obj):
+				return
+
 			cachedCls = getattr(getattr(obj, "UIAElement", None), "cachedClassName", "") or getattr(obj, "windowClassName", "") or ""
 			role = getattr(obj, "role", None)
 			dataRole = getattr(controlTypes.Role, "DATAITEM", controlTypes.Role.LISTITEM)
 			treeRole = getattr(controlTypes.Role, "TREEVIEWITEM", controlTypes.Role.LISTITEM)
 			isRow = cachedCls in ("LeafRow", "ThreadItem", "ThreadHeader", "TableItem", "UIAGridRow", "OutlookGridRow") or role in (ROLE_TABLEROW, controlTypes.Role.TABLECELL, controlTypes.Role.LISTITEM, dataRole, treeRole)
-			if not isRow and not isMessageListFocused(obj):
+			if not isRow:
 				return
 
 			self._lastAnnouncedBodyHwnd = 0
@@ -15295,7 +16456,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			def _checkAndPlayListSound(targetObj):
 				if not self.isOutlookActive(targetObj):
 					return
-				mailItem = getMessageListItem(targetObj) or getCurrentMailItem(focus=targetObj)
+				if isMenuOrPopup(targetObj) or isMenuOrPopup(api.getFocusObject()):
+					return
+				if not isMessageListFocused(targetObj):
+					return
+				mailItem = getMessageListItem(targetObj)
 				if not mailItem:
 					return
 
@@ -15305,7 +16470,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 				msgKey = getMessageKey(mailItem)
 				currentTime = time.time()
-				if msgKey and msgKey == getattr(self, "_lastListAnnouncedMsgKey", "") and (currentTime - getattr(self, "_lastListAnnouncedTime", 0)) < 0.6:
+				if msgKey and msgKey == getattr(self, "_lastListAnnouncedMsgKey", ""):
 					return
 				self._lastListAnnouncedMsgKey = msgKey
 				self._lastListAnnouncedTime = currentTime
@@ -15937,9 +17102,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 			# Dla PDF tekst rozpoznawany jest za pomocą multimodalnej sztucznej inteligencji
 			prov = getActiveAiProvider()
-			provName = "Google Gemini" if prov == "gemini" else "OpenAI (ChatGPT)"
-			apiKey = getActiveAiApiKey()
-			if not apiKey:
+			provName = getAiProviderDisplayName(prov)
+			if not isAiConfigured(prov):
 				def onKeySavedPdf():
 					self._triggerOcrForAttachment(item, parentDialog)
 				checkAndPromptAiApiKey(parentWin=parentDialog, onKeyReadyCallback=onKeySavedPdf)
@@ -15962,25 +17126,13 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 			ui.message(f"Przepisywanie tekstu ze skanu PDF ({item.fileName}) przez chmurę {provName}...")
 			def pdfWorker():
-				sec = config.conf[CONFIG_SECTION]
-				model = sec.get("geminiModel", _DEFAULT_GEMINI_MODEL) if prov == "gemini" else sec.get("openaiModel", "gpt-4o-mini")
 				try:
-					if prov == "gemini":
-						txt = describeWithGemini(
-							tempPath,
-							apiKey,
-							model=model,
-							customPrompt="Dokonaj dokładnego OCR i przepisz cały tekst z tego dokumentu PDF w oryginalnym układzie i strukturze. Zachowaj tabele, nagłówki, punkty i kwoty. Nie dodawaj wstępów ani komentarzy.",
-							mimeType="application/pdf",
-						)
-					else:
-						txt = describeWithOpenAi(
-							tempPath,
-							apiKey,
-							model=model,
-							customPrompt="Dokonaj dokładnego OCR i przepisz cały tekst z tego dokumentu PDF w oryginalnym układzie i strukturze. Zachowaj tabele, nagłówki, punkty i kwoty. Nie dodawaj wstępów ani komentarzy.",
-							mimeType="application/pdf",
-						)
+					txt = callAiVisionApi(
+						prompt="Dokonaj dokładnego OCR i przepisz cały tekst z tego dokumentu PDF w oryginalnym układzie i strukturze. Zachowaj tabele, nagłówki, punkty i kwoty. Nie dodawaj wstępów ani komentarzy.",
+						imagePath=tempPath,
+						mimeType="application/pdf",
+						parentDialog=parentDialog,
+					)
 					if not txt:
 						item.ocrText = "(Brak rozpoznanego tekstu)"
 						def showPdfEmpty():
@@ -16043,11 +17195,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		pdfItems = [it for it in items if isinstance(it, AttachmentItem) and it.isPdf]
 		allowCloudPdf = False
 		prov = getActiveAiProvider()
-		provName = "Google Gemini" if prov == "gemini" else "OpenAI (ChatGPT)"
-		apiKey = getActiveAiApiKey()
+		provName = getAiProviderDisplayName(prov)
 
 		if pdfItems:
-			if apiKey:
+			if isAiConfigured(prov):
 				totalPdfBytes = sum(getattr(it.rawAttachment, "Size", 0) for it in pdfItems if hasattr(it, "rawAttachment"))
 				totalPdfMb = round(totalPdfBytes / (1024 * 1024), 2)
 				confirmMsg = (
@@ -16057,7 +17208,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				)
 				allowCloudPdf = (gui.messageBox(confirmMsg, f"Potwierdzenie OCR w chmurze ({provName})", wx.YES_NO | wx.ICON_QUESTION, parent=parentDialog) == wx.YES)
 			else:
-				ui.message(f"Brak klucza API dla {provName}. OCR dla plików PDF zostanie pominięty.")
+				ui.message(f"Brak konfiguracji API dla {provName}. OCR dla plików PDF zostanie pominięty.")
 
 		ui.message(f"Rozpoczynanie OCR dla {len(items)} elementów...")
 
@@ -16084,7 +17235,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 		def worker():
 			lang = config.conf[CONFIG_SECTION].get("defaultOcrLang", "pl-PL")
-			sec = config.conf[CONFIG_SECTION]
 			results = []
 
 			for idx, (it, tempPath) in enumerate(prepared_items):
@@ -16103,24 +17253,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					elif it.isPdf and tempPath:
 						if not allowCloudPdf:
 							results.append(f"{header}\n(Pominięto OCR w chmurze — brak zgody użytkownika na transmisję)")
-						elif apiKey:
+						elif isAiConfigured(prov):
 							try:
-								if prov == "gemini":
-									txt = describeWithGemini(
-										tempPath,
-										apiKey,
-										model=sec.get("geminiModel", _DEFAULT_GEMINI_MODEL),
-										customPrompt="Przepisz dokładnie tekst z tego dokumentu PDF.",
-										mimeType="application/pdf",
-									)
-								else:
-									txt = describeWithOpenAi(
-										tempPath,
-										apiKey,
-										model=sec.get("openaiModel", "gpt-4o-mini"),
-										customPrompt="Przepisz dokładnie tekst z tego dokumentu PDF.",
-										mimeType="application/pdf",
-									)
+								txt = callAiVisionApi(
+									prompt="Przepisz dokładnie tekst z tego dokumentu PDF.",
+									imagePath=tempPath,
+									mimeType="application/pdf",
+									parentDialog=parentDialog,
+								)
 								it.ocrText = txt
 								results.append(f"{header}\n{it.ocrText}")
 							except Exception as pe:
@@ -16184,9 +17324,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		prov = getActiveAiProvider()
-		provName = "OpenAI (ChatGPT)" if prov == "openai" else "Google Gemini"
-		apiKey = getActiveAiApiKey()
-		if not apiKey:
+		provName = getAiProviderDisplayName(prov)
+		if not isAiConfigured(prov):
 			def onKeyReady():
 				if GlobalPlugin.instance:
 					GlobalPlugin.instance.triggerAiDescriptionForItem(
@@ -16261,8 +17400,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		feedback = AiProgressFeedback(f"Trwa analiza {itemLabel} przez sztuczną inteligencję ({provName}), proszę czekać...")
 
 		def worker():
-			sec = config.conf[CONFIG_SECTION]
-			prompt = customPrompt or sec.get("aiPrompt", "")
+			prompt = customPrompt or getActiveAiPrompt(prov)
 			try:
 				mimeType = "image/png"
 				prefaceText = ""
@@ -16414,9 +17552,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def triggerBatchAi(self, items: list[GraphicItem | AttachmentItem], parentDialog: GraphicElementsDialog | None = None):
 		"""Zbiorcze opisywanie przez AI dla listy zaznaczonych grafik i załączników."""
 		prov = getActiveAiProvider()
-		provName = "OpenAI (ChatGPT)" if prov == "openai" else "Google Gemini"
-		apiKey = getActiveAiApiKey()
-		if not apiKey:
+		provName = getAiProviderDisplayName(prov)
+		if not isAiConfigured(prov):
 			def onReadyBatch():
 				if GlobalPlugin.instance:
 					GlobalPlugin.instance.triggerBatchAi(items, parentDialog=parentDialog)

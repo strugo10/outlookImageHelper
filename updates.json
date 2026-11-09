@@ -12,9 +12,9 @@
     "minNVDAVersion": "2024.1.0"
   },
   "outlookImageHelper": {
-    "version": "1.6.15",
+    "version": "1.7.2",
     "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-    "changelog": "Wersja 1.6.15:\n• Naprawa zawieszania się programu Outlook, przeskakiwania widoku oraz przyspieszenie OCR (natywny silnik OneCore C++ w procesie NVDA i lekkie okno wyniku wx.Dialog) w złożonych mailach HTML.",
+    "changelog": "Wersja 1.7.2:\n• Całkowite wyciszenie dźwięków dodatku podczas poruszania się po menu kontekstowym (zarówno wywołanym na liście wiadomości, jak i wewnątrz otwartego maila).\n• Precyzyjna detekcja elementów menu oraz okien podręcznych (popups) eliminująca fałszywe wykrywanie listy i treści wiadomości podczas nawigacji klawiaturą lub myszą po pozycjach menu.",
     "minNVDAVersion": "2024.1.0"
   }
 }
