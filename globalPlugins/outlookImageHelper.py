@@ -72,11 +72,11 @@ ADDON_NAME = "Outlook Image Helper"
 ADDON_TITLE = "Outlook - Pomocnik obrazów i załączników"
 ADDON_AUTHOR = "Sławomir Strugarek z pomocą Antigravity (Google DeepMind)"
 ADDON_BUILD_DATE = "2026-11-09"
-ADDON_BUILD_ID = "20261109.3"
+ADDON_BUILD_ID = "20261109.4"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.3+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.7.2"
+ADDON_VERSION = "1.7.3"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -2201,6 +2201,9 @@ class GraphicItem:
 		self.isInverted = bool(isInverted)
 		self.sourceUrl = (sourceUrl or "").strip()
 		self.isDownloaded: bool = False
+		self.isNotDownloaded: bool = False
+		self.isLinkedPicture: bool = False
+		self._shapeType: int = 0
 		self._downloadedTempPath: str = ""
 		self._extractedTempPath: str = ""
 		self._hasLocalRenderedPixels: bool = False
@@ -2224,6 +2227,8 @@ class GraphicItem:
 			return False
 		if getattr(self, "_hasLocalRenderedPixels", False):
 			return False
+		if getattr(self, "isNotDownloaded", False):
+			return True
 		# Obraz jest zewnętrzny i niepobrany tylko wtedy, gdy w WordMail jest potwierdzonym pustym placeholderem
 		# i posiada źródłowy adres URL WWW:
 		if getattr(self, "isBlankOrSolid", False):
@@ -2245,9 +2250,9 @@ class GraphicItem:
 		if self.isVectorShape:
 			return True
 
-		# 2. Jeśli to obraz zewnętrzny ze strony internetowej wymagający pobrania,
-		# NIE klasyfikuj go jako separator (chyba że to mikroskopijny piksel <= 3px lub jawny spacer)
-		if self.isExternalWebImage and not getattr(self, "isDownloaded", False):
+		# 2. Jeśli to niepobrana grafika zewnętrzna, NIE klasyfikuj jej jako separator
+		# (chyba że to mikroskopijny piksel <= 3px lub jawny spacer śledzący)
+		if (getattr(self, "isNotDownloaded", False) or self.isExternalWebImage) and not getattr(self, "isDownloaded", False):
 			if (self.widthPx <= 3 and self.heightPx <= 3) or (self.widthPt <= 2.5 and self.heightPt <= 2.5):
 				return True
 			checkText = f"{self.altText} {self.title} {self.cid} {getattr(self, 'sourceUrl', '')}".lower()
@@ -2316,7 +2321,7 @@ class GraphicItem:
 		# 1. Własna nazwa nadana przez użytkownika
 		if self.customName:
 			parts = [f"{self.index}: [{self.customName}]"]
-			if self.isExternalWebImage and not self.isDownloaded:
+			if (self.isExternalWebImage or getattr(self, "isNotDownloaded", False)) and not self.isDownloaded:
 				webUrl = self.sourceUrl or self.hyperlinkUrl or self.cid
 				dom = getCleanDomain(decodeSafeLinks(webUrl)) or self.linkServiceName or "internet"
 				parts.append(f"[Obraz w internecie: {dom}] — [Zablokowany przez Outlook — odblokuj: Ctrl+Shift+W]")
@@ -2339,7 +2344,7 @@ class GraphicItem:
 			return " — ".join(parts)
 
 		# 1b. Obraz zewnętrzny ze strony WWW niepobrany przez Outlook
-		if self.isExternalWebImage and not self.isDownloaded:
+		if (self.isExternalWebImage or getattr(self, "isNotDownloaded", False)) and not self.isDownloaded:
 			webUrl = self.sourceUrl or self.hyperlinkUrl or self.cid
 			dom = getCleanDomain(decodeSafeLinks(webUrl)) or self.linkServiceName or "internet"
 			parts = []
@@ -3285,141 +3290,84 @@ def getActiveWordDocument(mailItem=None):
 def getCurrentMailItem(doc=None, focus=None):
 	"""
 	Pobiera obiekt MailItem ściśle powiązany z bieżącym fokusem użytkownika w Outlooku:
-	1. Jeśli przekazano doc (Word.Document) -> sprawdza doc.MailEnvelope.Item lub doc.Parent.
-	2. Jeśli fokus jest na nagłówku grupy -> zwraca None.
-	3. Sprawdza obiekt doc na bieżącym fokusie / treeInterceptorze / oknie _WwG -> doc.MailEnvelope.Item.
-	4. Jeśli aktywne okno to Inspector (otwarta wiadomość) -> zwraca CurrentItem.
-	5. Jeśli aktywne okno to Explorer:
-	   - sprawdza ActiveInlineResponse,
-	   - sprawdza AttachmentSelection (gdy kursor/kliknięcie jest na kafelku załącznika w Reading Pane),
-	   - sprawdza Selection (wiersz listy lub treść),
-	   - fallback: ActiveExplorer.Selection / AttachmentSelection / ActiveInlineResponse,
-	   - fallback: ActiveInspector.CurrentItem,
-	   - fallback: wyszukanie widocznego okna _WwG w oknie pierwszoplanowym i pobranie MailEnvelope.Item.
+	1. Jeśli aktywne okno to Inspector (otwarta wiadomość w osobnym oknie) -> natychmiast zwraca CurrentItem.
+	2. Jeśli aktywne okno to Explorer:
+	   - sprawdza ActiveInlineResponse (redagowanie/odpowiedź w okienku odczytu),
+	   - sprawdza AttachmentSelection (zaznaczony kafelek załącznika),
+	   - sprawdza Selection (wiersz listy wiadomości lub treść).
+	3. Jeśli przekazano doc (Word.Document) -> sprawdza doc.Parent.CurrentItem lub doc.Parent.
+	NIGDY nie odwołuje się do doc.MailEnvelope ani docObj.MailEnvelope, ponieważ w WordMail
+	wywołanie to powoduje 10-sekundową blokadę COM RPC (deadlock) i zawieszenie Outlooka oraz NVDA.
 	"""
-	if doc:
-		try:
-			mailEnv = getattr(doc, "MailEnvelope", None)
-			if mailEnv:
-				it = getattr(mailEnv, "Item", None)
-				if it and (hasattr(it, "Subject") or hasattr(it, "Attachments")):
-					return it
-		except Exception:
-			pass
-		try:
-			p = getattr(doc, "Parent", None)
-			if p and (hasattr(p, "Subject") or hasattr(p, "Attachments")):
-				return p
-			elif p and hasattr(p, "CurrentItem"):
-				cur = getattr(p, "CurrentItem", None)
-				if cur:
-					return cur
-		except Exception:
-			pass
-
 	if not focus:
 		focus = api.getFocusObject()
-	if not focus:
+	if focus and isGroupHeader(focus):
 		return None
 
-	if isGroupHeader(focus):
-		return None
-
-	# 1. Bezpośredni obiekt WordDocument na fokusie lub treeInterceptorze (Reading Pane / Inspector)
-	docObj = getattr(focus, "WinwordDocumentObject", None)
-	if not docObj:
-		ti = getattr(focus, "treeInterceptor", None)
-		if ti:
-			root = getattr(ti, "rootNVDAObject", None)
-			docObj = getattr(root, "WinwordDocumentObject", None)
-	if not docObj:
-		hwnd = getattr(focus, "windowHandle", 0)
-		if hwnd and winUser.getClassName(hwnd) == "_WwG":
-			docObj = _getWordDocumentFromHwnd(hwnd)
-	if docObj:
-		try:
-			mailEnv = getattr(docObj, "MailEnvelope", None)
-			if mailEnv:
-				it = getattr(mailEnv, "Item", None)
-				if it and (hasattr(it, "Subject") or hasattr(it, "Attachments")):
-					return it
-		except Exception:
-			pass
-		try:
-			p = getattr(docObj, "Parent", None)
-			if p and (hasattr(p, "Subject") or hasattr(p, "Attachments")):
-				return p
-			elif p and hasattr(p, "CurrentItem"):
-				cur = getattr(p, "CurrentItem", None)
-				if cur:
-					return cur
-		except Exception:
-			pass
-
-	appMod = getattr(focus, "appModule", None)
-	nativeOm = getattr(appMod, "nativeOm", None) or getOutlookApp()
+	appMod = getattr(focus, "appModule", None) if focus else None
+	nativeOm = getattr(appMod, "nativeOm", None) if appMod else None
 	if not nativeOm:
-		return None
+		nativeOm = getOutlookApp()
 
-	try:
-		activeWin = None
+	if nativeOm:
+		# 1. Sprawdź ActiveInspector (otwarta w osobnym oknie wiadomość) - najczęstszy przypadek i natychmiastowy wynik
 		try:
-			activeWin = nativeOm.ActiveWindow()
+			actInsp = getattr(nativeOm, "ActiveInspector", lambda: None)()
+			if actInsp:
+				cur = getattr(actInsp, "CurrentItem", None)
+				if cur and (hasattr(cur, "Subject") or hasattr(cur, "Attachments")):
+					return cur
 		except Exception:
 			pass
-		if not activeWin:
-			try:
-				activeWin = getattr(nativeOm, "ActiveExplorer", lambda: None)()
-			except Exception:
-				pass
 
-		if activeWin:
-			# Jeśli okno to Inspector (otwarta w osobnym oknie wiadomość)
-			if hasattr(activeWin, "CurrentItem"):
-				cur = getattr(activeWin, "CurrentItem", None)
-				if cur:
-					return cur
+		# 2. Sprawdź ActiveWindow (może to być Inspector lub Explorer)
+		try:
+			activeWin = getattr(nativeOm, "ActiveWindow", lambda: None)()
+			if activeWin:
+				if hasattr(activeWin, "CurrentItem"):
+					cur = getattr(activeWin, "CurrentItem", None)
+					if cur and (hasattr(cur, "Subject") or hasattr(cur, "Attachments")):
+						return cur
 
-			# Sprawdź ActiveInlineResponse w Explorerze
-			try:
-				inlineResp = getattr(activeWin, "ActiveInlineResponse", None)
-				if inlineResp:
-					return inlineResp
-			except Exception:
-				pass
+				# Sprawdź ActiveInlineResponse w Explorerze
+				try:
+					inlineResp = getattr(activeWin, "ActiveInlineResponse", None)
+					if inlineResp and (hasattr(inlineResp, "Subject") or hasattr(inlineResp, "Attachments")):
+						return inlineResp
+				except Exception:
+					pass
 
-			# Sprawdź zaznaczony załącznik w AttachmentSelection (np. kliknięty lub zaznaczony kafelek załącznika w Reading Pane)
-			try:
-				attSel = getattr(activeWin, "AttachmentSelection", None)
-				if attSel and int(getattr(attSel, "Count", 0)) > 0:
-					att = attSel.Item(1)
-					p = getattr(att, "Parent", None)
-					if p and (hasattr(p, "Subject") or hasattr(p, "Attachments")):
-						return p
-			except Exception:
-				pass
-
-			# Sprawdź Selection w Explorerze
-			try:
-				sel = getattr(activeWin, "Selection", None)
-				if sel and int(getattr(sel, "Count", 0)) > 0:
-					it = sel.Item(1)
-					if hasattr(it, "Subject") or hasattr(it, "Attachments"):
-						return it
-					elif hasattr(it, "Parent"):
-						p = getattr(it, "Parent", None)
+				# Sprawdź zaznaczony załącznik w AttachmentSelection
+				try:
+					attSel = getattr(activeWin, "AttachmentSelection", None)
+					if attSel and int(getattr(attSel, "Count", 0)) > 0:
+						att = attSel.Item(1)
+						p = getattr(att, "Parent", None)
 						if p and (hasattr(p, "Subject") or hasattr(p, "Attachments")):
 							return p
-			except Exception:
-				pass
+				except Exception:
+					pass
 
-		# Fallback na ActiveExplorer jeśli activeWin był czymś innym
-		try:
+				# Sprawdź Selection w Explorerze
+				try:
+					sel = getattr(activeWin, "Selection", None)
+					if sel and int(getattr(sel, "Count", 0)) > 0:
+						it = sel.Item(1)
+						if hasattr(it, "Subject") or hasattr(it, "Attachments"):
+							return it
+						elif hasattr(it, "Parent"):
+							p = getattr(it, "Parent", None)
+							if p and (hasattr(p, "Subject") or hasattr(p, "Attachments")):
+								return p
+				except Exception:
+					pass
+
+			# Fallback na ActiveExplorer jeśli activeWin był czymś innym
 			actExp = getattr(nativeOm, "ActiveExplorer", lambda: None)()
 			if actExp and actExp != activeWin:
 				try:
 					inlineResp = getattr(actExp, "ActiveInlineResponse", None)
-					if inlineResp:
+					if inlineResp and (hasattr(inlineResp, "Subject") or hasattr(inlineResp, "Attachments")):
 						return inlineResp
 				except Exception:
 					pass
@@ -3440,39 +3388,55 @@ def getCurrentMailItem(doc=None, focus=None):
 							return it
 				except Exception:
 					pass
-		except Exception:
-			pass
+		except Exception as ex:
+			log.debug(f"outlookImageHelper: getCurrentMailItem nativeOm error: {ex}")
 
-		# Fallback na ActiveInspector
+	# 3. Bezpieczny fallback przez doc.Parent
+	if doc:
 		try:
-			actInsp = getattr(nativeOm, "ActiveInspector", lambda: None)()
-			if actInsp:
-				cur = getattr(actInsp, "CurrentItem", None)
-				if cur:
-					return cur
+			p = getattr(doc, "Parent", None)
+			if p:
+				if hasattr(p, "Subject") or hasattr(p, "Attachments"):
+					return p
+				elif hasattr(p, "CurrentItem"):
+					cur = getattr(p, "CurrentItem", None)
+					if cur and (hasattr(cur, "Subject") or hasattr(cur, "Attachments")):
+						return cur
 		except Exception:
 			pass
-
-		# Fallback: okienko podglądu _WwG w oknie pierwszoplanowym
-		try:
-			fgHwnd = winUser.getForegroundWindow()
-			if fgHwnd:
-				wHwnd = _findWordGWindow(fgHwnd)
-				if wHwnd and winUser.isWindowVisible(wHwnd):
-					docFromHwnd = _getWordDocumentFromHwnd(wHwnd)
-					if docFromHwnd:
-						mailEnv = getattr(docFromHwnd, "MailEnvelope", None)
-						if mailEnv:
-							it = getattr(mailEnv, "Item", None)
-							if it and (hasattr(it, "Subject") or hasattr(it, "Attachments")):
-								return it
-		except Exception:
-			pass
-
-	except Exception as ex:
-		log.debug(f"outlookImageHelper: getCurrentMailItem ogólny błąd: {ex}")
 
 	return None
+
+
+def isMessagePicturesBlocked(mailItem=None, doc=None) -> bool:
+	"""
+	Bada, czy w bieżącej wiadomości program Outlook zablokował automatyczne pobieranie zewnętrznych grafik.
+	Wykorzystuje właściwość MAPI PidTagBlockStatus (0x10B50003).
+	Wartość 0 lub 1 oznacza zablokowane grafiki zewnętrzne.
+	Wartość z bitem 4 (np. 4) oznacza, że obrazy zostały odblokowane/pobrane przez użytkownika.
+	"""
+	if not mailItem:
+		try:
+			mailItem = getCurrentMailItem(doc=doc)
+		except Exception:
+			pass
+	if mailItem:
+		try:
+			pa = getattr(mailItem, "PropertyAccessor", None)
+			if pa:
+				status = pa.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x10B50003")
+				if status is not None:
+					try:
+						val = int(status)
+						if (val & 4) != 0:
+							return False
+						if val in (0, 1):
+							return True
+					except Exception:
+						pass
+		except Exception:
+			pass
+	return False
 
 
 def getSelectedMessagesInfo() -> tuple[int, object | None, bool]:
@@ -4488,13 +4452,14 @@ def extractImgInfoFromHtml(html: str) -> list[dict]:
 	return results
 
 
-def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[GraphicItem]:
+def collectGraphics(doc, minDimension: int = 15, fast: bool = False, msgKey: str | None = None) -> list[GraphicItem]:
 	"""Przeszukuje dokument Worda i zwraca listę wszystkich wykrytych grafik wraz z kontekstem i linkami."""
 	items: list[GraphicItem] = []
 	if not doc:
 		return items
 
-	msgKey = getMessageKey()
+	if not msgKey:
+		msgKey = getMessageKey()
 	customNames = loadAllCustomNames().get(msgKey, {}) if msgKey else {}
 	allImageSettings = loadAllImageSettings().get(msgKey, {}) if msgKey else {}
 
@@ -4516,6 +4481,12 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 			if w < minDimension and h < minDimension:
 				continue
 
+			ishapeType = 0
+			try:
+				ishapeType = int(getattr(ishape, "Type", 0) or 0)
+			except Exception:
+				pass
+
 			alt = getattr(ishape, "AlternativeText", "") or ""
 			title = ""
 			try:
@@ -4536,18 +4507,18 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 			sourceUrl = ""
 			hlUrl = ""
 			hlTip = ""
-			if not fast:
-				try:
-					lf = getattr(ishape, "LinkFormat", None)
-					if lf and getattr(lf, "SourceFullName", None):
-						sfn = str(lf.SourceFullName).strip()
-						if sfn.startswith("http://") or sfn.startswith("https://"):
-							sourceUrl = sfn
-						else:
-							cid = sfn
-				except Exception:
-					pass
+			try:
+				lf = getattr(ishape, "LinkFormat", None)
+				if lf and getattr(lf, "SourceFullName", None):
+					sfn = str(lf.SourceFullName).strip()
+					if sfn.startswith("http://") or sfn.startswith("https://"):
+						sourceUrl = sfn
+					else:
+						cid = sfn
+			except Exception:
+				pass
 
+			if not fast:
 				hlUrl, hlTip = extractHyperlinkFromShape(ishape, isInline=True)
 
 			ctx = "" if fast else extractContextTextForShape(doc, ishape, isInline=True)
@@ -4573,6 +4544,10 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 				isInverted=False,
 				sourceUrl=sourceUrl,
 			)
+			gItem._shapeType = ishapeType
+			if ishapeType == 4 or sourceUrl.startswith(("http://", "https://")):
+				gItem.isLinkedPicture = True
+
 			checkText = f"{alt} {title} {cid} {sourceUrl}".lower()
 			if any(k in checkText for k in ("spacer", "blank", "tracking", "pixel", "clear.gif")):
 				gItem.isBlankOrSolid = True
@@ -4596,6 +4571,12 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 			if w < minDimension and h < minDimension:
 				continue
 
+			shapeType = 0
+			try:
+				shapeType = int(getattr(shape, "Type", 0) or 0)
+			except Exception:
+				pass
+
 			alt = getattr(shape, "AlternativeText", "") or ""
 			title = ""
 			try:
@@ -4616,18 +4597,18 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 			sourceUrl = ""
 			hlUrl = ""
 			hlTip = ""
-			if not fast:
-				try:
-					lf = getattr(shape, "LinkFormat", None)
-					if lf and getattr(lf, "SourceFullName", None):
-						sfn = str(lf.SourceFullName).strip()
-						if sfn.startswith("http://") or sfn.startswith("https://"):
-							sourceUrl = sfn
-						else:
-							cid = sfn
-				except Exception:
-					pass
+			try:
+				lf = getattr(shape, "LinkFormat", None)
+				if lf and getattr(lf, "SourceFullName", None):
+					sfn = str(lf.SourceFullName).strip()
+					if sfn.startswith("http://") or sfn.startswith("https://"):
+						sourceUrl = sfn
+					else:
+						cid = sfn
+			except Exception:
+				pass
 
+			if not fast:
 				hlUrl, hlTip = extractHyperlinkFromShape(shape, isInline=False)
 
 			ctx = "" if fast else extractContextTextForShape(doc, shape, isInline=False)
@@ -4653,6 +4634,10 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 				isInverted=False,
 				sourceUrl=sourceUrl,
 			)
+			gItem._shapeType = shapeType
+			if shapeType == 11 or sourceUrl.startswith(("http://", "https://")):
+				gItem.isLinkedPicture = True
+
 			checkText = f"{alt} {title} {sourceUrl}".lower()
 			if any(k in checkText for k in ("spacer", "blank", "tracking", "pixel", "clear.gif")):
 				gItem.isBlankOrSolid = True
@@ -4669,6 +4654,28 @@ def collectGraphics(doc, minDimension: int = 15, fast: bool = False) -> list[Gra
 		it.customName = customNames.get(str(idx), "")
 		it.isInverted = bool(allImageSettings.get(str(idx), {}).get("inverted", False))
 
+	# Sprawdź stan blokady pobierania grafik dla całej wiadomości
+	msgBlocked = False
+	try:
+		mailItem = getCurrentMailItem(doc=doc)
+		msgBlocked = isMessagePicturesBlocked(mailItem=mailItem, doc=doc)
+	except Exception:
+		pass
+
+	for it in items:
+		isExternal = (
+			getattr(it, "isLinkedPicture", False)
+			or it.sourceUrl.startswith(("http://", "https://"))
+			or (it.isInline and getattr(it, "_shapeType", 0) == 4)
+			or (not it.isInline and getattr(it, "_shapeType", 0) == 11)
+		) and not it.cid
+
+		if isExternal:
+			if msgBlocked:
+				it.isNotDownloaded = True
+			elif getattr(it, "isBlankOrSolid", False) and not getattr(it, "_hasLocalRenderedPixels", False):
+				it.isNotDownloaded = True
+
 	return items
 
 
@@ -4677,6 +4684,7 @@ def getOrCollectGraphics(
 	minDimension: int = 15,
 	fast: bool = True,
 	forceRefresh: bool = False,
+	msgKey: str | None = None,
 ) -> list[GraphicItem]:
 	"""
 	Zwraca listę grafik z dokumentu WordMail.
@@ -4708,7 +4716,7 @@ def getOrCollectGraphics(
 			if not (not fast and cachedFast):
 				return cachedItems
 
-	items = collectGraphics(doc, minDimension=minDimension, fast=fast)
+	items = collectGraphics(doc, minDimension=minDimension, fast=fast, msgKey=msgKey)
 	if GlobalPlugin.instance and items:
 		GlobalPlugin.instance._cachedGraphicsDocKey = docKey
 		GlobalPlugin.instance._cachedGraphicsItems = items
@@ -5124,6 +5132,10 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 	descParts = [f"{prefixMsg}Grafika {targetItem.index} z {total}"]
 	if getattr(targetItem, "customName", ""):
 		descParts.append(f": '{targetItem.customName}'")
+	elif getattr(targetItem, "altText", ""):
+		descParts.append(f" ({targetItem.altText})")
+	elif getattr(targetItem, "isNotDownloaded", False):
+		descParts.append(" (obraz)")
 	elif getattr(targetItem, "isBlankOrSolid", False):
 		reason = getattr(targetItem, "blankReason", "") or "pusty ozdobnik"
 		descParts.append(f" ({reason})")
@@ -5131,10 +5143,11 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 		descParts.append(" (linia podziału)")
 	elif getattr(targetItem, "isScreenshotOrUnlabeled", False):
 		descParts.append(" (zrzut ekranu)")
-	elif getattr(targetItem, "altText", ""):
-		descParts.append(f" ({targetItem.altText})")
 	else:
 		descParts.append(" (obraz)")
+
+	if getattr(targetItem, "isNotDownloaded", False):
+		descParts.append(", niepobrana")
 
 	descParts.append(f", {targetItem.widthPx} na {targetItem.heightPx} px")
 
@@ -5150,7 +5163,10 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 	elif getattr(targetItem, "aiDescription", ""):
 		descParts.append(f", AI: '{_cleanSnippet(targetItem.aiDescription, 35)}'")
 
-	descParts.append(". Shift+F10: czynności, Alt+R: OCR.")
+	if getattr(targetItem, "isNotDownloaded", False):
+		descParts.append(". Ctrl+Shift+W: pobierz, Shift+F10: czynności.")
+	else:
+		descParts.append(". Shift+F10: czynności, Alt+R: OCR.")
 
 	fullAnnounce = "".join(descParts)
 
@@ -5322,6 +5338,10 @@ def _treeInterceptor_speakTextInfo(treeInterceptorInstance, info, *args, **kwarg
 					descParts = [f"Grafika {item.index}"]
 					if getattr(item, "customName", ""):
 						descParts.append(f": '{item.customName}'")
+					elif getattr(item, "altText", ""):
+						descParts.append(f" ({item.altText})")
+					elif getattr(item, "isNotDownloaded", False):
+						descParts.append(" (obraz)")
 					elif getattr(item, "isBlankOrSolid", False):
 						reason = getattr(item, "blankReason", "") or "pusty ozdobnik"
 						descParts.append(f" ({reason})")
@@ -5329,16 +5349,20 @@ def _treeInterceptor_speakTextInfo(treeInterceptorInstance, info, *args, **kwarg
 						descParts.append(" (linia podziału)")
 					elif getattr(item, "isScreenshotOrUnlabeled", False):
 						descParts.append(" (zrzut ekranu)")
-					elif getattr(item, "altText", ""):
-						descParts.append(f" ({item.altText})")
 					else:
 						descParts.append(f" ({item.widthPx} na {item.heightPx} px)")
+
+					if getattr(item, "isNotDownloaded", False):
+						descParts.append(", niepobrana")
 
 					if getattr(item, "hyperlinkUrl", ""):
 						dom = getCleanDomain(item.hyperlinkUrl)
 						descParts.append(f", link: {dom}" if dom else ", link")
 
-					descParts.append(". Shift+F10: czynności.")
+					if getattr(item, "isNotDownloaded", False):
+						descParts.append(". Ctrl+Shift+W: pobierz, Shift+F10: czynności.")
+					else:
+						descParts.append(". Shift+F10: czynności.")
 					ui.message("".join(descParts))
 					if GlobalPlugin.instance:
 						GlobalPlugin.instance._currentGraphicItem = item
@@ -5383,6 +5407,10 @@ def _treeInterceptor_handleCaretMove(treeInterceptorInstance):
 					descParts = [f"Grafika {item.index}"]
 					if getattr(item, "customName", ""):
 						descParts.append(f": '{item.customName}'")
+					elif getattr(item, "altText", ""):
+						descParts.append(f" ({item.altText})")
+					elif getattr(item, "isNotDownloaded", False):
+						descParts.append(" (obraz)")
 					elif getattr(item, "isBlankOrSolid", False):
 						reason = getattr(item, "blankReason", "") or "pusty ozdobnik"
 						descParts.append(f" ({reason})")
@@ -5390,16 +5418,20 @@ def _treeInterceptor_handleCaretMove(treeInterceptorInstance):
 						descParts.append(" (linia podziału)")
 					elif getattr(item, "isScreenshotOrUnlabeled", False):
 						descParts.append(" (zrzut ekranu)")
-					elif getattr(item, "altText", ""):
-						descParts.append(f" ({item.altText})")
 					else:
 						descParts.append(f" ({item.widthPx} na {item.heightPx} px)")
+
+					if getattr(item, "isNotDownloaded", False):
+						descParts.append(", niepobrana")
 
 					if getattr(item, "hyperlinkUrl", ""):
 						dom = getCleanDomain(item.hyperlinkUrl)
 						descParts.append(f", link: {dom}" if dom else ", link")
 
-					descParts.append(". Shift+F10: czynności.")
+					if getattr(item, "isNotDownloaded", False):
+						descParts.append(". Ctrl+Shift+W: pobierz, Shift+F10: czynności.")
+					else:
+						descParts.append(". Shift+F10: czynności.")
 					ui.message("".join(descParts))
 					if GlobalPlugin.instance:
 						GlobalPlugin.instance._currentGraphicItem = item
@@ -5442,7 +5474,8 @@ def _treeInterceptor_event_gainFocus(treeInterceptorInstance):
 			except Exception:
 				pass
 			lbl = getattr(cand, "customName", "") or getattr(cand, "altText", "")
-			msg = f"Grafika {cand.index}: {lbl}" if lbl else f"Grafika {cand.index}"
+			notDl = ", niepobrana" if getattr(cand, "isNotDownloaded", False) else ""
+			msg = f"Grafika {cand.index}: {lbl}{notDl}" if lbl else f"Grafika {cand.index}{notDl}"
 			ui.message(msg)
 			return
 
@@ -12676,6 +12709,11 @@ def ensureGraphicReady(item, parent=None, actionName: str = "wykonania czynnośc
 	if getattr(item, "_extractedTempPath", None) and os.path.isfile(item._extractedTempPath) and not getattr(item, "isBlankOrSolid", False):
 		return True
 
+	# 1b. Jeśli grafika jest zablokowana / niepobrana przez program Outlook, natychmiast wyświetl instrukcję
+	if getattr(item, "isNotDownloaded", False) and not getattr(item, "isDownloaded", False):
+		showBlockedImageInstructionsDialog(parent, item, actionName=actionName)
+		return False
+
 	# 2. Próba bezpośredniego wyodrębnienia lokalnego z edytora WordMail
 	if getattr(item, "rawObject", None):
 		try:
@@ -16537,6 +16575,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			doc,
 			minDimension=config.conf[CONFIG_SECTION].get("minDimension", 15),
 			fast=True,
+			msgKey=curKey,
 		)
 		if not items:
 			return
@@ -16549,7 +16588,25 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			playAlertSound(soundName="image_alert", volume=vol, context="Otwarta treść wiadomości (_WwG)")
 
 		if sec.get("autoAnnounce", True):
-			if len(items) == 1 and unlabeledCount == 1:
+			notDlCount = sum(1 for it in items if getattr(it, "isNotDownloaded", False))
+			if notDlCount > 0:
+				if len(items) == 1 or notDlCount == len(items):
+					ui.message(
+						f"Wiadomość zawiera {len(items)} grafik (niepobrane). "
+						"Aby z nimi pracować, najpierw je pobierz: naciśnij Ctrl+Shift+W, potem Enter."
+						if getEffectiveLanguage() == "pl" else
+						f"Message contains {len(items)} pictures (not downloaded). "
+						"To work with them, download them first: press Ctrl+Shift+W, then Enter."
+					)
+				else:
+					ui.message(
+						f"Wiadomość zawiera {len(items)} grafik ({notDlCount} niepobranych). "
+						"Aby je pobrać, naciśnij Ctrl+Shift+W, potem Enter."
+						if getEffectiveLanguage() == "pl" else
+						f"Message contains {len(items)} pictures ({notDlCount} not downloaded). "
+						"To download them, press Ctrl+Shift+W, then Enter."
+					)
+			elif len(items) == 1 and unlabeledCount == 1:
 				ui.message(_T("msg_one_screenshot"))
 			elif unlabeledCount > 0:
 				ui.message(_T("msg_items_found", total=len(items), unlabeled=unlabeledCount))

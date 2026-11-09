@@ -1,7 +1,7 @@
 {
   "name": "outlookImageHelper",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-  "changelog": "Wersja 1.7.2:\n• Całkowite wyciszenie dźwięków dodatku podczas poruszania się po menu kontekstowym (zarówno wywołanym na liście wiadomości, jak i wewnątrz otwartego maila).\n• Precyzyjna detekcja elementów menu oraz okien podręcznych (popups) eliminująca fałszywe wykrywanie listy i treści wiadomości podczas nawigacji klawiaturą lub myszą po pozycjach menu.",
+  "changelog": "Wersja 1.7.3:\n• Całkowita eliminacja 10-sekundowego zawieszania Outlooka i NVDA w otwartych oknach wiadomości (likwidacja blokady COM RPC w edytorze WordMail).\n• Automatyczne wykrywanie niepobranych/zablokowanych grafik zewnętrznych (np. w mailach Polsat Box Go, Otomoto) i informowanie o konieczności ich pobrania (Ctrl+Shift+W, potem Enter) przy otwieraniu wiadomości.\n• Krótka, jasna informacja 'niepobrana' przy nawigacji po grafikach (klawisze G, Shift+G oraz strzałki) wraz ze skrótem do pobrania.",
   "minNVDAVersion": "2024.1.0"
 }
