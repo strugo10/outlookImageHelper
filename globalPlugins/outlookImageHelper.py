@@ -72,11 +72,11 @@ ADDON_NAME = "Outlook Image Helper"
 ADDON_TITLE = "Outlook - Pomocnik obrazów i załączników"
 ADDON_AUTHOR = "Sławomir Strugarek z pomocą Antigravity (Google DeepMind)"
 ADDON_BUILD_DATE = "2026-11-09"
-ADDON_BUILD_ID = "20261109.4"
+ADDON_BUILD_ID = "20261109.5"
 ADDON_COMPATIBILITY = "NVDA 2024.1 – 2026.3+ | Microsoft Outlook 2013-365 Classic"
 ADDON_LICENSE = "GPL v2+ (Open Source)"
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDON_VERSION = "1.7.3"
+ADDON_VERSION = "1.7.4"
 try:
 	_manifest_path = os.path.join(ADDON_DIR, "manifest.ini")
 	if os.path.isfile(_manifest_path):
@@ -1415,7 +1415,10 @@ def showAccessibleMessageBox(message: str, title: str = "Informacja", parent=Non
 	if not wx.IsMainThread():
 		wx.CallAfter(showAccessibleMessageBox, message, title, parent, buttonLabel, actionBtnLabel, actionCallback)
 		return
-	hasValidParent = bool(parent and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
+	rememberOutlookFocus()
+	targetTopHwnd = _lastActiveOutlookHwnd
+	targetBodyHwnd = _lastActiveOutlookBodyHwnd
+	hasValidParent = bool(parent and parent != gui.mainFrame and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
 	if not hasValidParent:
 		gui.mainFrame.prePopup()
 	try:
@@ -1428,6 +1431,7 @@ def showAccessibleMessageBox(message: str, title: str = "Informacja", parent=Non
 		if not hasValidParent:
 			_ensureWordSelectionCollapsed()
 			gui.mainFrame.postPopup()
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 		else:
 			try:
 				parent.Raise()
@@ -1462,7 +1466,10 @@ def showOcrResultDialog(text: str, title: str = "Rozpoznany tekst (OCR)", parent
 
 def showAccessibleConfirmBox(message: str, title: str = "Potwierdzenie", parent=None, defaultYes: bool = False) -> bool:
 	"""Wyświetla w pełni dostępne okno pytania Tak/Nie z fokusem na tekście pytania."""
-	hasValidParent = bool(parent and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
+	rememberOutlookFocus()
+	targetTopHwnd = _lastActiveOutlookHwnd
+	targetBodyHwnd = _lastActiveOutlookBodyHwnd
+	hasValidParent = bool(parent and parent != gui.mainFrame and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
 	if not hasValidParent:
 		gui.mainFrame.prePopup()
 	try:
@@ -1476,6 +1483,7 @@ def showAccessibleConfirmBox(message: str, title: str = "Potwierdzenie", parent=
 		if not hasValidParent:
 			_ensureWordSelectionCollapsed()
 			gui.mainFrame.postPopup()
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 		else:
 			try:
 				parent.Raise()
@@ -2133,7 +2141,10 @@ def showBlockedImageInstructionsDialog(parent, item=None, actionName: str = ""):
 	if not wx.IsMainThread():
 		wx.CallAfter(showBlockedImageInstructionsDialog, parent, item, actionName)
 		return
-	hasValidParent = bool(parent and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
+	rememberOutlookFocus()
+	targetTopHwnd = _lastActiveOutlookHwnd
+	targetBodyHwnd = _lastActiveOutlookBodyHwnd
+	hasValidParent = bool(parent and parent != gui.mainFrame and isinstance(parent, wx.Window) and winUser.isWindow(getattr(parent, "Handle", 0)))
 	if not hasValidParent:
 		gui.mainFrame.prePopup()
 	try:
@@ -2146,6 +2157,7 @@ def showBlockedImageInstructionsDialog(parent, item=None, actionName: str = ""):
 		if not hasValidParent:
 			_ensureWordSelectionCollapsed()
 			gui.mainFrame.postPopup()
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 		else:
 			try:
 				parent.Raise()
@@ -3005,6 +3017,158 @@ def _findWordGWindow(parentHwnd: int) -> int:
 	except Exception as ex:
 		log.debug(f"outlookImageHelper: _findWordGWindow EnumChildWindows error: {ex}")
 	return found[0]
+
+
+_lastActiveOutlookHwnd: int = 0
+_lastActiveOutlookBodyHwnd: int = 0
+
+
+def rememberOutlookFocus(topHwnd: int = 0, bodyHwnd: int = 0):
+	"""Zapamiętuje uchwyty okna programu Outlook oraz edytora wiadomości (_WwG), aby móc do nich natychmiast wrócić."""
+	global _lastActiveOutlookHwnd, _lastActiveOutlookBodyHwnd
+	try:
+		if not topHwnd:
+			fg = winUser.getForegroundWindow()
+			if fg and winUser.isWindow(fg):
+				cls = winUser.getClassName(fg).lower()
+				if "rctrl_renwnd32" in cls or "outlook" in cls:
+					topHwnd = fg
+		if not bodyHwnd and topHwnd:
+			bodyHwnd = _findWordGWindow(topHwnd)
+		if not bodyHwnd:
+			focusObj = api.getFocusObject()
+			if focusObj:
+				h = getattr(focusObj, "windowHandle", 0)
+				if h and winUser.isWindow(h):
+					if winUser.getClassName(h) == "_WwG":
+						bodyHwnd = h
+					if not topHwnd:
+						topHwnd = winUser.getAncestor(h, winUser.GA_ROOT)
+		if topHwnd and winUser.isWindow(topHwnd):
+			cls = winUser.getClassName(topHwnd).lower()
+			if "rctrl_renwnd32" in cls or "outlook" in cls:
+				_lastActiveOutlookHwnd = topHwnd
+		if bodyHwnd and winUser.isWindow(bodyHwnd):
+			if winUser.getClassName(bodyHwnd) == "_WwG":
+				_lastActiveOutlookBodyHwnd = bodyHwnd
+	except Exception as ex:
+		log.debug(f"outlookImageHelper.rememberOutlookFocus error: {ex}")
+
+
+def restoreOutlookFocus(topHwnd: int = 0, bodyHwnd: int = 0):
+	"""
+	Niezawodnie przywraca fokus systemu Windows oraz czytnika NVDA do okna otwartej wiadomości e-mail
+	(edytora WordMail o klasie _WwG) po zamknięciu okien dialogowych, komunikatów, OCR czy menu podręcznego.
+	"""
+	global _lastActiveOutlookHwnd, _lastActiveOutlookBodyHwnd
+
+	targetTop = topHwnd or _lastActiveOutlookHwnd
+	targetBody = bodyHwnd or _lastActiveOutlookBodyHwnd
+
+	if targetTop and winUser.isWindow(targetTop):
+		if not targetBody or not winUser.isWindow(targetBody):
+			targetBody = _findWordGWindow(targetTop)
+
+	if not targetTop or not winUser.isWindow(targetTop):
+		try:
+			app = getOutlookApp()
+			if app:
+				actWin = getattr(app, "ActiveWindow", None)
+				if callable(actWin):
+					actWin = actWin()
+				if actWin:
+					hwndProp = getattr(actWin, "HWND", 0)
+					if hwndProp and winUser.isWindow(hwndProp):
+						targetTop = hwndProp
+						targetBody = _findWordGWindow(targetTop)
+		except Exception as ex:
+			log.debug(f"outlookImageHelper.restoreOutlookFocus: COM fallback error: {ex}")
+
+	if not targetTop or not winUser.isWindow(targetTop):
+		try:
+			targetCandidates = []
+			def _enumTop(h, _):
+				cls = winUser.getClassName(h).lower()
+				if "rctrl_renwnd32" in cls and winUser.isWindowVisible(h):
+					targetCandidates.append(h)
+					return False
+				return True
+			from ctypes import wintypes
+			WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+			ctypes.windll.user32.EnumWindows(WNDENUMPROC(_enumTop), 0)
+			if targetCandidates:
+				targetTop = targetCandidates[0]
+				targetBody = _findWordGWindow(targetTop)
+		except Exception:
+			pass
+
+	if not targetTop or not winUser.isWindow(targetTop):
+		return
+
+	def _doRestore():
+		try:
+			if not winUser.isWindow(targetTop):
+				return
+
+			_ensureWordSelectionCollapsed()
+
+			import ctypes
+			user32 = ctypes.windll.user32
+			kernel32 = ctypes.windll.kernel32
+
+			if winUser.isIconic(targetTop):
+				winUser.showWindow(targetTop, winUser.SW_RESTORE)
+
+			curThreadId = kernel32.GetCurrentThreadId()
+			targetThreadId = user32.GetWindowThreadProcessId(targetTop, None)
+			attached = False
+			if targetThreadId and targetThreadId != curThreadId:
+				attached = bool(user32.AttachThreadInput(curThreadId, targetThreadId, True))
+
+			try:
+				user32.BringWindowToTop(targetTop)
+				user32.SetForegroundWindow(targetTop)
+				if targetBody and winUser.isWindow(targetBody):
+					user32.SetFocus(targetBody)
+				else:
+					user32.SetFocus(targetTop)
+			finally:
+				if attached:
+					user32.AttachThreadInput(curThreadId, targetThreadId, False)
+
+			targetHwnd = targetBody if (targetBody and winUser.isWindow(targetBody)) else targetTop
+			targetObj = None
+			try:
+				import NVDAObjects.IAccessible
+				targetObj = NVDAObjects.IAccessible.getNVDAObjectFromEvent(targetHwnd, winUser.OBJID_CLIENT, 0)
+			except Exception:
+				try:
+					import NVDAObjects.window
+					targetObj = NVDAObjects.window.Window(windowHandle=targetHwnd)
+				except Exception:
+					pass
+
+			if targetObj:
+				try:
+					api.setFocusObject(targetObj)
+				except Exception:
+					pass
+				try:
+					import eventHandler
+					eventHandler.queueEvent("gainFocus", targetObj)
+				except Exception:
+					pass
+				ti = getattr(targetObj, "treeInterceptor", None)
+				if ti and getattr(ti, "isAlive", False):
+					try:
+						ti.passThrough = False
+					except Exception:
+						pass
+		except Exception as ex:
+			log.debug(f"outlookImageHelper.restoreOutlookFocus _doRestore error: {ex}")
+
+	wx.CallLater(35, _doRestore)
+	wx.CallLater(120, _doRestore)
 
 
 def isMenuOrPopup(obj=None) -> bool:
@@ -4963,6 +5127,7 @@ def navigateGraphicInMessage(doc, direction: str = "next", treeInterceptor=None)
 	co zapobiega przeskakiwaniu widoku maila i błędom UIA 0xe06d7363 w NVDA 2026+),
 	odtwarza motyw dźwiękowy i wypowiada wyczerpujący, bezbłędny opis grafiki.
 	"""
+	rememberOutlookFocus()
 	if not doc:
 		doc = _getDocFromTreeInterceptorOrFocus(treeInterceptor)
 	if not doc:
@@ -5267,6 +5432,7 @@ def _treeInterceptor_script_contextMenu(treeInterceptorInstance, gesture):
 		return
 
 	try:
+		rememberOutlookFocus()
 		doc = _getDocFromTreeInterceptorOrFocus(treeInterceptorInstance)
 		item = None
 		if doc:
@@ -5381,6 +5547,7 @@ def _treeInterceptor_speakTextInfo(treeInterceptorInstance, info, *args, **kwarg
 
 def _treeInterceptor_handleCaretMove(treeInterceptorInstance):
 	"""Zastępuje komunikat 'pusta' przy poruszaniu się strzałkami po linii zawierającej grafikę."""
+	rememberOutlookFocus()
 	if not _isOutlookTreeInterceptor(treeInterceptorInstance):
 		orig = getattr(treeInterceptorInstance, "_orig_handleCaretMove", None)
 		if orig:
@@ -5462,8 +5629,6 @@ def _treeInterceptor_event_gainFocus(treeInterceptorInstance):
 	_ensureWordSelectionCollapsed()
 
 	if getattr(treeInterceptorInstance, "_hadFirstGainFocus", False):
-		if GlobalPlugin.instance and time.time() < getattr(GlobalPlugin.instance, "_suppressCaretSpeechUntil", 0):
-			return
 		cand = getattr(GlobalPlugin.instance, "_currentGraphicItem", None) if GlobalPlugin.instance else None
 		if cand is not None:
 			try:
@@ -5477,6 +5642,8 @@ def _treeInterceptor_event_gainFocus(treeInterceptorInstance):
 			notDl = ", niepobrana" if getattr(cand, "isNotDownloaded", False) else ""
 			msg = f"Grafika {cand.index}: {lbl}{notDl}" if lbl else f"Grafika {cand.index}{notDl}"
 			ui.message(msg)
+			return
+		if GlobalPlugin.instance and time.time() < getattr(GlobalPlugin.instance, "_suppressCaretSpeechUntil", 0):
 			return
 
 	orig = getattr(treeInterceptorInstance, "_orig_event_treeInterceptor_gainFocus", None)
@@ -9162,6 +9329,7 @@ class AiConversationDialog(wx.Dialog):
 		self.btnAnswersMenu.Bind(wx.EVT_BUTTON, self.onAnswersMenu)
 		self.btnHelp.Bind(wx.EVT_BUTTON, lambda evt: showContextHelp("chat", parent=self))
 		self.Bind(wx.EVT_CHAR_HOOK, self.onCharHook)
+		self.Bind(wx.EVT_CLOSE, self.onCloseDialog)
 		self.historyCtrl.Bind(wx.EVT_TEXT_URL, self.onTextUrl)
 		self.historyCtrl.Bind(wx.EVT_LEFT_DCLICK, self.onHistoryDClick)
 		self.historyCtrl.Bind(wx.EVT_CONTEXT_MENU, self.onHistoryContextMenu)
@@ -9778,6 +9946,11 @@ class AiConversationDialog(wx.Dialog):
 			if includeImg:
 				msg += " (z grafiką źródłową)"
 			ui.message(msg)
+
+	def onCloseDialog(self, event):
+		if not isinstance(self.GetParent(), wx.Dialog):
+			restoreOutlookFocus()
+		event.Skip()
 
 	def onCharHook(self, event):
 		key = event.GetKeyCode()
@@ -11803,6 +11976,7 @@ class ImagePreviewDialog(wx.Dialog):
 		self.btnOpenOS.Bind(wx.EVT_BUTTON, lambda evt: self.openInSystemViewer())
 		self.btnHelp.Bind(wx.EVT_BUTTON, lambda evt: showContextHelp("preview", parent=self))
 		self.Bind(wx.EVT_CHAR_HOOK, self.onCharHook)
+		self.Bind(wx.EVT_CLOSE, self.onCloseDialog)
 
 		self.scroller.Bind(wx.EVT_CONTEXT_MENU, lambda evt: self.showContextMenu())
 		self.imageStatic.Bind(wx.EVT_CONTEXT_MENU, lambda evt: self.showContextMenu())
@@ -12051,6 +12225,11 @@ class ImagePreviewDialog(wx.Dialog):
 			except Exception as e:
 				ui.message(f"Błąd otwierania obrazu: {e}")
 
+	def onCloseDialog(self, event):
+		if not isinstance(self.GetParent(), wx.Dialog):
+			restoreOutlookFocus()
+		event.Skip()
+
 	def onCharHook(self, event):
 		key = event.GetKeyCode()
 		isAltGr = (event.ControlDown() and event.AltDown()) or bool(winUser.getKeyState(winUser.VK_RMENU) & 0x8000)
@@ -12117,6 +12296,7 @@ class ImagePreviewDialog(wx.Dialog):
 
 def openGraphicListDialog():
 	"""Otwiera okno dialogowe listy wszystkich grafik i załączników w bieżącej wiadomości."""
+	rememberOutlookFocus()
 	selCount, sel, isMulti = getSelectedMessagesInfo()
 	if isMulti:
 		handleMultipleMessagesSelected(selCount, sel, action="list")
@@ -12178,7 +12358,21 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 	if not item:
 		return
 
+	rememberOutlookFocus()
+	targetTopHwnd = _lastActiveOutlookHwnd
+	targetBodyHwnd = _lastActiveOutlookBodyHwnd
+
 	parentWin = parent or gui.mainFrame
+	isDialogParent = isinstance(parent, wx.Dialog)
+	parentDialog = parent if isDialogParent else None
+	actionTriggered = [False]
+
+	def _wrap(fn):
+		def _cb(evt=None):
+			actionTriggered[0] = True
+			wx.CallAfter(fn)
+		return _cb
+
 	menu = wx.Menu()
 
 	idOcr = wx.NewIdRef()
@@ -12271,65 +12465,71 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 
 	# Powiązania zdarzeń (wykonywane przez wx.CallAfter po czystym zamknięciu PopupMenu i postPopup)
 	def _runOcr():
-		if not ensureGraphicReady(item, parent=parentWin, actionName="rozpoznania tekstu (OCR)"):
+		if not ensureGraphicReady(item, parent=parentDialog, actionName="rozpoznania tekstu (OCR)"):
 			return
 		if GlobalPlugin.instance:
-			GlobalPlugin.instance.triggerOcrForItem(item, parentDialog=parent if isinstance(parent, wx.Dialog) else None)
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runOcr), id=idOcr)
+			GlobalPlugin.instance.triggerOcrForItem(item, parentDialog=parentDialog)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runOcr), id=idOcr)
 
 	def _runAiQuick():
-		if not ensureGraphicReady(item, parent=parentWin, actionName="analizy i opisu przez AI"):
+		if not ensureGraphicReady(item, parent=parentDialog, actionName="analizy i opisu przez AI"):
 			return
 		def doAi():
 			if GlobalPlugin.instance:
-				GlobalPlugin.instance.triggerAiDescriptionForItem(item, parentDialog=parent if isinstance(parent, wx.Dialog) else None, customPrompt="")
+				GlobalPlugin.instance.triggerAiDescriptionForItem(item, parentDialog=parentDialog, customPrompt="")
 		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doAi)
 			return
 		doAi()
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runAiQuick), id=idAiQuick)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runAiQuick), id=idAiQuick)
 
 	def _runAiPrompt():
-		if not ensureGraphicReady(item, parent=parentWin, actionName="analizy i opisu przez AI"):
+		if not ensureGraphicReady(item, parent=parentDialog, actionName="analizy i opisu przez AI"):
 			return
 		def doPrompt():
 			with AiPromptSelectionDialog(parentWin, item) as dlg:
 				if dlg.ShowModal() == wx.ID_OK:
 					if GlobalPlugin.instance:
-						GlobalPlugin.instance.triggerAiDescriptionForItem(item, parentDialog=parent if isinstance(parent, wx.Dialog) else None, customPrompt=dlg.selectedPrompt)
+						GlobalPlugin.instance.triggerAiDescriptionForItem(item, parentDialog=parentDialog, customPrompt=dlg.selectedPrompt)
+				elif not isDialogParent:
+					restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doPrompt)
 			return
 		doPrompt()
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runAiPrompt), id=idAiPrompt)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runAiPrompt), id=idAiPrompt)
 
 	def _runAiChat():
-		if not ensureGraphicReady(item, parent=parentWin, actionName="rozmowy z AI"):
+		if not ensureGraphicReady(item, parent=parentDialog, actionName="rozmowy z AI"):
 			return
 		if isinstance(item, AttachmentItem) and item.isPdf:
 			if not ensurePdfUnlocked(item, parentWin=parentWin):
 				return
 		def doChat():
-			d = AiConversationDialog(parentWin, item)
-			d.ShowModal()
-			d.Destroy()
+			try:
+				d = AiConversationDialog(parentWin, item)
+				d.ShowModal()
+				d.Destroy()
+			finally:
+				if not isDialogParent:
+					restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 			if callbackRefresh:
 				callbackRefresh()
 		if not isAiConfigured():
 			checkAndPromptAiApiKey(parentWin=parentWin, onKeyReadyCallback=doChat)
 			return
 		doChat()
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runAiChat), id=idAiChat)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runAiChat), id=idAiChat)
 
 	def _runPreview():
-		if not ensureGraphicReady(item, parent=parentWin, actionName="wyświetlenia powiększonego podglądu"):
+		if not ensureGraphicReady(item, parent=parentDialog, actionName="wyświetlenia powiększonego podglądu"):
 			return
 		if isAtt:
 			tempPath = saveAttachmentToTempFile(item)
 		else:
 			tempPath = extractGraphicToPngFile(item)
 		if not tempPath or not os.path.isfile(tempPath):
-			showAccessibleMessageBox(_T("err_extract_img"), title="Błąd podglądu", parent=parentWin)
+			showAccessibleMessageBox(_T("err_extract_img"), title="Błąd podglądu", parent=parentDialog)
 			return
 		imageItems = None
 		currIdx = None
@@ -12346,12 +12546,14 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 				GlobalPlugin.instance._suppressCaretSpeechUntil = time.time() + 0.50
 			_ensureWordSelectionCollapsed()
 			gui.mainFrame.postPopup()
+			if not isDialogParent:
+				restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 		if callbackRefresh:
 			callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runPreview), id=idPreview)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runPreview), id=idPreview)
 
 	def _runInvertToggle():
-		if not ensureGraphicReady(item, parent=parentWin, actionName="inwersji kolorów"):
+		if not ensureGraphicReady(item, parent=parentDialog, actionName="inwersji kolorów"):
 			return
 		newState = not getattr(item, "isInverted", False)
 		item.isInverted = newState
@@ -12361,50 +12563,58 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 			setImageInverted(msgKey, idx, newState)
 		msg = _T("list_invert_toggled_on", idx=idx) if newState else _T("list_invert_toggled_off", idx=idx)
 		ui.message(msg)
+		if not isDialogParent:
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 		if callbackRefresh:
 			callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runInvertToggle), id=idInvertToggle)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runInvertToggle), id=idInvertToggle)
 
 	def _runInstructions():
-		showBlockedImageInstructionsDialog(parentWin, item)
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runInstructions), id=idInstructions)
+		showBlockedImageInstructionsDialog(parentDialog, item)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runInstructions), id=idInstructions)
 
 	def _runRename():
 		if not isinstance(item, GraphicItem):
 			ui.message("Zmień nazwę jest dostępne tylko dla grafik w treści wiadomości.")
+			if not isDialogParent:
+				restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 			return
 		curName = getattr(item, "customName", "")
-		with wx.TextEntryDialog(
-			parentWin,
-			"Wprowadź własną, czytelną nazwę lub opis dla tej grafiki:\n(Zostanie ona zapamiętana przy każdym kolejnym otwarciu tej wiadomości)",
-			caption="Zmień nazwę / nadaj własny opis grafice",
-			value=curName,
-		) as dlg:
-			if dlg.ShowModal() == wx.ID_OK:
-				val = dlg.GetValue().strip()
-				if val:
-					item.customName = val
-					try:
-						if hasattr(item.rawObject, "AlternativeText"):
-							item.rawObject.AlternativeText = val
-					except Exception:
-						pass
-					msgKey = getattr(item, "msgKey", "") or getMessageKey()
-					setCustomNameForGraphic(msgKey, item.index, val)
-					ui.message(f"Zapisano nową nazwę grafiki: {val}")
-				else:
-					item.customName = ""
-					try:
-						if hasattr(item.rawObject, "AlternativeText"):
-							item.rawObject.AlternativeText = ""
-					except Exception:
-						pass
-					msgKey = getattr(item, "msgKey", "") or getMessageKey()
-					setCustomNameForGraphic(msgKey, item.index, "")
-					ui.message("Przywrócono domyślną nazwę grafiki.")
-				if callbackRefresh:
-					callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runRename), id=idRename)
+		try:
+			with wx.TextEntryDialog(
+				parentWin,
+				"Wprowadź własną, czytelną nazwę lub opis dla tej grafiki:\n(Zostanie ona zapamiętana przy każdym kolejnym otwarciu tej wiadomości)",
+				caption="Zmień nazwę / nadaj własny opis grafice",
+				value=curName,
+			) as dlg:
+				if dlg.ShowModal() == wx.ID_OK:
+					val = dlg.GetValue().strip()
+					if val:
+						item.customName = val
+						try:
+							if hasattr(item.rawObject, "AlternativeText"):
+								item.rawObject.AlternativeText = val
+						except Exception:
+							pass
+						msgKey = getattr(item, "msgKey", "") or getMessageKey()
+						setCustomNameForGraphic(msgKey, item.index, val)
+						ui.message(f"Zapisano nową nazwę grafiki: {val}")
+					else:
+						item.customName = ""
+						try:
+							if hasattr(item.rawObject, "AlternativeText"):
+								item.rawObject.AlternativeText = ""
+						except Exception:
+							pass
+						msgKey = getattr(item, "msgKey", "") or getMessageKey()
+						setCustomNameForGraphic(msgKey, item.index, "")
+						ui.message("Przywrócono domyślną nazwę grafiki.")
+					if callbackRefresh:
+						callbackRefresh()
+		finally:
+			if not isDialogParent:
+				restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runRename), id=idRename)
 
 	def _runClearName():
 		item.customName = ""
@@ -12416,13 +12626,17 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		msgKey = getattr(item, "msgKey", "") or getMessageKey()
 		setCustomNameForGraphic(msgKey, item.index, "")
 		ui.message("Przywrócono domyślną nazwę grafiki.")
+		if not isDialogParent:
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 		if callbackRefresh:
 			callbackRefresh()
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runClearName), id=idClearName)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runClearName), id=idClearName)
 
 	def _runOpen():
-		safeOpenItem(item, parent=parentWin)
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runOpen), id=idOpen)
+		safeOpenItem(item, parent=parentDialog)
+		if not isDialogParent:
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runOpen), id=idOpen)
 
 	def _runSelect():
 		if isinstance(item, GraphicItem):
@@ -12438,11 +12652,13 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 				ui.message(f"Ustawiono kursor na grafice {item.index}. Naciśnij klawisz Aplikacje (Shift+F10) dla menu czynności.")
 			except Exception as e:
 				ui.message(f"Nie udało się ustawić kursora na grafice: {e}")
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runSelect), id=idSelect)
+		if not isDialogParent:
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runSelect), id=idSelect)
 
 	def _runCopy():
 		if isinstance(item, GraphicItem):
-			if not ensureGraphicReady(item, parent=parentWin, actionName="skopiowania do schowka"):
+			if not ensureGraphicReady(item, parent=parentDialog, actionName="skopiowania do schowka"):
 				return
 			try:
 				if item.isInline:
@@ -12452,105 +12668,115 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 				_ensureWordSelectionCollapsed()
 				ui.message(f"Skopiowano grafikę {item.index} do schowka systemowego.")
 			except Exception as e:
-				showAccessibleMessageBox(f"Błąd kopiowania do schowka:\n{e}", title="Błąd schowka", parent=parentWin)
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runCopy), id=idCopy)
+				showAccessibleMessageBox(f"Błąd kopiowania do schowka:\n{e}", title="Błąd schowka", parent=parentDialog)
+			finally:
+				if not isDialogParent:
+					restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runCopy), id=idCopy)
 
 	def _runSave():
-		if isAtt:
-			with wx.FileDialog(
-				parentWin,
-				message="Zapisz załącznik jako plik",
-				defaultFile=item.fileName,
-				style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-			) as fileDialog:
-				if fileDialog.ShowModal() == wx.ID_CANCEL:
-					return
-				destPath = fileDialog.GetPath()
-			try:
-				item.rawAttachment.SaveAsFile(destPath)
-				ui.message(f"Zapisano załącznik jako: {os.path.basename(destPath)}")
-			except Exception as e:
-				showAccessibleMessageBox(f"Błąd podczas zapisywania załącznika:\n{e}", title="Błąd zapisu", parent=parentWin)
-		else:
-			if not ensureGraphicReady(item, parent=parentWin, actionName="zapisania do pliku"):
-				return
-			tempPng = extractGraphicToPngFile(item)
-			if not tempPng or not os.path.isfile(tempPng):
-				showAccessibleMessageBox("Nie udało się pobrać grafiki z edytora wiadomości.", title="Błąd zapisu", parent=parentWin)
-				return
-
-			useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
-			aiConfigured = isAiConfigured()
-
-			def _doSaveWithPrompt(aiCandidate=""):
+		try:
+			if isAtt:
+				with wx.FileDialog(
+					parentWin,
+					message="Zapisz załącznik jako plik",
+					defaultFile=item.fileName,
+					style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+				) as fileDialog:
+					if fileDialog.ShowModal() == wx.ID_CANCEL:
+						return
+					destPath = fileDialog.GetPath()
 				try:
-					if parentWin is not None:
-						if getattr(parentWin, "IsBeingDeleted", lambda: False)():
-							return
-						h = getattr(parentWin, "Handle", None)
-						if h is not None and not winUser.isWindow(h):
-							return
-					suggestedName = generateDescriptiveFilename(item, aiCandidate=aiCandidate)
-					with wx.FileDialog(
-						parentWin,
-						message="Zapisz grafikę jako plik PNG",
-						defaultFile=suggestedName,
-						wildcard="Pliki obrazów PNG (*.png)|*.png",
-						style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-					) as fileDialog:
-						if fileDialog.ShowModal() == wx.ID_CANCEL:
-							return
-						destPath = fileDialog.GetPath()
-
-					try:
-						shutil.copyfile(tempPng, destPath)
-						ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
-					except Exception as e:
-						showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=parentWin)
-				finally:
-					try:
-						if tempPng and os.path.isfile(tempPng) and tempPng not in (getattr(item, "_extractedTempPath", ""), getattr(item, "_downloadedTempPath", "")):
-							os.remove(tempPng)
-					except Exception:
-						pass
-
-			if useAi and aiConfigured and item.isScreenshotOrUnlabeled and not item.ocrText:
-				def _aiNamingWorker():
-					aiCand = ""
-					try:
-						aiCand = callAiVisionApi(
-							prompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę.",
-							imagePath=tempPng,
-							parentDialog=parentWin,
-						)
-					except Exception as ex:
-						log.debug(f"outlookImageHelper: błąd zapytania AI o nazwę pliku: {ex}")
-					wx.CallAfter(_doSaveWithPrompt, aiCand)
-				threading.Thread(target=_aiNamingWorker, daemon=True).start()
+					item.rawAttachment.SaveAsFile(destPath)
+					ui.message(f"Zapisano załącznik jako: {os.path.basename(destPath)}")
+				except Exception as e:
+					showAccessibleMessageBox(f"Błąd podczas zapisywania załącznika:\n{e}", title="Błąd zapisu", parent=parentDialog)
 			else:
-				_doSaveWithPrompt()
-	parentWin.Bind(wx.EVT_MENU, lambda evt: wx.CallAfter(_runSave), id=idSave)
+				if not ensureGraphicReady(item, parent=parentDialog, actionName="zapisania do pliku"):
+					return
+				tempPng = extractGraphicToPngFile(item)
+				if not tempPng or not os.path.isfile(tempPng):
+					showAccessibleMessageBox("Nie udało się pobrać grafiki z edytora wiadomości.", title="Błąd zapisu", parent=parentDialog)
+					return
 
-	def onOpenList(evt):
+				useAi = config.conf[CONFIG_SECTION].get("aiNaming", False)
+				aiConfigured = isAiConfigured()
+
+				def _doSaveWithPrompt(aiCandidate=""):
+					try:
+						if parentWin is not None:
+							if getattr(parentWin, "IsBeingDeleted", lambda: False)():
+								return
+							h = getattr(parentWin, "Handle", None)
+							if h is not None and not winUser.isWindow(h):
+								return
+						suggestedName = generateDescriptiveFilename(item, aiCandidate=aiCandidate)
+						with wx.FileDialog(
+							parentWin,
+							message="Zapisz grafikę jako plik PNG",
+							defaultFile=suggestedName,
+							wildcard="Pliki obrazów PNG (*.png)|*.png",
+							style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+						) as fileDialog:
+							if fileDialog.ShowModal() == wx.ID_CANCEL:
+								return
+							destPath = fileDialog.GetPath()
+
+						try:
+							shutil.copyfile(tempPng, destPath)
+							ui.message(f"Zapisano grafikę jako: {os.path.basename(destPath)}")
+						except Exception as e:
+							showAccessibleMessageBox(f"Błąd podczas zapisywania pliku:\n{e}", title="Błąd zapisu", parent=parentDialog)
+					finally:
+						try:
+							if tempPng and os.path.isfile(tempPng) and tempPng not in (getattr(item, "_extractedTempPath", ""), getattr(item, "_downloadedTempPath", "")):
+								os.remove(tempPng)
+						except Exception:
+							pass
+						if not isDialogParent:
+							restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
+
+				if useAi and aiConfigured and item.isScreenshotOrUnlabeled and not item.ocrText:
+					def _aiNamingWorker():
+						aiCand = ""
+						try:
+							aiCand = callAiVisionApi(
+								prompt="Podaj krótką nazwę pliku (maksymalnie 3-4 słowa po polsku, bez rozszerzenia .png), która najlepiej opisuje ten obraz. Zwróć wyłącznie samą nazwę.",
+								imagePath=tempPng,
+								parentDialog=parentWin,
+							)
+						except Exception as ex:
+							log.debug(f"outlookImageHelper: błąd zapytania AI o nazwę pliku: {ex}")
+						wx.CallAfter(_doSaveWithPrompt, aiCand)
+					threading.Thread(target=_aiNamingWorker, daemon=True).start()
+				else:
+					_doSaveWithPrompt()
+		finally:
+			if not isDialogParent:
+				restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
+	parentWin.Bind(wx.EVT_MENU, _wrap(_runSave), id=idSave)
+
+	def onOpenList(evt=None):
 		wx.CallAfter(openGraphicListDialog)
-	parentWin.Bind(wx.EVT_MENU, onOpenList, id=idOpenList)
+	parentWin.Bind(wx.EVT_MENU, _wrap(onOpenList), id=idOpenList)
 
-	def onSettings(evt):
+	def onSettings(evt=None):
 		wx.CallAfter(gui.mainFrame.popupSettingsDialog, gui.settingsDialogs.NVDASettingsDialog, OutlookImageHelperSettingsPanel)
-	parentWin.Bind(wx.EVT_MENU, onSettings, id=idSettings)
+	parentWin.Bind(wx.EVT_MENU, _wrap(onSettings), id=idSettings)
 
-	def onHelp(evt):
+	def onHelp(evt=None):
 		wx.CallAfter(showContextHelp, "list" if isinstance(parent, wx.Dialog) else "message", parentWin)
-	parentWin.Bind(wx.EVT_MENU, onHelp, id=idHelp)
+	parentWin.Bind(wx.EVT_MENU, _wrap(onHelp), id=idHelp)
 
 	if not isinstance(parent, wx.Dialog):
 		idOutlookMenu = wx.NewIdRef()
 		menu.AppendSeparator()
 		menu.Append(idOutlookMenu, "&Oryginalne menu podręczne programu Outlook\tShift+F10")
 
-		def onOutlookMenu(evt):
+		def onOutlookMenu(evt=None):
 			if GlobalPlugin.instance:
 				GlobalPlugin.instance._bypassNextContextMenu = True
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 			import core
 			def _sendApps():
 				import winUser
@@ -12559,7 +12785,7 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 				winUser.keybd_event(winUser.VK_F10, 0, 2, 0)
 				winUser.keybd_event(winUser.VK_SHIFT, 0, 2, 0)
 			core.callLater(120, _sendApps)
-		parentWin.Bind(wx.EVT_MENU, onOutlookMenu, id=idOutlookMenu)
+		parentWin.Bind(wx.EVT_MENU, _wrap(onOutlookMenu), id=idOutlookMenu)
 
 	gui.mainFrame.prePopup()
 	try:
@@ -12570,6 +12796,8 @@ def showGraphicActionsMenu(item: GraphicItem | AttachmentItem, parent=None, call
 		_ensureWordSelectionCollapsed()
 		gui.mainFrame.postPopup()
 		menu.Destroy()
+		if not isDialogParent and not actionTriggered[0]:
+			restoreOutlookFocus(targetTopHwnd, targetBodyHwnd)
 
 
 def _setRadioBoxFocus(radioBox, selection=0):
@@ -13116,6 +13344,7 @@ class GraphicElementsDialog(wx.Dialog):
 		self.btnHelp.Bind(wx.EVT_BUTTON, lambda evt: showContextHelp("list", parent=self))
 		self.Bind(wx.EVT_CHAR_HOOK, self.onCharHook)
 		self.Bind(wx.EVT_SHOW, self.onShowDialog)
+		self.Bind(wx.EVT_CLOSE, self.onCloseDialog)
 
 		for mode, lb in enumerate(self.listBoxes):
 			if self._getItemsForMode(mode):
@@ -13314,6 +13543,10 @@ class GraphicElementsDialog(wx.Dialog):
 	def _getListLabel(self) -> str:
 		return self._getListLabelForMode(self.currentMode)
 
+	def onCloseDialog(self, event):
+		restoreOutlookFocus()
+		event.Skip()
+
 	def onCharHook(self, event):
 		key = event.GetKeyCode()
 		isAltGr = (event.ControlDown() and event.AltDown()) or bool(winUser.getKeyState(winUser.VK_RMENU) & 0x8000)
@@ -13343,6 +13576,8 @@ class GraphicElementsDialog(wx.Dialog):
 
 		if key == wx.WXK_ESCAPE:
 			self.Close()
+			restoreOutlookFocus()
+			return
 		elif key == wx.WXK_F1:
 			showContextHelp("list", parent=self)
 		elif key == ord('C') and event.AltDown():
@@ -13842,6 +14077,7 @@ class GraphicElementsDialog(wx.Dialog):
 			ui.message(f"Ustawiono kursor na grafice {item.index}. Naciśnij klawisz Aplikacje (Shift+F10) dla menu obrazu.")
 		except Exception as e:
 			ui.message(f"Nie udało się ustawić kursora na grafice: {e}")
+		restoreOutlookFocus()
 
 	def onCopyClicked(self, event):
 		item = self.getSelectedItem()

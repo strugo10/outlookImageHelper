@@ -12,9 +12,9 @@
     "minNVDAVersion": "2024.1.0"
   },
   "outlookImageHelper": {
-    "version": "1.7.3",
+    "version": "1.7.4",
     "downloadUrl": "https://github.com/strugo10/outlookImageHelper/releases/latest/download/outlookImageHelper.nvda-addon",
-    "changelog": "Wersja 1.7.3:\n• Całkowita eliminacja 10-sekundowego zawieszania Outlooka i NVDA w otwartych oknach wiadomości (likwidacja blokady COM RPC w edytorze WordMail).\n• Automatyczne wykrywanie niepobranych/zablokowanych grafik zewnętrznych (np. w mailach Polsat Box Go, Otomoto) i informowanie o konieczności ich pobrania (Ctrl+Shift+W, potem Enter) przy otwieraniu wiadomości.\n• Krótka, jasna informacja 'niepobrana' przy nawigacji po grafikach (klawisze G, Shift+G oraz strzałki) wraz ze skrótem do pobrania.",
+    "changelog": "Wersja 1.7.4:\n• Automatyczne i natychmiastowe przywracanie fokusu do okna wiadomości e-mail (_WwG) w programie Outlook po zamknięciu okien OCR, instrukcji pobierania grafik lub menu czynności.\n• Pełna likwidacja problemu utraty fokusu i konieczności naciskania Alt+Tab po zamknięciu okna klawiszem Escape – nawigacja klawiszami G, Shift+G oraz strzałkami działa od razu na tej samej pozycji.\n• Automatyczne oznajmianie bieżącej grafiki przez czytnik NVDA natychmiast po powrocie z okna dialogowego do treści maila.",
     "minNVDAVersion": "2024.1.0"
   }
 }
